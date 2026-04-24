@@ -1,65 +1,129 @@
-import Image from "next/image";
-
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <main style={{ fontFamily: 'Arial, sans-serif', margin: 0, padding: 0 }}>
+
+      {/* NAVBAR */}
+      <nav style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        padding: '1rem 2rem', backgroundColor: '#ffffff',
+        borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100
+      }}>
+        <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#15803d', margin: 0 }}>NIDO</h1>
+        <div style={{ display: 'flex', gap: '2rem' }}>
+          <a href="#" style={{ color: '#374151', textDecoration: 'none', fontSize: '0.95rem' }}>Propiedades</a>
+          <a href="#" style={{ color: '#374151', textDecoration: 'none', fontSize: '0.95rem' }}>Asesores</a>
+          <a href="#" style={{ color: '#374151', textDecoration: 'none', fontSize: '0.95rem' }}>Propietarios</a>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button style={{
+            padding: '0.5rem 1.2rem', borderRadius: '8px',
+            border: '1px solid #15803d', backgroundColor: 'white',
+            color: '#15803d', cursor: 'pointer', fontSize: '0.9rem'
+          }}>Ingresar</button>
+          <button style={{
+            padding: '0.5rem 1.2rem', borderRadius: '8px',
+            border: 'none', backgroundColor: '#15803d',
+            color: 'white', cursor: 'pointer', fontSize: '0.9rem'
+          }}>Registrarse</button>
         </div>
-      </main>
-    </div>
-  );
+      </nav>
+
+      {/* HERO */}
+      <section style={{
+        background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+        padding: '5rem 2rem', textAlign: 'center'
+      }}>
+        <h2 style={{ fontSize: '3.2rem', fontWeight: 'bold', color: '#14532d', margin: '0 0 1rem' }}>
+          Encuentra tu hogar ideal<br />con Inteligencia Artificial
+        </h2>
+        <p style={{ fontSize: '1.2rem', color: '#4b5563', maxWidth: '600px', margin: '0 auto 2.5rem' }}>
+          NIDO es la plataforma inmobiliaria más inteligente de Costa Rica. 
+          Conversa con nuestro asesor IA y encuentra la propiedad perfecta para ti.
+        </p>
+        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <button style={{
+            padding: '0.9rem 2rem', borderRadius: '10px', border: 'none',
+            backgroundColor: '#15803d', color: 'white', fontSize: '1rem',
+            cursor: 'pointer', fontWeight: 'bold'
+          }}>Buscar propiedades</button>
+          <button style={{
+            padding: '0.9rem 2rem', borderRadius: '10px',
+            border: '2px solid #15803d', backgroundColor: 'white',
+            color: '#15803d', fontSize: '1rem', cursor: 'pointer', fontWeight: 'bold'
+          }}>Soy asesor inmobiliario</button>
+        </div>
+      </section>
+
+      {/* STATS */}
+      <section style={{
+        display: 'flex', justifyContent: 'center', gap: '4rem',
+        padding: '3rem 2rem', backgroundColor: '#ffffff', flexWrap: 'wrap'
+      }}>
+        {[
+          { number: '1,200+', label: 'Propiedades activas' },
+          { number: '300+', label: 'Asesores verificados' },
+          { number: '98%', label: 'Clientes satisfechos' },
+          { number: '24/7', label: 'Asesor IA disponible' },
+        ].map((stat) => (
+          <div key={stat.label} style={{ textAlign: 'center' }}>
+            <p style={{ fontSize: '2rem', fontWeight: 'bold', color: '#15803d', margin: 0 }}>{stat.number}</p>
+            <p style={{ fontSize: '0.9rem', color: '#6b7280', margin: '0.3rem 0 0' }}>{stat.label}</p>
+          </div>
+        ))}
+      </section>
+
+      {/* FEATURES */}
+      <section style={{ padding: '4rem 2rem', backgroundColor: '#f9fafb' }}>
+        <h3 style={{ textAlign: 'center', fontSize: '2rem', fontWeight: 'bold', color: '#14532d', marginBottom: '3rem' }}>
+          Todo lo que necesitas en un solo lugar
+        </h3>
+        <div style={{ display: 'flex', gap: '2rem', justifyContent: 'center', flexWrap: 'wrap', maxWidth: '1100px', margin: '0 auto' }}>
+          {[
+            { icon: '🤖', title: 'Asesor IA 24/7', desc: 'Conversa naturalmente y recibe recomendaciones personalizadas al instante.' },
+            { icon: '🏠', title: 'Tours 360°', desc: 'Visita propiedades virtualmente desde la comodidad de tu hogar.' },
+            { icon: '🏦', title: 'Precalificación bancaria', desc: 'Conoce tu capacidad de compra conectándote con los mejores bancos.' },
+            { icon: '📊', title: 'Valuación de mercado', desc: 'Precios reales por zona para que tomes la mejor decisión.' },
+            { icon: '🤝', title: 'Red de asesores', desc: 'Accede al inventario colaborativo de cientos de asesores verificados.' },
+            { icon: '📱', title: 'Seguimiento inteligente', desc: 'El asesor IA gestiona tu proceso de principio a fin.' },
+          ].map((feature) => (
+            <div key={feature.title} style={{
+              backgroundColor: 'white', borderRadius: '12px', padding: '2rem',
+              width: '280px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)'
+            }}>
+              <p style={{ fontSize: '2rem', margin: '0 0 0.8rem' }}>{feature.icon}</p>
+              <p style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#14532d', margin: '0 0 0.5rem' }}>{feature.title}</p>
+              <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: 0, lineHeight: '1.6' }}>{feature.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section style={{
+        backgroundColor: '#15803d', padding: '4rem 2rem', textAlign: 'center'
+      }}>
+        <h3 style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', margin: '0 0 1rem' }}>
+          ¿Eres asesor inmobiliario?
+        </h3>
+        <p style={{ color: '#dcfce7', fontSize: '1.1rem', margin: '0 0 2rem' }}>
+          Únete a NIDO Pro y deja que la IA trabaje por ti. Cierra más tratos en menos tiempo.
+        </p>
+        <button style={{
+          padding: '0.9rem 2.5rem', borderRadius: '10px', border: '2px solid white',
+          backgroundColor: 'white', color: '#15803d', fontSize: '1rem',
+          cursor: 'pointer', fontWeight: 'bold'
+        }}>Comenzar gratis</button>
+      </section>
+
+      {/* FOOTER */}
+      <footer style={{
+        backgroundColor: '#14532d', padding: '2rem', textAlign: 'center'
+      }}>
+        <p style={{ color: '#86efac', margin: 0, fontSize: '0.9rem' }}>
+          © 2026 NIDO — La plataforma inmobiliaria inteligente de Costa Rica
+        </p>
+      </footer>
+
+    </main>
+  )
 }
