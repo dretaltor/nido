@@ -1,4 +1,6 @@
-export default function Home() {
+import { writeFileSync } from 'fs'
+
+const code = `export default function Home() {
   return (
     <main style={{ fontFamily: 'Arial, sans-serif', margin: 0, padding: 0 }}>
       <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 2rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, zIndex: 100 }}>
@@ -67,4 +69,7 @@ export default function Home() {
       </footer>
     </main>
   )
-}
+}`
+
+writeFileSync('app/page.tsx', code)
+console.log('Landing actualizada con botones funcionando')
