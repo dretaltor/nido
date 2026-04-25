@@ -6,10 +6,11 @@ import { supabase } from '../../lib/supabase'
 const MapaInteractivo = dynamic(() => import('../../components/MapaInteractivo'), { ssr: false })
 
 const HUES = [80, 50, 200, 130, 160, 240, 100, 170]
-function fmt(n: number) { return n.toLocaleString('en-US') }
 
-function Icon({ name }: { name: string }) {
-  const p = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' }
+function fmt(n: number): string { return n.toLocaleString('en-US') }
+
+function Icon({ name }: { name: string }): JSX.Element | null {
+  const p = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none' as const, stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
   if (name === 'bed') return <svg {...p}><path d="M3 18v-7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v7"/><path d="M3 14h18M3 18h18"/></svg>
   if (name === 'bath') return <svg {...p}><path d="M4 12V6a2 2 0 0 1 4 0"/><path d="M3 12h18l-1 5a3 3 0 0 1-3 2H7a3 3 0 0 1-3-2l-1-5z"/></svg>
   if (name === 'ruler') return <svg {...p}><path d="M3 17 17 3l4 4L7 21z"/><path d="M7 11l2 2M10 8l2 2"/></svg>
@@ -21,13 +22,30 @@ function Icon({ name }: { name: string }) {
   return null
 }
 
-function PropertyCard({ p, index, fav, onFav, onOpen }) {
+interface Propiedad {
+  id: string
+  titulo: string
+  descripcion: string
+  precio: number
+  tipo: string
+  operacion: string
+  habitaciones: number
+  banos: number
+  metros: number
+  zona: string
+  direccion: string
+  disponible: boolean
+  asesor_nombre: string
+  asesor_email: string
+}
+
+function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: number, fav: boolean, onFav: () => void, onOpen: () => void }) {
   const hue = HUES[index % HUES.length]
   const priceLabel = p.operacion === 'alquiler' ? `$${fmt(p.precio)}/mes` : `$${fmt(p.precio)}`
   return (
     <article onClick={onOpen} style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
-      onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
-      onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
+      onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
+      onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
       <div style={{ position: 'relative', aspectRatio: '4/3', background: `oklch(0.88 0.03 ${hue})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', color: `oklch(0.55 0.05 ${hue})`, textTransform: 'uppercase', textAlign: 'center', padding: '0 1rem' }}>
           {p.titulo.toUpperCase()} · FOTO
@@ -61,7 +79,7 @@ function PropertyCard({ p, index, fav, onFav, onOpen }) {
   )
 }
 
-function Drawer({ p, fav, onFav, onClose }) {
+function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav: () => void, onClose: () => void }) {
   const hue = HUES[0]
   return (
     <>
@@ -69,11 +87,8 @@ function Drawer({ p, fav, onFav, onClose }) {
       <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(680px, 96vw)', background: 'var(--bg)', zIndex: 70, overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
         <div style={{ position: 'relative', height: 300, background: `oklch(0.85 0.04 ${hue})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.14em', color: `oklch(0.5 0.06 ${hue})`, textTransform: 'uppercase' }}>FOTO PRINCIPAL</span>
-          <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'oklch(0.10 0.005 80 / 0.6)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', cursor: 'pointer', display: 'grid', placeItems: 'center', backdropFilter: 'blur(6px)' }}>
+          <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'oklch(0.10 0.005 80 / 0.6)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
             <Icon name="x" />
-          </button>
-          <button onClick={onFav} style={{ position: 'absolute', top: 16, right: 62, width: 36, height: 36, borderRadius: '50%', background: 'oklch(0.10 0.005 80 / 0.6)', border: '1px solid rgba(255,255,255,0.2)', color: fav ? '#f43f5e' : 'white', cursor: 'pointer', display: 'grid', placeItems: 'center', backdropFilter: 'blur(6px)' }}>
-            <Icon name={fav ? 'heart-fill' : 'heart'} />
           </button>
         </div>
         <div style={{ padding: '32px 32px 80px' }}>
@@ -88,7 +103,7 @@ function Drawer({ p, fav, onFav, onClose }) {
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)', marginBottom: 28 }}>
-            {[{ num: p.habitaciones, label: 'Habitaciones' }, { num: p.banos, label: 'Baños' }, { num: p.metros + ' m²', label: 'Área' }, { num: p.operacion === 'venta' ? 'Venta' : 'Alquiler', label: 'Operación' }].map((s, i) => (
+            {[{ num: p.habitaciones, label: 'Habitaciones' }, { num: p.banos, label: 'Baños' }, { num: String(p.metros) + ' m²', label: 'Área' }, { num: p.operacion === 'venta' ? 'Venta' : 'Alquiler', label: 'Operación' }].map((s, i) => (
               <div key={i} style={{ padding: '16px 0', paddingLeft: i > 0 ? 16 : 0, borderRight: i < 3 ? '1px solid var(--rule-soft)' : 'none' }}>
                 <div style={{ fontFamily: 'var(--serif)', fontSize: 24 }}>{s.num}</div>
                 <div style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginTop: 2 }}>{s.label}</div>
@@ -97,25 +112,15 @@ function Drawer({ p, fav, onFav, onClose }) {
           </div>
           <div style={{ marginBottom: 28 }}>
             <h4 style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', margin: '0 0 12px', fontWeight: 500 }}>Descripción</h4>
-            <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--ink-2)' }}>{p.descripcion || 'Propiedad en excelentes condiciones. Contacta a nuestro equipo para más información.'}</p>
+            <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--ink-2)' }}>{p.descripcion || 'Propiedad en excelentes condiciones.'}</p>
           </div>
           <div style={{ background: 'var(--accent-tint)', border: '1px solid oklch(0.85 0.04 150)', borderRadius: 8, padding: '16px 18px', marginBottom: 28 }}>
             <div style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent)', fontWeight: 600, marginBottom: 6 }}>Valeria · Asesora IA de NIDO</div>
-            <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55, margin: 0 }}>Esta propiedad cumple con los criterios más solicitados en {p.zona}. Recomiendo agendar una visita virtual esta semana.</p>
+            <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55, margin: 0 }}>Esta propiedad cumple con los criterios más solicitados en {p.zona}.</p>
           </div>
-          <div style={{ borderTop: '1px solid var(--rule)', paddingTop: 22 }}>
-            <h4 style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', margin: '0 0 14px', fontWeight: 500 }}>Asesor a cargo</h4>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--bg-elev)', border: '1px solid var(--rule)', display: 'grid', placeItems: 'center', fontFamily: 'var(--serif)', fontSize: 20 }}>{(p.asesor_nombre || 'N')[0]}</div>
-              <div>
-                <div style={{ fontFamily: 'var(--serif)', fontSize: 18 }}>{p.asesor_nombre || 'Asesor NIDO'}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>{p.asesor_email}</div>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gap: 8 }}>
-              <a href="/contacto" style={{ display: 'block', padding: '11px 16px', borderRadius: 6, fontSize: 13, border: '1px solid var(--ink)', background: 'var(--ink)', color: 'var(--bg)', textAlign: 'center', textDecoration: 'none' }}>Contactar asesor</a>
-              <a href="/chat" style={{ display: 'block', padding: '11px 16px', borderRadius: 6, fontSize: 13, border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', textAlign: 'center', textDecoration: 'none' }}>Preguntar a Valeria IA</a>
-            </div>
+          <div style={{ display: 'grid', gap: 8 }}>
+            <a href="/contacto" style={{ display: 'block', padding: '11px 16px', borderRadius: 6, fontSize: 13, border: '1px solid var(--ink)', background: 'var(--ink)', color: 'var(--bg)', textAlign: 'center', textDecoration: 'none' }}>Contactar asesor</a>
+            <a href="/chat" style={{ display: 'block', padding: '11px 16px', borderRadius: 6, fontSize: 13, border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', textAlign: 'center', textDecoration: 'none' }}>Preguntar a Valeria IA</a>
           </div>
         </div>
       </div>
@@ -125,11 +130,11 @@ function Drawer({ p, fav, onFav, onClose }) {
 
 function AiAdvisor() {
   const [open, setOpen] = useState(false)
-  const [thread, setThread] = useState([{ who: 'bot', text: 'Hola, soy Valeria — tu asesora inteligente de NIDO. Puedo ayudarte a filtrar propiedades, comparar zonas o estimar tu pre-aprobación bancaria. ¿Por dónde empezamos?' }])
+  const [thread, setThread] = useState([{ who: 'bot', text: 'Hola, soy Valeria. Puedo ayudarte a encontrar propiedades, comparar zonas o estimar tu pre-aprobación bancaria.' }])
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const send = async (text) => {
+  const send = async (text: string) => {
     if (!text.trim() || busy) return
     const next = [...thread, { who: 'user', text }]
     setThread(next); setDraft(''); setBusy(true)
@@ -137,43 +142,43 @@ function AiAdvisor() {
       const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: next.map(m => ({ role: m.who === 'user' ? 'user' : 'assistant', content: m.text })) }) })
       const data = await res.json()
       setThread(t => [...t, { who: 'bot', text: data.message }])
-    } catch { setThread(t => [...t, { who: 'bot', text: 'Tuve un problema. Reformulá tu pregunta.' }]) }
+    } catch { setThread(t => [...t, { who: 'bot', text: 'Tuve un problema. Intenta de nuevo.' }]) }
     setBusy(false)
   }
 
   if (!open) return (
-    <button onClick={() => setOpen(true)} style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--ink)', color: 'var(--bg)', border: 'none', borderRadius: 999, padding: '12px 20px', fontSize: 13, fontFamily: 'var(--sans)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, boxShadow: 'var(--shadow-lg)', zIndex: 50 }}>
-      <span style={{ fontFamily: 'var(--serif)', fontSize: 18, fontStyle: 'italic', color: 'var(--accent-2)' }}>V</span>
-      Valeria · Asesora IA
+    <button onClick={() => setOpen(true)} style={{ position: 'fixed', bottom: 80, right: 20, background: 'var(--ink)', color: 'var(--bg)', border: 'none', borderRadius: 999, padding: '10px 18px', fontSize: 13, fontFamily: 'var(--sans)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: 'var(--shadow-lg)', zIndex: 50 }}>
+      <span style={{ fontFamily: 'var(--serif)', fontSize: 16, fontStyle: 'italic', color: 'var(--accent-2)' }}>V</span>
+      Valeria IA
     </button>
   )
 
   return (
-    <div style={{ position: 'fixed', bottom: 28, right: 28, width: 360, background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 12, boxShadow: 'var(--shadow-lg)', zIndex: 50, display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
-      <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--rule)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+    <div style={{ position: 'fixed', bottom: 80, right: 20, width: 'min(360px, calc(100vw - 32px))', background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 12, boxShadow: 'var(--shadow-lg)', zIndex: 50, display: 'flex', flexDirection: 'column', maxHeight: '60vh' }}>
+      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--rule)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h3 style={{ fontFamily: 'var(--serif)', fontSize: 20, fontStyle: 'italic', fontWeight: 400, margin: 0 }}>Valeria</h3>
-          <div style={{ fontSize: 12, color: 'var(--ink-3)' }}>Asesora IA · NIDO</div>
+          <h3 style={{ fontFamily: 'var(--serif)', fontSize: 18, fontStyle: 'italic', fontWeight: 400, margin: 0 }}>Valeria</h3>
+          <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>Asesora IA · NIDO</div>
         </div>
-        <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)', display: 'grid', placeItems: 'center' }}><Icon name="x" /></button>
+        <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)' }}><Icon name="x" /></button>
       </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         {thread.map((m, i) => (
           <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.who === 'user' ? 'flex-end' : 'flex-start' }}>
-            {m.who === 'bot' && <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 4 }}>Valeria</div>}
-            <div style={{ maxWidth: '85%', padding: '10px 14px', borderRadius: m.who === 'user' ? '16px 4px 16px 16px' : '4px 16px 16px 16px', background: m.who === 'user' ? 'var(--ink)' : 'var(--bg-elev)', color: m.who === 'user' ? 'var(--bg)' : 'var(--ink)', fontSize: 13, lineHeight: 1.6 }}>{m.text}</div>
+            {m.who === 'bot' && <div style={{ fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 3 }}>Valeria</div>}
+            <div style={{ maxWidth: '85%', padding: '8px 12px', borderRadius: m.who === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px', background: m.who === 'user' ? 'var(--ink)' : 'var(--bg-elev)', color: m.who === 'user' ? 'var(--bg)' : 'var(--ink)', fontSize: 13, lineHeight: 1.55 }}>{m.text}</div>
           </div>
         ))}
-        {busy && <div style={{ alignSelf: 'flex-start', padding: '10px 14px', borderRadius: '4px 16px 16px 16px', background: 'var(--bg-elev)', fontSize: 13, color: 'var(--ink-3)' }}>Escribiendo...</div>}
+        {busy && <div style={{ alignSelf: 'flex-start', padding: '8px 12px', borderRadius: '4px 14px 14px 14px', background: 'var(--bg-elev)', fontSize: 13, color: 'var(--ink-3)' }}>Escribiendo...</div>}
       </div>
-      <div style={{ padding: '8px 12px', borderTop: '1px solid var(--rule)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {['Quiero algo cerca del mar bajo $1M', 'Comparame Escazú y Santa Ana', '¿Cuánto necesito de prima?'].map(s => (
-          <button key={s} onClick={() => send(s)} disabled={busy} style={{ background: 'var(--bg-elev)', border: '1px solid var(--rule)', borderRadius: 999, padding: '5px 10px', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--sans)', color: 'var(--ink-2)' }}>{s}</button>
+      <div style={{ padding: '8px 10px', borderTop: '1px solid var(--rule)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {['Casa cerca del mar', 'Escazú vs Santa Ana', '¿Cuánto necesito?'].map(s => (
+          <button key={s} onClick={() => send(s)} style={{ background: 'var(--bg-elev)', border: '1px solid var(--rule)', borderRadius: 999, padding: '4px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--sans)', color: 'var(--ink-2)' }}>{s}</button>
         ))}
       </div>
-      <div style={{ padding: '8px 12px 14px', display: 'flex', gap: 8 }}>
-        <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && send(draft)} placeholder="Escribí tu pregunta…" style={{ flex: 1, background: 'var(--bg-elev)', border: '1px solid var(--rule)', borderRadius: 999, padding: '8px 14px', fontSize: 13, outline: 'none', fontFamily: 'var(--sans)', color: 'var(--ink)' }} />
-        <button onClick={() => send(draft)} disabled={!draft.trim() || busy} style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--ink)', border: 'none', color: 'var(--bg)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="send" /></button>
+      <div style={{ padding: '6px 10px 12px', display: 'flex', gap: 6 }}>
+        <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && send(draft)} placeholder="Preguntale a Valeria…" style={{ flex: 1, background: 'var(--bg-elev)', border: '1px solid var(--rule)', borderRadius: 999, padding: '7px 12px', fontSize: 13, outline: 'none', fontFamily: 'var(--sans)', color: 'var(--ink)' }} />
+        <button onClick={() => send(draft)} disabled={!draft.trim() || busy} style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--ink)', border: 'none', color: 'var(--bg)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="send" /></button>
       </div>
     </div>
   )
@@ -186,12 +191,12 @@ const ZONES = [
 ]
 
 export default function Propiedades() {
-  const [propiedades, setPropiedades] = useState([])
+  const [propiedades, setPropiedades] = useState<Propiedad[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState({ location: '', op: 'todo', budget: 'any' })
   const [sort, setSort] = useState('featured')
-  const [favs, setFavs] = useState(new Set())
-  const [openId, setOpenId] = useState(null)
+  const [favs, setFavs] = useState(new Set<string>())
+  const [openId, setOpenId] = useState<string | null>(null)
   const [tipoFiltro, setTipoFiltro] = useState('')
 
   useEffect(() => {
@@ -212,160 +217,162 @@ export default function Propiedades() {
   }, [propiedades, query, sort, tipoFiltro])
 
   const open = openId ? propiedades.find(p => p.id === openId) : null
-  const toggleFav = (id) => setFavs(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  const toggleFav = (id: string) => setFavs(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
 
   return (
     <main style={{ fontFamily: 'var(--sans)', fontSize: 15, color: 'var(--ink)', background: 'var(--bg)', minHeight: '100vh' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400;500&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        :root {
-          --bg: oklch(0.97 0.005 80); --bg-elev: oklch(0.985 0.004 80); --bg-card: oklch(0.99 0.003 80);
-          --ink: oklch(0.20 0.005 80); --ink-2: oklch(0.42 0.005 80); --ink-3: oklch(0.60 0.005 80);
-          --rule: oklch(0.88 0.006 80); --rule-soft: oklch(0.93 0.005 80);
-          --accent: oklch(0.42 0.06 150); --accent-2: oklch(0.55 0.07 150); --accent-tint: oklch(0.95 0.02 150);
-          --shadow-sm: 0 1px 2px oklch(0.20 0.02 80 / 0.06); --shadow-md: 0 8px 30px oklch(0.20 0.02 80 / 0.10); --shadow-lg: 0 30px 60px oklch(0.20 0.02 80 / 0.16);
-          --serif: "Cormorant Garamond", serif; --sans: "DM Sans", system-ui, sans-serif; --mono: "JetBrains Mono", monospace;
-        }
-        a { color: inherit; text-decoration: none; } button { font: inherit; color: inherit; cursor: pointer; }
-        .chip { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--rule); background: transparent; font-size: 13px; color: var(--ink-2); transition: all 0.15s; cursor: pointer; }
-        .chip:hover { border-color: var(--ink); color: var(--ink); }
-        .chip.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding-top: 20px; }
-        @keyframes pulse { 0%,100% { box-shadow: 0 0 0 4px oklch(0.42 0.06 150 / 0.18); } 50% { box-shadow: 0 0 0 8px oklch(0.42 0.06 150 / 0); } }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 999px; }
-        @media (max-width: 768px) {
-          .cards { grid-template-columns: 1fr !important; }
-          .search-bar-grid { grid-template-columns: 1fr !important; border-radius: 16px !important; }
-          .search-field-mobile { border-right: none !important; border-bottom: 1px solid var(--rule-soft) !important; }
-          .hero-grid { grid-template-columns: 1fr !important; gap: 24px !important; padding: 32px 20px 20px !important; }
-          .split-grid { grid-template-columns: 1fr !important; padding: 0 16px 40px !important; }
-          .map-col { display: none !important; }
-          .chips-wrap { padding: 0 16px !important; overflow-x: auto; flex-wrap: nowrap !important; }
-          .editorial-grid { grid-template-columns: 1fr !important; padding: 40px 20px !important; }
-          .zones-grid { grid-template-columns: 1fr !important; }
-          .header-nav { display: none !important; }
-          .header-inner { padding: 14px 20px !important; }
-          .search-shell { padding: 0 16px !important; }
-          .footer-inner { flex-direction: column !important; gap: 12px !important; text-align: center !important; }
-          h1 { font-size: clamp(36px, 10vw, 64px) !important; }
+        :root { --bg:oklch(0.97 0.005 80);--bg-elev:oklch(0.985 0.004 80);--bg-card:oklch(0.99 0.003 80);--ink:oklch(0.20 0.005 80);--ink-2:oklch(0.42 0.005 80);--ink-3:oklch(0.60 0.005 80);--rule:oklch(0.88 0.006 80);--rule-soft:oklch(0.93 0.005 80);--accent:oklch(0.42 0.06 150);--accent-2:oklch(0.55 0.07 150);--accent-tint:oklch(0.95 0.02 150);--shadow-sm:0 1px 2px oklch(0.20 0.02 80/0.06);--shadow-md:0 8px 30px oklch(0.20 0.02 80/0.10);--shadow-lg:0 30px 60px oklch(0.20 0.02 80/0.16);--serif:"Cormorant Garamond",serif;--sans:"DM Sans",system-ui,sans-serif;--mono:"JetBrains Mono",monospace; }
+        a{color:inherit;text-decoration:none} button{font:inherit;color:inherit;cursor:pointer}
+        .chip{padding:7px 14px;border-radius:999px;border:1px solid var(--rule);background:transparent;font-size:13px;color:var(--ink-2);transition:all 0.15s;cursor:pointer;white-space:nowrap}
+        .chip:hover{border-color:var(--ink);color:var(--ink)}
+        .chip.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+        .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;padding-top:20px}
+        @keyframes pulse{0%,100%{box-shadow:0 0 0 4px oklch(0.42 0.06 150/0.18)}50%{box-shadow:0 0 0 8px oklch(0.42 0.06 150/0)}}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--rule);border-radius:999px}
+        @media(max-width:768px){
+          .hero-grid{grid-template-columns:1fr!important;gap:20px!important;padding:24px 16px 16px!important}
+          .search-grid{grid-template-columns:1fr!important;border-radius:16px!important}
+          .search-field{border-right:none!important;border-bottom:1px solid var(--rule-soft)!important}
+          .chips-wrap{padding:0 16px!important;overflow-x:auto;flex-wrap:nowrap!important;-webkit-overflow-scrolling:touch}
+          .split-grid{grid-template-columns:1fr!important;padding:0 16px 100px!important}
+          .map-col{display:none!important}
+          .cards{grid-template-columns:1fr!important}
+          .header-inner{padding:12px 16px!important}
+          .header-nav{display:none!important}
+          .header-btns{display:none!important}
+          .editorial-section{display:none!important}
+          .footer-inner{flex-direction:column!important;gap:8px!important;text-align:center!important;padding:20px 16px!important}
+          h1{font-size:clamp(32px,9vw,56px)!important}
+          .search-shell{padding:0 16px!important;margin-top:16px!important}
         }
       `}</style>
 
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'oklch(0.97 0.005 80 / 0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--rule)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 40px', maxWidth: 1600, margin: '0 auto' }}>
-          <a href="/" style={{ fontFamily: 'var(--serif)', fontSize: 28, fontWeight: 500, letterSpacing: '0.02em' }}>NIDO<span style={{ color: 'var(--accent)' }}>.</span></a>
-          <nav style={{ display: 'flex', gap: 28, fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'oklch(0.97 0.005 80/0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--rule)' }}>
+        <div className="header-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', maxWidth: 1600, margin: '0 auto' }}>
+          <a href="/" style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 500 }}>NIDO<span style={{ color: 'var(--accent)' }}>.</span></a>
+          <nav className="header-nav" style={{ display: 'flex', gap: 24, fontSize: 13, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>
             <a href="/propiedades" style={{ borderBottom: '1px solid var(--ink)', color: 'var(--ink)', paddingBottom: 2 }}>Comprar</a>
             <a href="/propiedades">Alquilar</a>
             <a href="/asesores">Asesores</a>
             <a href="/academia">Academia</a>
           </nav>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <a href="/login" style={{ border: '1px solid var(--rule)', background: 'transparent', color: 'var(--ink)', padding: '9px 18px', borderRadius: 999, fontSize: 13 }}>Ingresar</a>
-            <a href="/registro" style={{ border: '1px solid var(--ink)', background: 'var(--ink)', color: 'var(--bg)', padding: '9px 18px', borderRadius: 999, fontSize: 13 }}>Crear cuenta</a>
+          <div className="header-btns" style={{ display: 'flex', gap: 10 }}>
+            <a href="/login" style={{ border: '1px solid var(--rule)', padding: '8px 16px', borderRadius: 999, fontSize: 13 }}>Ingresar</a>
+            <a href="/registro" style={{ border: '1px solid var(--ink)', background: 'var(--ink)', color: 'var(--bg)', padding: '8px 16px', borderRadius: 999, fontSize: 13 }}>Crear cuenta</a>
           </div>
         </div>
       </header>
 
-      <section className="hero-grid" style={{ maxWidth: 1600, margin: '0 auto', padding: '56px 40px 28px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 60, alignItems: 'end' }}>
+      <section className="hero-grid" style={{ maxWidth: 1600, margin: '0 auto', padding: '48px 40px 24px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 60, alignItems: 'end' }}>
         <div>
-          <div style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 2.4s ease-in-out infinite', display: 'inline-block' }} />
             Portal de propiedades · Costa Rica
           </div>
-          <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(48px, 6vw, 84px)', fontWeight: 400, lineHeight: 0.98, letterSpacing: '-0.015em' }}>
-            El próximo lugar<br/>al que llamarás <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>casa.</em>
+          <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(40px, 5vw, 80px)', fontWeight: 400, lineHeight: 0.98, letterSpacing: '-0.015em' }}>
+            El próximo lugar<br/>al que llamarás <em style={{ color: 'var(--accent)' }}>casa.</em>
           </h1>
-          <p style={{ fontSize: 16, color: 'var(--ink-2)', lineHeight: 1.55, maxWidth: 420, marginTop: 22 }}>Propiedades seleccionadas en todo Costa Rica, con asesoría de Valeria, tu copiloto inteligente.</p>
+          <p style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.6, maxWidth: 400, marginTop: 20 }}>Propiedades en todo Costa Rica con asesoría de Valeria, tu copiloto inteligente.</p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 12 }}>
-          {[{ num: propiedades.length || '·', label: 'Propiedades activas hoy' }, { num: '38', label: 'Cantones cubiertos' }, { num: '24/7', label: 'Valeria IA disponible' }].map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 14, borderTop: '1px solid var(--rule)', paddingTop: 14 }}>
-              <div style={{ fontFamily: 'var(--serif)', fontSize: 36 }}>{s.num}</div>
-              <div style={{ fontSize: 12, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>{s.label}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 8 }}>
+          {[{ num: propiedades.length || '·', label: 'Propiedades activas' }, { num: '38', label: 'Cantones cubiertos' }, { num: '24/7', label: 'Valeria IA' }].map((s, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 14, borderTop: '1px solid var(--rule)', paddingTop: 12 }}>
+              <div style={{ fontFamily: 'var(--serif)', fontSize: 32 }}>{s.num}</div>
+              <div style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>{s.label}</div>
             </div>
           ))}
         </div>
       </section>
 
-      <div style={{ maxWidth: 1600, margin: '28px auto 0', padding: '0 40px' }}>
-        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 999, padding: 6, display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr auto', alignItems: 'center', boxShadow: 'var(--shadow-sm)' }}>
-          <div style={{ padding: '12px 22px', borderRight: '1px solid var(--rule-soft)' }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 4 }}>Ubicación</div>
-            <input value={query.location} onChange={e => setQuery({ ...query, location: e.target.value })} placeholder="¿A dónde te gustaría vivir?" style={{ background: 'transparent', border: 0, outline: 'none', width: '100%', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)' }} />
+      <div className="search-shell" style={{ maxWidth: 1600, margin: '24px auto 0', padding: '0 40px' }}>
+        <div className="search-grid" style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 999, padding: 6, display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr auto', alignItems: 'center', boxShadow: 'var(--shadow-sm)' }}>
+          <div className="search-field" style={{ padding: '10px 20px', borderRight: '1px solid var(--rule-soft)' }}>
+            <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 3 }}>Ubicación</div>
+            <input value={query.location} onChange={e => setQuery({ ...query, location: e.target.value })} placeholder="¿A dónde?" style={{ background: 'transparent', border: 0, outline: 'none', width: '100%', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)' }} />
           </div>
-          <div style={{ padding: '12px 22px', borderRight: '1px solid var(--rule-soft)' }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 4 }}>Operación</div>
-            <select value={query.op} onChange={e => setQuery({ ...query, op: e.target.value })} style={{ background: 'transparent', border: 0, outline: 'none', width: '100%', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', appearance: 'none', cursor: 'pointer' }}>
+          <div className="search-field" style={{ padding: '10px 20px', borderRight: '1px solid var(--rule-soft)' }}>
+            <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 3 }}>Operación</div>
+            <select value={query.op} onChange={e => setQuery({ ...query, op: e.target.value })} style={{ background: 'transparent', border: 0, outline: 'none', width: '100%', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', appearance: 'none' }}>
               <option value="todo">Comprar o alquilar</option>
               <option value="venta">Comprar</option>
               <option value="alquiler">Alquilar</option>
             </select>
           </div>
-          <div style={{ padding: '12px 22px' }}>
-            <div style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 4 }}>Presupuesto</div>
-            <select value={query.budget} onChange={e => setQuery({ ...query, budget: e.target.value })} style={{ background: 'transparent', border: 0, outline: 'none', width: '100%', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', appearance: 'none', cursor: 'pointer' }}>
+          <div style={{ padding: '10px 20px' }}>
+            <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 3 }}>Presupuesto</div>
+            <select value={query.budget} onChange={e => setQuery({ ...query, budget: e.target.value })} style={{ background: 'transparent', border: 0, outline: 'none', width: '100%', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', appearance: 'none' }}>
               <option value="any">Sin límite</option>
               <option value="500">Hasta $500K</option>
               <option value="1000">Hasta $1M</option>
             </select>
           </div>
-          <button style={{ width: 50, height: 50, borderRadius: '50%', background: 'var(--ink)', color: 'var(--bg)', border: 0, display: 'grid', placeItems: 'center', margin: '0 4px' }}>
+          <button style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--ink)', color: 'var(--bg)', border: 0, display: 'grid', placeItems: 'center', margin: '0 4px' }}>
             <Icon name="search" />
           </button>
         </div>
       </div>
 
-      <div style={{ maxWidth: 1600, margin: '22px auto 0', padding: '0 20px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        {['Casa', 'Apartamento', 'Villa', 'Lote'].map(t => <button key={t} className={'chip' + (tipoFiltro === t.toLowerCase() ? ' active' : '')} onClick={() => setTipoFiltro(tipoFiltro === t.toLowerCase() ? '' : t.toLowerCase())}>{t}</button>)}
-        <span style={{ width: 1, height: 18, background: 'var(--rule)', margin: '0 4px' }} />
-        {['Tour 360°', 'Piscina', 'Vista al mar'].map(f => <button key={f} className="chip" onClick={() => setQuery({...query, location: f === 'Tour 360°' ? '' : f})}>{f}</button>)}
-        <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 18 }}>
+      <div className="chips-wrap" style={{ maxWidth: 1600, margin: '16px auto 0', padding: '0 40px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {['Casa', 'Apartamento', 'Villa', 'Lote'].map(t => (
+          <button key={t} className={'chip' + (tipoFiltro === t.toLowerCase() ? ' active' : '')} onClick={() => setTipoFiltro(tipoFiltro === t.toLowerCase() ? '' : t.toLowerCase())}>{t}</button>
+        ))}
+        <span style={{ width: 1, height: 18, background: 'var(--rule)', margin: '0 4px', flexShrink: 0 }} />
+        <button className={'chip' + (query.op === 'venta' ? ' active' : '')} onClick={() => setQuery({...query, op: query.op === 'venta' ? 'todo' : 'venta'})}>En venta</button>
+        <button className={'chip' + (query.op === 'alquiler' ? ' active' : '')} onClick={() => setQuery({...query, op: query.op === 'alquiler' ? 'todo' : 'alquiler'})}>En alquiler</button>
+        <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
           <span>{filtered.length} resultados</span>
-          <span>Ordenar: <select value={sort} onChange={e => setSort(e.target.value)} style={{ background: 'transparent', border: 0, borderBottom: '1px solid var(--ink)', fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink)', outline: 'none', cursor: 'pointer', padding: '2px 0' }}>
+          <select value={sort} onChange={e => setSort(e.target.value)} style={{ background: 'transparent', border: 0, borderBottom: '1px solid var(--ink)', fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink)', outline: 'none', cursor: 'pointer' }}>
             <option value="featured">Destacados</option>
-            <option value="price-asc">Precio: menor</option>
-            <option value="price-desc">Precio: mayor</option>
-          </select></span>
+            <option value="price-asc">Precio menor</option>
+            <option value="price-desc">Precio mayor</option>
+          </select>
         </div>
       </div>
 
-      <div className="split-grid" style={{ maxWidth: 1600, margin: '24px auto 0', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 28, alignItems: 'start' }}>
+      <div className="split-grid" style={{ maxWidth: 1600, margin: '20px auto 0', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 24, alignItems: 'start' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', borderBottom: '1px solid var(--rule)', paddingBottom: 14 }}>
-            <h2 style={{ fontFamily: 'var(--sans)', fontSize: 15, fontWeight: 500 }}>Selección de la semana</h2>
-            <span style={{ fontSize: 13, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} /> Ordenado por Valeria IA
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', borderBottom: '1px solid var(--rule)', paddingBottom: 12, marginBottom: 4 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 500 }}>Selección de la semana</h2>
+            <span style={{ fontSize: 12, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} /> Valeria IA
             </span>
           </div>
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--ink-3)' }}>Cargando propiedades...</div>
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--ink-3)' }}>Cargando propiedades...</div>
+          ) : filtered.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--ink-3)' }}>
+              <div style={{ fontSize: '2rem', marginBottom: 12 }}>🔍</div>
+              <p>No hay propiedades con ese filtro</p>
+              <button onClick={() => { setTipoFiltro(''); setQuery({ location: '', op: 'todo', budget: 'any' }) }} style={{ marginTop: 12, background: 'var(--ink)', color: 'var(--bg)', border: 'none', padding: '8px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--sans)', fontSize: 13 }}>Ver todas</button>
+            </div>
           ) : (
             <div className="cards">
               {filtered.map((p, i) => <PropertyCard key={p.id} p={p} index={i} fav={favs.has(p.id)} onFav={() => toggleFav(p.id)} onOpen={() => setOpenId(p.id)} />)}
             </div>
           )}
         </div>
-        <div className="map-col" style={{ position: 'sticky', top: 80, height: 'calc(100vh - 100px)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--rule)' }}>
-          <MapaInteractivo propiedades={filtered} onSelect={(id) => setOpenId(id)} />
+        <div className="map-col" style={{ position: 'sticky', top: 72, height: 'calc(100vh - 90px)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--rule)' }}>
+          <MapaInteractivo propiedades={filtered} onSelect={(id: string) => setOpenId(id)} />
         </div>
       </div>
 
-      <section style={{ maxWidth: 1600, margin: '0 auto', padding: '60px 40px', borderTop: '1px solid var(--rule)', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 60 }}>
+      <section className="editorial-section" style={{ maxWidth: 1600, margin: '0 auto', padding: '60px 40px', borderTop: '1px solid var(--rule)', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 60 }}>
         <div>
-          <div style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 14 }}>Mercado · Costa Rica</div>
-          <h2 style={{ fontFamily: 'var(--serif)', fontSize: 52, fontWeight: 400, lineHeight: 1, letterSpacing: '-0.01em', margin: '0 0 22px' }}>Zonas con mayor revalorización</h2>
-          <p style={{ fontSize: 16, lineHeight: 1.65, color: 'var(--ink-2)' }}>El mercado inmobiliario costarricense registra crecimiento sostenido en zonas costeras y periféricas del Valle Central.</p>
+          <div style={{ fontSize: 10, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 12 }}>Mercado · Costa Rica</div>
+          <h2 style={{ fontFamily: 'var(--serif)', fontSize: 48, fontWeight: 400, lineHeight: 1, letterSpacing: '-0.01em', margin: '0 0 20px' }}>Zonas con mayor revalorización</h2>
+          <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--ink-2)' }}>El mercado inmobiliario costarricense registra crecimiento sostenido en zonas costeras y del Valle Central.</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 1, background: 'var(--rule)', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)' }}>
           {ZONES.map(z => (
-            <div key={z.num} style={{ background: 'var(--bg)', padding: '28px 22px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--ink-3)', letterSpacing: '0.1em' }}>{z.num}</div>
-              <div style={{ fontFamily: 'var(--serif)', fontSize: 24 }}>{z.name}</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 4 }}>{z.meta}</div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 10 }}>
-                <span style={{ fontFamily: 'var(--mono)', fontSize: 13 }}>{z.price}</span>
+            <div key={z.num} style={{ background: 'var(--bg)', padding: '24px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--ink-3)', letterSpacing: '0.1em' }}>{z.num}</div>
+              <div style={{ fontFamily: 'var(--serif)', fontSize: 22 }}>{z.name}</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{z.meta}</div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 8 }}>
+                <span style={{ fontFamily: 'var(--mono)', fontSize: 12 }}>{z.price}</span>
                 <span style={{ fontSize: 11, color: 'var(--accent)' }}>{z.delta}</span>
               </div>
             </div>
@@ -373,37 +380,33 @@ export default function Propiedades() {
         </div>
       </section>
 
-      <footer style={{ maxWidth: 1600, margin: '0 auto', padding: 40, fontSize: 12, color: 'var(--ink-3)', letterSpacing: '0.06em', borderTop: '1px solid var(--rule)', display: 'flex', justifyContent: 'space-between' }}>
-        <span>© 2026 NIDO — Plataforma inmobiliaria · Costa Rica</span>
-        <div style={{ display: 'flex', gap: 24 }}>
-          <a href="/precios">Precios</a><a href="/academia">Academia</a><a href="/contacto">Contacto</a>
+      <footer style={{ maxWidth: 1600, margin: '0 auto', borderTop: '1px solid var(--rule)' }}>
+        <div className="footer-inner" style={{ padding: '32px 40px', fontSize: 12, color: 'var(--ink-3)', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between' }}>
+          <span>© 2026 NIDO · Costa Rica</span>
+          <div style={{ display: 'flex', gap: 20 }}>
+            <a href="/precios">Precios</a><a href="/academia">Academia</a><a href="/contacto">Contacto</a>
+          </div>
         </div>
       </footer>
 
-      {open && <Drawer p={open} fav={favs.has(open.id)} onFav={() => toggleFav(open.id)} onClose={() => setOpenId(null)} />}
-      <AiAdvisor />
-      <div style={{ display: 'none' }} className="mobile-bottom-nav">
-        <style>{`
-          @media (max-width: 768px) {
-            .mobile-bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--rule); padding: 8px 16px 20px; gap: 0; z-index: 40; }
-            .mob-nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 10px; color: var(--ink-3); letter-spacing: 0.04em; text-decoration: none; padding: 6px 0; }
-            .mob-nav-btn.active { color: var(--accent); }
-            .mob-nav-icon { font-size: 18px; }
-          }
-        `}</style>
-        <a href="/propiedades" className="mob-nav-btn active">
-          <span className="mob-nav-icon">🏠</span>PROPIEDADES
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'white', borderTop: '1px solid var(--rule)', display: 'none', zIndex: 40 }} className="mobile-bar">
+        <style>{`@media(max-width:768px){.mobile-bar{display:flex!important}}`}</style>
+        <a href="/propiedades" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--accent)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
+          <span style={{ fontSize: 20 }}>🏠</span>PROPIEDADES
         </a>
-        <a href="/chat" className="mob-nav-btn">
-          <span className="mob-nav-icon">💬</span>VALERIA IA
+        <a href="/chat" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
+          <span style={{ fontSize: 20 }}>💬</span>VALERIA IA
         </a>
-        <a href="/contacto" className="mob-nav-btn">
-          <span className="mob-nav-icon">📞</span>CONTACTO
+        <a href="/contacto" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
+          <span style={{ fontSize: 20 }}>📞</span>CONTACTO
         </a>
-        <a href="/login" className="mob-nav-btn">
-          <span className="mob-nav-icon">👤</span>INGRESAR
+        <a href="/login" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
+          <span style={{ fontSize: 20 }}>👤</span>INGRESAR
         </a>
       </div>
+
+      {open && <Drawer p={open} fav={favs.has(open.id)} onFav={() => toggleFav(open.id)} onClose={() => setOpenId(null)} />}
+      <AiAdvisor />
     </main>
   )
 }
