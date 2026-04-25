@@ -192,6 +192,7 @@ export default function Propiedades() {
   const [sort, setSort] = useState('featured')
   const [favs, setFavs] = useState(new Set())
   const [openId, setOpenId] = useState(null)
+  const [tipoFiltro, setTipoFiltro] = useState('')
 
   useEffect(() => {
     supabase.from('propiedades').select('*').eq('disponible', true).then(({ data }) => {
@@ -204,10 +205,11 @@ export default function Propiedades() {
     let out = propiedades
     if (query.op !== 'todo') out = out.filter(p => p.operacion === query.op)
     if (query.location) out = out.filter(p => p.zona.toLowerCase().includes(query.location.toLowerCase()) || p.titulo.toLowerCase().includes(query.location.toLowerCase()))
+    if (tipoFiltro) out = out.filter(p => p.tipo.toLowerCase() === tipoFiltro.toLowerCase())
     if (sort === 'price-asc') out = [...out].sort((a, b) => a.precio - b.precio)
     if (sort === 'price-desc') out = [...out].sort((a, b) => b.precio - a.precio)
     return out
-  }, [propiedades, query, sort])
+  }, [propiedades, query, sort, tipoFiltro])
 
   const open = openId ? propiedades.find(p => p.id === openId) : null
   const toggleFav = (id) => setFavs(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
@@ -232,6 +234,22 @@ export default function Propiedades() {
         .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding-top: 20px; }
         @keyframes pulse { 0%,100% { box-shadow: 0 0 0 4px oklch(0.42 0.06 150 / 0.18); } 50% { box-shadow: 0 0 0 8px oklch(0.42 0.06 150 / 0); } }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 999px; }
+        @media (max-width: 768px) {
+          .cards { grid-template-columns: 1fr !important; }
+          .search-bar-grid { grid-template-columns: 1fr !important; border-radius: 16px !important; }
+          .search-field-mobile { border-right: none !important; border-bottom: 1px solid var(--rule-soft) !important; }
+          .hero-grid { grid-template-columns: 1fr !important; gap: 24px !important; padding: 32px 20px 20px !important; }
+          .split-grid { grid-template-columns: 1fr !important; padding: 0 16px 40px !important; }
+          .map-col { display: none !important; }
+          .chips-wrap { padding: 0 16px !important; overflow-x: auto; flex-wrap: nowrap !important; }
+          .editorial-grid { grid-template-columns: 1fr !important; padding: 40px 20px !important; }
+          .zones-grid { grid-template-columns: 1fr !important; }
+          .header-nav { display: none !important; }
+          .header-inner { padding: 14px 20px !important; }
+          .search-shell { padding: 0 16px !important; }
+          .footer-inner { flex-direction: column !important; gap: 12px !important; text-align: center !important; }
+          h1 { font-size: clamp(36px, 10vw, 64px) !important; }
+        }
       `}</style>
 
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'oklch(0.97 0.005 80 / 0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--rule)' }}>
@@ -250,7 +268,7 @@ export default function Propiedades() {
         </div>
       </header>
 
-      <section style={{ maxWidth: 1600, margin: '0 auto', padding: '56px 40px 28px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 60, alignItems: 'end' }}>
+      <section className="hero-grid" style={{ maxWidth: 1600, margin: '0 auto', padding: '56px 40px 28px', display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 60, alignItems: 'end' }}>
         <div>
           <div style={{ fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 18, display: 'flex', alignItems: 'center', gap: 14 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', animation: 'pulse 2.4s ease-in-out infinite', display: 'inline-block' }} />
@@ -299,10 +317,10 @@ export default function Propiedades() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1600, margin: '22px auto 0', padding: '0 40px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        {['Casa', 'Apartamento', 'Villa', 'Lote'].map(t => <button key={t} className="chip">{t}</button>)}
+      <div style={{ maxWidth: 1600, margin: '22px auto 0', padding: '0 20px', display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        {['Casa', 'Apartamento', 'Villa', 'Lote'].map(t => <button key={t} className={'chip' + (tipoFiltro === t.toLowerCase() ? ' active' : '')} onClick={() => setTipoFiltro(tipoFiltro === t.toLowerCase() ? '' : t.toLowerCase())}>{t}</button>)}
         <span style={{ width: 1, height: 18, background: 'var(--rule)', margin: '0 4px' }} />
-        {['Tour 360°', 'Piscina', 'Vista al mar'].map(f => <button key={f} className="chip">{f}</button>)}
+        {['Tour 360°', 'Piscina', 'Vista al mar'].map(f => <button key={f} className="chip" onClick={() => setQuery({...query, location: f === 'Tour 360°' ? '' : f})}>{f}</button>)}
         <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 18 }}>
           <span>{filtered.length} resultados</span>
           <span>Ordenar: <select value={sort} onChange={e => setSort(e.target.value)} style={{ background: 'transparent', border: 0, borderBottom: '1px solid var(--ink)', fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink)', outline: 'none', cursor: 'pointer', padding: '2px 0' }}>
@@ -313,7 +331,7 @@ export default function Propiedades() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1600, margin: '24px auto 0', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 28, alignItems: 'start' }}>
+      <div className="split-grid" style={{ maxWidth: 1600, margin: '24px auto 0', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 28, alignItems: 'start' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', borderBottom: '1px solid var(--rule)', paddingBottom: 14 }}>
             <h2 style={{ fontFamily: 'var(--sans)', fontSize: 15, fontWeight: 500 }}>Selección de la semana</h2>
@@ -329,7 +347,7 @@ export default function Propiedades() {
             </div>
           )}
         </div>
-        <div style={{ position: 'sticky', top: 80, height: 'calc(100vh - 100px)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--rule)' }}>
+        <div className="map-col" style={{ position: 'sticky', top: 80, height: 'calc(100vh - 100px)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--rule)' }}>
           <MapaInteractivo propiedades={filtered} onSelect={(id) => setOpenId(id)} />
         </div>
       </div>
@@ -364,6 +382,28 @@ export default function Propiedades() {
 
       {open && <Drawer p={open} fav={favs.has(open.id)} onFav={() => toggleFav(open.id)} onClose={() => setOpenId(null)} />}
       <AiAdvisor />
+      <div style={{ display: 'none' }} className="mobile-bottom-nav">
+        <style>{`
+          @media (max-width: 768px) {
+            .mobile-bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--rule); padding: 8px 16px 20px; gap: 0; z-index: 40; }
+            .mob-nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; cursor: pointer; font-family: var(--sans); font-size: 10px; color: var(--ink-3); letter-spacing: 0.04em; text-decoration: none; padding: 6px 0; }
+            .mob-nav-btn.active { color: var(--accent); }
+            .mob-nav-icon { font-size: 18px; }
+          }
+        `}</style>
+        <a href="/propiedades" className="mob-nav-btn active">
+          <span className="mob-nav-icon">🏠</span>PROPIEDADES
+        </a>
+        <a href="/chat" className="mob-nav-btn">
+          <span className="mob-nav-icon">💬</span>VALERIA IA
+        </a>
+        <a href="/contacto" className="mob-nav-btn">
+          <span className="mob-nav-icon">📞</span>CONTACTO
+        </a>
+        <a href="/login" className="mob-nav-btn">
+          <span className="mob-nav-icon">👤</span>INGRESAR
+        </a>
+      </div>
     </main>
   )
 }
