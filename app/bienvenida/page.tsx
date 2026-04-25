@@ -24,7 +24,7 @@ const ROLES = [
     subtitulo: 'PARA PROPIETARIOS',
     desc: 'Vende o alquila tu propiedad con reportes mensuales y valuación de mercado en tiempo real.',
     features: ['Publica en minutos', 'Reportes mensuales detallados', 'Valuación de mercado real', 'Red de asesores profesionales'],
-    imagen: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=1400&q=90&fit=crop',
+    imagen: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1400&q=90&fit=crop&crop=center',
     cta: 'Publicar mi propiedad',
     href: '/propietario',
     nav: [
@@ -39,7 +39,7 @@ const ROLES = [
     subtitulo: 'PARA PROFESIONALES',
     desc: 'Accede al CRM inteligente, NIDO Agent y la red colaborativa de asesores profesionales.',
     features: ['CRM con score de leads IA', 'NIDO Agent automatiza el 80%', 'Academia inmobiliaria completa', 'Red colaborativa de asesores'],
-    imagen: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=1400&q=90&fit=crop',
+    imagen: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1400&q=90&fit=crop&crop=top',
     cta: 'Acceder a NIDO Pro',
     href: '/registro',
     nav: [
