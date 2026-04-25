@@ -1,4 +1,6 @@
-'use client'
+import { writeFileSync } from 'fs'
+
+const dashboard = `'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
@@ -113,4 +115,7 @@ export default function Dashboard() {
       </div>
     </main>
   )
-}
+}`
+
+writeFileSync('app/dashboard/page.tsx', dashboard)
+console.log('Dashboard actualizado exitosamente')
