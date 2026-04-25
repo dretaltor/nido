@@ -1,9 +1,8 @@
-'use client'
-import { useEffect, useState, useMemo } from 'react'
-import dynamic from 'next/dynamic'
-import { supabase } from '../../lib/supabase'
+import { writeFileSync } from 'fs'
 
-const MapaInteractivo = dynamic(() => import('../../components/MapaInteractivo'), { ssr: false })
+const code = `'use client'
+import { useEffect, useState, useMemo } from 'react'
+import { supabase } from '../../lib/supabase'
 
 const HUES = [80, 50, 200, 130, 160, 240, 100, 170]
 function fmt(n) { return n.toLocaleString('en-US') }
@@ -23,13 +22,13 @@ function Icon({ name }) {
 
 function PropertyCard({ p, index, fav, onFav, onOpen }) {
   const hue = HUES[index % HUES.length]
-  const priceLabel = p.operacion === 'alquiler' ? `$${fmt(p.precio)}/mes` : `$${fmt(p.precio)}`
+  const priceLabel = p.operacion === 'alquiler' ? \`$\${fmt(p.precio)}/mes\` : \`$\${fmt(p.precio)}\`
   return (
     <article onClick={onOpen} style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
       onMouseEnter={e => e.currentTarget.style.boxShadow = 'var(--shadow-md)'}
       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}>
-      <div style={{ position: 'relative', aspectRatio: '4/3', background: `oklch(0.88 0.03 ${hue})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', color: `oklch(0.55 0.05 ${hue})`, textTransform: 'uppercase', textAlign: 'center', padding: '0 1rem' }}>
+      <div style={{ position: 'relative', aspectRatio: '4/3', background: \`oklch(0.88 0.03 \${hue})\`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', color: \`oklch(0.55 0.05 \${hue})\`, textTransform: 'uppercase', textAlign: 'center', padding: '0 1rem' }}>
           {p.titulo.toUpperCase()} · FOTO
         </div>
         <div style={{ position: 'absolute', top: 12, left: 12 }}>
@@ -67,8 +66,8 @@ function Drawer({ p, fav, onFav, onClose }) {
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'oklch(0.10 0.005 80 / 0.5)', zIndex: 60, backdropFilter: 'blur(4px)' }} />
       <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(680px, 96vw)', background: 'var(--bg)', zIndex: 70, overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
-        <div style={{ position: 'relative', height: 300, background: `oklch(0.85 0.04 ${hue})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.14em', color: `oklch(0.5 0.06 ${hue})`, textTransform: 'uppercase' }}>FOTO PRINCIPAL</span>
+        <div style={{ position: 'relative', height: 300, background: \`oklch(0.85 0.04 \${hue})\`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.14em', color: \`oklch(0.5 0.06 \${hue})\`, textTransform: 'uppercase' }}>FOTO PRINCIPAL</span>
           <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'oklch(0.10 0.005 80 / 0.6)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', cursor: 'pointer', display: 'grid', placeItems: 'center', backdropFilter: 'blur(6px)' }}>
             <Icon name="x" />
           </button>
@@ -82,7 +81,7 @@ function Drawer({ p, fav, onFav, onClose }) {
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>
               <h2 style={{ fontFamily: 'var(--serif)', fontSize: 36, fontWeight: 400, lineHeight: 1.05, margin: 0 }}>{p.titulo}</h2>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 18 }}>{'$'}{fmt(p.precio)}</div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 18 }}>${'$'}{fmt(p.precio)}</div>
                 <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginTop: 4 }}>{p.operacion === 'alquiler' ? 'por mes' : 'precio venta'}</div>
               </div>
             </div>
@@ -142,7 +141,7 @@ function AiAdvisor() {
   }
 
   if (!open) return (
-    <button onClick={() => setOpen(true)} style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--ink)', color: 'var(--bg)', border: 'none', borderRadius: 999, padding: '12px 20px', fontSize: 13, fontFamily: 'var(--sans)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, boxShadow: 'var(--shadow-lg)', zIndex: 50 }}>
+    <button onClick={() => setOpen(true)} style={{ position: 'fixed', bottom: 28, right: 28, background: 'var(--ink)', color: 'var(--bg)', border: 'none', borderRadius: 999, padding: '12px 20px', fontSize: 13, fontFamily: 'var(--sans)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, boxShadow: 'var(--shadow-lg)', zIndex: 50, letterSpacing: '0.02em' }}>
       <span style={{ fontFamily: 'var(--serif)', fontSize: 18, fontStyle: 'italic', color: 'var(--accent-2)' }}>V</span>
       Valeria · Asesora IA
     </button>
@@ -214,7 +213,7 @@ export default function Propiedades() {
 
   return (
     <main style={{ fontFamily: 'var(--sans)', fontSize: 15, color: 'var(--ink)', background: 'var(--bg)', minHeight: '100vh' }}>
-      <style>{`
+      <style>{\`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400;500&display=swap');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
@@ -229,10 +228,10 @@ export default function Propiedades() {
         .chip { padding: 7px 14px; border-radius: 999px; border: 1px solid var(--rule); background: transparent; font-size: 13px; color: var(--ink-2); transition: all 0.15s; cursor: pointer; }
         .chip:hover { border-color: var(--ink); color: var(--ink); }
         .chip.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding-top: 20px; }
+        .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; padding-top: 20px; }
         @keyframes pulse { 0%,100% { box-shadow: 0 0 0 4px oklch(0.42 0.06 150 / 0.18); } 50% { box-shadow: 0 0 0 8px oklch(0.42 0.06 150 / 0); } }
         ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 999px; }
-      `}</style>
+      \`}</style>
 
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'oklch(0.97 0.005 80 / 0.92)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--rule)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 40px', maxWidth: 1600, margin: '0 auto' }}>
@@ -259,7 +258,9 @@ export default function Propiedades() {
           <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(48px, 6vw, 84px)', fontWeight: 400, lineHeight: 0.98, letterSpacing: '-0.015em' }}>
             El próximo lugar<br/>al que llamarás <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>casa.</em>
           </h1>
-          <p style={{ fontSize: 16, color: 'var(--ink-2)', lineHeight: 1.55, maxWidth: 420, marginTop: 22 }}>Propiedades seleccionadas en todo Costa Rica, con asesoría de Valeria, tu copiloto inteligente.</p>
+          <p style={{ fontSize: 16, color: 'var(--ink-2)', lineHeight: 1.55, maxWidth: 420, marginTop: 22 }}>
+            Propiedades seleccionadas en todo Costa Rica, con asesoría de Valeria, tu copiloto inteligente.
+          </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 12 }}>
           {[{ num: propiedades.length || '·', label: 'Propiedades activas hoy' }, { num: '38', label: 'Cantones cubiertos' }, { num: '24/7', label: 'Valeria IA disponible' }].map((s, i) => (
@@ -313,25 +314,18 @@ export default function Propiedades() {
         </div>
       </div>
 
-      <div style={{ maxWidth: 1600, margin: '24px auto 0', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 28, alignItems: 'start' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', borderBottom: '1px solid var(--rule)', paddingBottom: 14 }}>
-            <h2 style={{ fontFamily: 'var(--sans)', fontSize: 15, fontWeight: 500 }}>Selección de la semana</h2>
-            <span style={{ fontSize: 13, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} /> Ordenado por Valeria IA
-            </span>
+      <div style={{ maxWidth: 1600, margin: '24px auto 0', padding: '0 40px 80px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', borderBottom: '1px solid var(--rule)', paddingBottom: 14 }}>
+          <h2 style={{ fontFamily: 'var(--sans)', fontSize: 15, fontWeight: 500 }}>Selección de la semana</h2>
+          <span style={{ fontSize: 13, color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', display: 'inline-block' }} /> Ordenado por relevancia · Valeria IA
+          </span>
+        </div>
+        {loading ? <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--ink-3)' }}>Cargando propiedades...</div> : (
+          <div className="cards">
+            {filtered.map((p, i) => <PropertyCard key={p.id} p={p} index={i} fav={favs.has(p.id)} onFav={() => toggleFav(p.id)} onOpen={() => setOpenId(p.id)} />)}
           </div>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '4rem', color: 'var(--ink-3)' }}>Cargando propiedades...</div>
-          ) : (
-            <div className="cards">
-              {filtered.map((p, i) => <PropertyCard key={p.id} p={p} index={i} fav={favs.has(p.id)} onFav={() => toggleFav(p.id)} onOpen={() => setOpenId(p.id)} />)}
-            </div>
-          )}
-        </div>
-        <div style={{ position: 'sticky', top: 80, height: 'calc(100vh - 100px)', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--rule)' }}>
-          <MapaInteractivo propiedades={filtered} onSelect={(id) => setOpenId(id)} />
-        </div>
+        )}
       </div>
 
       <section style={{ maxWidth: 1600, margin: '0 auto', padding: '60px 40px', borderTop: '1px solid var(--rule)', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 60 }}>
@@ -366,4 +360,7 @@ export default function Propiedades() {
       <AiAdvisor />
     </main>
   )
-}
+}`
+
+writeFileSync('app/propiedades/page.tsx', code)
+console.log('Propiedades premium creada exitosamente')
