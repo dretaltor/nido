@@ -6,9 +6,9 @@ import { supabase } from '../../lib/supabase'
 const MapaInteractivo = dynamic(() => import('../../components/MapaInteractivo'), { ssr: false })
 
 const HUES = [80, 50, 200, 130, 160, 240, 100, 170]
-function fmt(n) { return n.toLocaleString('en-US') }
+function fmt(n: number) { return n.toLocaleString('en-US') }
 
-function Icon({ name }) {
+function Icon({ name }: { name: string }) {
   const p = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round' }
   if (name === 'bed') return <svg {...p}><path d="M3 18v-7a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3v7"/><path d="M3 14h18M3 18h18"/></svg>
   if (name === 'bath') return <svg {...p}><path d="M4 12V6a2 2 0 0 1 4 0"/><path d="M3 12h18l-1 5a3 3 0 0 1-3 2H7a3 3 0 0 1-3-2l-1-5z"/></svg>
