@@ -5,8 +5,9 @@ export default function Home() {
         <h1 style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#15803d', margin: 0 }}>NIDO</h1>
         <div style={{ display: 'flex', gap: '2rem' }}>
           <a href="/propiedades" style={{ color: '#374151', textDecoration: 'none', fontSize: '0.95rem' }}>Propiedades</a>
-          <a href="#" style={{ color: '#374151', textDecoration: 'none', fontSize: '0.95rem' }}>Asesores</a>
-          <a href="#" style={{ color: '#374151', textDecoration: 'none', fontSize: '0.95rem' }}>Propietarios</a>
+          <a href="/asesores" style={{ color: '#374151', textDecoration: 'none', fontSize: '0.95rem' }}>Asesores</a>
+          <a href="/propietario" style={{ color: '#374151', textDecoration: 'none', fontSize: '0.95rem' }}>Propietarios</a>
+          <a href="/academia" style={{ color: '#374151', textDecoration: 'none', fontSize: '0.95rem' }}>Academia</a>
         </div>
         <div style={{ display: 'flex', gap: '1rem' }}>
           <button style={{ padding: '0.5rem 1.2rem', borderRadius: '8px', border: '1px solid #15803d', backgroundColor: 'white', color: '#15803d', cursor: 'pointer', fontSize: '0.9rem' }}>Ingresar</button>
