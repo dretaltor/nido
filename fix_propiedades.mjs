@@ -1,4 +1,6 @@
-'use client'
+import { writeFileSync } from 'fs'
+
+const page = `'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
@@ -91,4 +93,7 @@ export default function Propiedades() {
       </div>
     </main>
   )
-}
+}`
+
+writeFileSync('app/propiedades/page.tsx', page)
+console.log('Fix aplicado exitosamente')
