@@ -1,4 +1,21 @@
-'use client'
+import { writeFileSync } from 'fs'
+
+const fontStyle = `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --green: #1B5E3B; --gold: #C8A96E; --cream: #F7F4EE; --dark: #0D1F15; --gray: #6B7280; }
+body { font-family: 'DM Sans', sans-serif; background: #FAFAF8; }
+.btn-primary { background: #1B5E3B; color: white; padding: 0.6rem 1.4rem; border-radius: 100px; font-size: 0.85rem; font-weight: 500; text-decoration: none; display: inline-block; border: none; cursor: pointer; transition: all 0.2s; }
+.btn-primary:hover { background: #2D7A52; }
+.btn-outline { border: 1px solid rgba(27,94,59,0.2); color: #1B5E3B; padding: 0.6rem 1.4rem; border-radius: 100px; font-size: 0.85rem; font-weight: 500; text-decoration: none; display: inline-block; background: white; cursor: pointer; }
+.card { background: white; border: 1px solid rgba(27,94,59,0.08); border-radius: 16px; padding: 1.5rem; }
+.nav-link { color: #6B7280; text-decoration: none; font-size: 0.85rem; }
+.module-card { background: white; border: 1px solid rgba(27,94,59,0.08); border-radius: 16px; padding: 1.5rem; text-decoration: none; display: block; transition: all 0.2s; }
+.module-card:hover { border-color: rgba(27,94,59,0.2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(27,94,59,0.08); }
+.input-field { width: 100%; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid rgba(27,94,59,0.15); font-size: 0.88rem; outline: none; color: #1a1a1a; background: white; box-sizing: border-box; font-family: 'DM Sans', sans-serif; }
+.input-field:focus { border-color: #1B5E3B; }
+`
+
+const dashboard = `'use client'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
@@ -33,20 +50,7 @@ export default function Dashboard() {
 
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", backgroundColor: '#FAFAF8', minHeight: '100vh' }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
-* { margin: 0; padding: 0; box-sizing: border-box; }
-:root { --green: #1B5E3B; --gold: #C8A96E; --cream: #F7F4EE; --dark: #0D1F15; --gray: #6B7280; }
-body { font-family: 'DM Sans', sans-serif; background: #FAFAF8; }
-.btn-primary { background: #1B5E3B; color: white; padding: 0.6rem 1.4rem; border-radius: 100px; font-size: 0.85rem; font-weight: 500; text-decoration: none; display: inline-block; border: none; cursor: pointer; transition: all 0.2s; }
-.btn-primary:hover { background: #2D7A52; }
-.btn-outline { border: 1px solid rgba(27,94,59,0.2); color: #1B5E3B; padding: 0.6rem 1.4rem; border-radius: 100px; font-size: 0.85rem; font-weight: 500; text-decoration: none; display: inline-block; background: white; cursor: pointer; }
-.card { background: white; border: 1px solid rgba(27,94,59,0.08); border-radius: 16px; padding: 1.5rem; }
-.nav-link { color: #6B7280; text-decoration: none; font-size: 0.85rem; }
-.module-card { background: white; border: 1px solid rgba(27,94,59,0.08); border-radius: 16px; padding: 1.5rem; text-decoration: none; display: block; transition: all 0.2s; }
-.module-card:hover { border-color: rgba(27,94,59,0.2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(27,94,59,0.08); }
-.input-field { width: 100%; padding: 0.75rem 1rem; border-radius: 10px; border: 1px solid rgba(27,94,59,0.15); font-size: 0.88rem; outline: none; color: #1a1a1a; background: white; box-sizing: border-box; font-family: 'DM Sans', sans-serif; }
-.input-field:focus { border-color: #1B5E3B; }
-`}</style>
+      <style>{\`${fontStyle}\`}</style>
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1.2rem 4rem', background: 'rgba(250,250,248,0.95)', borderBottom: '1px solid rgba(27,94,59,0.08)', position: 'sticky', top: 0, zIndex: 100 }}>
         <a href="/" style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.5rem', color: '#1B5E3B', textDecoration: 'none' }}>NIDO<span style={{ color: '#C8A96E' }}>.</span></a>
         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -130,4 +134,7 @@ body { font-family: 'DM Sans', sans-serif; background: #FAFAF8; }
       </div>
     </main>
   )
-}
+}`
+
+writeFileSync('app/dashboard/page.tsx', dashboard)
+console.log('Dashboard premium aplicado')

@@ -1,10 +1,12 @@
-import Link from 'next/link'
+import { writeFileSync } from 'fs'
+
+const landing = `import Link from 'next/link'
 
 export default function Home() {
   return (
     <main style={{ fontFamily: "'DM Sans', sans-serif", backgroundColor: '#FAFAF8', color: '#1a1a1a', margin: 0 }}>
       <style>{
-        `@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
+        \`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root { --green: #1B5E3B; --green-light: #2D7A52; --gold: #C8A96E; --cream: #F7F4EE; --dark: #0D1F15; --gray: #6B7280; }
         .nav-link { color: #6B7280; text-decoration: none; font-size: 0.88rem; transition: color 0.2s; }
@@ -16,7 +18,7 @@ export default function Home() {
         .feature-card:hover { border-color: rgba(27,94,59,0.2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(27,94,59,0.08); }
         .stat-item { padding: 2rem 1.5rem; text-align: center; border-right: 1px solid rgba(27,94,59,0.08); }
         .stat-item:last-child { border-right: none; }
-        `
+        \`
       }</style>
 
       <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.2rem 4rem', background: 'rgba(250,250,248,0.95)', borderBottom: '1px solid rgba(27,94,59,0.08)', position: 'sticky', top: 0, zIndex: 100, backdropFilter: 'blur(12px)' }}>
@@ -137,4 +139,7 @@ export default function Home() {
       </footer>
     </main>
   )
-}
+}`
+
+writeFileSync('app/page.tsx', landing)
+console.log('Landing premium aplicada')
