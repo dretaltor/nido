@@ -42,7 +42,7 @@ export default function Propiedades() {
     <main style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
         <a href="/" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#15803d', textDecoration: 'none' }}>NIDO</a>
-        <a href="/chat" style={{ padding: '0.5rem 1.2rem', borderRadius: '8px', backgroundColor: '#15803d', color: 'white', textDecoration: 'none', fontSize: '0.9rem' }}>Hablar con Asesor IA</a>
+        <a href="/contacto" style={{ padding: '0.5rem 1.2rem', borderRadius: '8px', backgroundColor: '#15803d', color: 'white', textDecoration: 'none', fontSize: '0.9rem' }}>Hablar con Asesor IA</a>
       </nav>
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
         <h2 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#14532d', marginBottom: '0.5rem' }}>Propiedades disponibles</h2>
@@ -81,7 +81,7 @@ export default function Propiedades() {
                     <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: '#15803d' }}>
                       {p.operacion === 'alquiler' ? '$' + p.precio.toLocaleString() + '/mes' : '$' + p.precio.toLocaleString()}
                     </p>
-                    <a href="/chat" style={{ padding: '0.5rem 1rem', borderRadius: '8px', backgroundColor: '#15803d', color: 'white', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}>Consultar</a>
+                    <a href="/contacto" style={{ padding: '0.5rem 1rem', borderRadius: '8px', backgroundColor: '#15803d', color: 'white', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold' }}>Consultar</a>
                   </div>
                 </div>
               </div>
