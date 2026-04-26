@@ -1,10 +1,12 @@
 'use client'
 import { useEffect, useRef } from 'react'
 
-const COORDS = {
+const COORDS: Record<string, [number, number]> = {
   'Escazu': [-84.1366, 9.9194],
+  'Escazú': [-84.1366, 9.9194],
   'Santa Ana': [-84.1836, 9.9328],
   'San Jose': [-84.0875, 9.9281],
+  'San José': [-84.0875, 9.9281],
   'Curridabat': [-84.0316, 9.9119],
   'Heredia': [-84.1168, 9.9986],
   'Alajuela': [-84.2141, 10.0162],
@@ -13,21 +15,39 @@ const COORDS = {
   'Tamarindo': [-85.8397, 10.2993],
   'Manuel Antonio': [-84.1564, 9.3908],
   'Jaco': [-84.6275, 9.6127],
+  'Jacó': [-84.6275, 9.6127],
   'Monteverde': [-84.8239, 10.3082],
   'Nosara': [-85.6531, 9.9791],
-  'default': [-84.0875, 9.9281],
 }
 
 function getCoords(zona: string): [number, number] {
-  for (const [key, coords] of Object.entries(COORDS)) {
+  const entries = Object.entries(COORDS)
+  for (let i = 0; i < entries.length; i++) {
+    const key = entries[i][0]
+    const coords = entries[i][1] as [number, number]
     if (zona.toLowerCase().includes(key.toLowerCase())) return coords
   }
-  return COORDS['default']
+  return [-84.0875, 9.9281]
 }
 
-export default function MapaInteractivo({ propiedades, onSelect }) {
-  const mapRef = useRef(null)
-  const mapInstance = useRef(null)
+interface PropiedadMapa {
+  id: string
+  titulo: string
+  precio: number
+  operacion: string
+  zona: string
+  habitaciones: number
+  metros: number
+}
+
+interface Props {
+  propiedades: PropiedadMapa[]
+  onSelect?: (id: string) => void
+}
+
+export default function MapaInteractivo({ propiedades, onSelect }: Props) {
+  const mapRef = useRef<HTMLDivElement>(null)
+  const mapInstance = useRef<any>(null)
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return
@@ -38,10 +58,10 @@ export default function MapaInteractivo({ propiedades, onSelect }) {
     document.head.appendChild(link)
 
     import('mapbox-gl').then(({ default: mapboxgl }) => {
-      mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+      mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string
 
       const map = new mapboxgl.Map({
-        container: mapRef.current,
+        container: mapRef.current as HTMLDivElement,
         style: 'mapbox://styles/mapbox/light-v11',
         center: [-84.0875, 9.9281],
         zoom: 7.5,
@@ -58,11 +78,11 @@ export default function MapaInteractivo({ propiedades, onSelect }) {
 
           const el = document.createElement('div')
           el.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer'
-          
+
           const bubble = document.createElement('div')
           bubble.style.cssText = 'background:white;border:1.5px solid rgba(27,94,59,0.25);border-radius:999px;padding:5px 12px;font-size:12px;font-family:monospace;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.12);transition:all 0.2s;color:#1a1a1a'
           bubble.textContent = priceLabel
-          
+
           const tail = document.createElement('div')
           tail.style.cssText = 'width:1px;height:8px;background:#9CA3AF'
 
@@ -73,18 +93,16 @@ export default function MapaInteractivo({ propiedades, onSelect }) {
             bubble.style.background = 'oklch(0.42 0.06 150)'
             bubble.style.color = 'white'
             bubble.style.borderColor = 'transparent'
-            bubble.style.transform = 'scale(1.05)'
           })
           el.addEventListener('mouseleave', () => {
             bubble.style.background = 'white'
             bubble.style.color = '#1a1a1a'
             bubble.style.borderColor = 'rgba(27,94,59,0.25)'
-            bubble.style.transform = 'scale(1)'
           })
-          el.addEventListener('click', () => onSelect && onSelect(p.id))
+          el.addEventListener('click', () => { if (onSelect) onSelect(p.id) })
 
           const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
-            .setHTML('<div style="font-family:DM Sans,sans-serif;padding:4px 2px;min-width:160px"><div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:4px">' + p.zona + '</div><div style="font-weight:500;color:#1a1a1a;margin-bottom:4px">' + p.titulo + '</div><div style="font-size:12px;color:#6B7280">' + p.habitaciones + ' hab · ' + p.metros + 'm²</div></div>')
+            .setHTML('<div style="font-family:DM Sans,sans-serif;padding:4px;min-width:150px"><div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:4px">' + p.zona + '</div><div style="font-weight:500;color:#1a1a1a;margin-bottom:4px">' + p.titulo + '</div><div style="font-size:12px;color:#6B7280">' + p.habitaciones + ' hab · ' + p.metros + 'm²</div></div>')
 
           new mapboxgl.Marker({ element: el, anchor: 'bottom' })
             .setLngLat(coords)
