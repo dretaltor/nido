@@ -18,7 +18,7 @@ const COORDS = {
   'default': [-84.0875, 9.9281],
 }
 
-function getCoords(zona) {
+function getCoords(zona: string): [number, number] {
   for (const [key, coords] of Object.entries(COORDS)) {
     if (zona.toLowerCase().includes(key.toLowerCase())) return coords
   }
