@@ -31,10 +31,10 @@ export default function NuevaPropiedad() {
   const setPhotos = (fn: any) => setData(d => ({ ...d, photos: typeof fn === 'function' ? fn(d.photos) : fn }))
   const next = () => { setCompleted(prev => new Set([...prev, current])); setCurrent(c => Math.min(7, c+1)); window.scrollTo({top:0,behavior:'smooth'}) }
   const back = () => { setCurrent(c => Math.max(0, c-1)); window.scrollTo({top:0,behavior:'smooth'}) }
-  const jumpTo = (i) => { setCurrent(i); window.scrollTo({top:0,behavior:'smooth'}) }
-  const toggleAmen = (a) => patch({ amenities: data.amenities.includes(a) ? data.amenities.filter(x => x!==a) : [...data.amenities, a] })
+  const jumpTo = (i: number) => { setCurrent(i); window.scrollTo({top:0,behavior:'smooth'}) }
+  const toggleAmen = (a: string) => patch({ amenities: data.amenities.includes(a) ? data.amenities.filter(x => x!==a) : [...data.amenities, a] })
 
-  const uploadFiles = async (files) => {
+  const uploadFiles = async (files: FileList) => {
     const arr = Array.from(files)
     for (let i = 0; i < arr.length; i++) {
       const file = arr[i]
@@ -94,8 +94,8 @@ export default function NuevaPropiedad() {
 
   const suggested = Math.round((data.area||200) * (data.kind==='lote'?800:2400))
   const fmtP = (n) => '$' + n.toLocaleString('en-US')
-  const removePhoto = (id) => setPhotos(prev => prev.filter(p => p.id !== id))
-  const moveToFirst = (id) => setPhotos(prev => {
+  const removePhoto = (id: number) => setPhotos(prev => prev.filter(p => p.id !== id))
+  const moveToFirst = (id: number) => setPhotos(prev => {
     const idx = prev.findIndex(p => p.id === id)
     if (idx <= 0) return prev
     const arr = [...prev]
