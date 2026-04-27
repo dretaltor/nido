@@ -199,11 +199,18 @@ export default function Propiedades() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [tipoFiltro, setTipoFiltro] = useState('')
 
-  useEffect(() => {
+  const cargar = () => {
+    setLoading(true)
     supabase.from('propiedades').select('*').eq('disponible', true).then(({ data }) => {
       setPropiedades(data || [])
       setLoading(false)
     })
+  }
+
+  useEffect(() => {
+    cargar()
+    window.addEventListener('focus', cargar)
+    return () => window.removeEventListener('focus', cargar)
   }, [])
 
   const filtered = useMemo(() => {
@@ -231,7 +238,7 @@ export default function Propiedades() {
         .chip.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
         .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;padding-top:20px}
         @keyframes pulse{0%,100%{box-shadow:0 0 0 4px oklch(0.42 0.06 150/0.18)}50%{box-shadow:0 0 0 8px oklch(0.42 0.06 150/0)}}
-        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--rule);border-radius:999px}
+        ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--rule);border-radius:999px} @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
         @media(max-width:768px){
           .hero-grid{grid-template-columns:1fr!important;gap:20px!important;padding:24px 16px 16px!important}
           .search-grid{grid-template-columns:1fr!important;border-radius:16px!important}
@@ -350,7 +357,7 @@ export default function Propiedades() {
             </div>
           ) : (
             <div className="cards">
-              {filtered.map((p, i) => <PropertyCard key={p.id} p={p} index={i} fav={favs.has(p.id)} onFav={() => toggleFav(p.id)} onOpen={() => setOpenId(p.id)} />)}
+              {filtered.map((p, i) => <PropertyCard key={p.id} p={p} index={i} fav={favs.has(p.id)} onFav={() => toggleFav(p.id)} onOpen={() => window.location.href = "/propiedades/" + p.id} />)}
             </div>
           )}
         </div>
