@@ -27,8 +27,8 @@ export default function NuevaPropiedad() {
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef(null)
 
-  const patch = (p) => setData(d => ({ ...d, ...p }))
-  const setPhotos = (fn) => setData(d => ({ ...d, photos: typeof fn === 'function' ? fn(d.photos) : fn }))
+  const patch = (p: Partial<typeof data>) => setData(d => ({ ...d, ...p }))
+  const setPhotos = (fn: any) => setData(d => ({ ...d, photos: typeof fn === 'function' ? fn(d.photos) : fn }))
   const next = () => { setCompleted(prev => new Set([...prev, current])); setCurrent(c => Math.min(7, c+1)); window.scrollTo({top:0,behavior:'smooth'}) }
   const back = () => { setCurrent(c => Math.max(0, c-1)); window.scrollTo({top:0,behavior:'smooth'}) }
   const jumpTo = (i) => { setCurrent(i); window.scrollTo({top:0,behavior:'smooth'}) }
