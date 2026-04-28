@@ -40,16 +40,16 @@ export default function NuevaPropiedad() {
       const file = arr[i]
       const id = Date.now() + i
       const preview = URL.createObjectURL(file)
-      setPhotos(prev => [...prev, { id, url: preview, uploading: true }])
+      setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => [...prev, { id, url: preview, uploading: true }])
       try {
         const ext = file.name.split('.').pop()
         const path = 'propiedades/' + id + '.' + ext
         const { error } = await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
         if (!error) {
           const { data: urlData } = supabase.storage.from('propiedades').getPublicUrl(path)
-          setPhotos(prev => prev.map(p => p.id === id ? { id, url: urlData.publicUrl, uploading: false } : p))
+          setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => prev.map(p => p.id === id ? { id, url: urlData.publicUrl, uploading: false } : p))
         } else {
-          setPhotos(prev => prev.map(p => p.id === id ? { ...p, uploading: false } : p))
+          setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => prev.map(p => p.id === id ? { ...p, uploading: false } : p))
         }
       } catch {
         setPhotos(prev => prev.map(p => p.id === id ? { ...p, uploading: false } : p))
@@ -94,8 +94,8 @@ export default function NuevaPropiedad() {
 
   const suggested = Math.round((data.area||200) * (data.kind==='lote'?800:2400))
   const fmtP = (n) => '$' + n.toLocaleString('en-US')
-  const removePhoto = (id: number) => setPhotos(prev => prev.filter(p => p.id !== id))
-  const moveToFirst = (id: number) => setPhotos(prev => {
+  const removePhoto = (id: number) => setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => prev.filter(p => p.id !== id))
+  const moveToFirst = (id: number) => setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => {
     const idx = prev.findIndex(p => p.id === id)
     if (idx <= 0) return prev
     const arr = [...prev]
