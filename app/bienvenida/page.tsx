@@ -11,7 +11,7 @@ const ROLES = [
     features: ['Portal de propiedades exclusivas', 'Asesor IA personalizado', 'Tours 360° virtuales', 'Precalificación bancaria'],
     imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1400&q=90&fit=crop',
     cta: 'Explorar propiedades',
-    href: '/propiedades',
+    href: '/comprador',
   },
   {
     id: 'propietario',
