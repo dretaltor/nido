@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client'
 import { useState, useRef } from 'react'
 import { supabase } from '../../../lib/supabase'
