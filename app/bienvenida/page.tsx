@@ -1,123 +1,151 @@
 'use client'
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
-const ROLES = [
+const PANELES = [
   {
     id: 'comprador',
-    titulo: 'Quiero comprar o alquilar',
-    subtitulo: 'PARA COMPRADORES',
-    desc: 'Encuentra tu hogar ideal con el apoyo de Valeria, tu asesora IA disponible 24/7.',
-    features: ['Portal de propiedades exclusivas', 'Asesor IA personalizado', 'Tours 360° virtuales', 'Precalificación bancaria'],
-    imagen: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1400&q=90&fit=crop',
-    cta: 'Explorar propiedades',
     href: '/comprador',
+    label: 'Quiero comprar',
+    sub: 'Encontrá tu hogar ideal con Valeria IA',
+    eyebrow: 'Comprador',
+    foto: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80',
+    acento: 'oklch(0.42 0.06 150)',
+    icon: '🏠',
   },
   {
-    id: 'propietario',
-    titulo: 'Tengo una propiedad',
-    subtitulo: 'PARA PROPIETARIOS',
-    desc: 'Vende o alquila tu propiedad con reportes mensuales y valuación en tiempo real.',
-    features: ['Publicación en minutos', 'Reportes mensuales', 'Valuación de mercado', 'Red de asesores'],
-    imagen: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=1400&q=90&fit=crop',
-    cta: 'Publicar mi propiedad',
-    href: '/propietario',
+    id: 'vendedor',
+    href: '/dashboard/nueva-propiedad',
+    label: 'Quiero vender',
+    sub: 'Publicá tu propiedad y llegá a miles de compradores',
+    eyebrow: 'Vendedor',
+    foto: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80',
+    acento: 'oklch(0.62 0.10 75)',
+    icon: '🗝️',
   },
   {
     id: 'asesor',
-    titulo: 'Soy asesor inmobiliario',
-    subtitulo: 'PARA PROFESIONALES',
-    desc: 'Accede al CRM inteligente, Valeria Agent y la red colaborativa de asesores.',
-    features: ['CRM con score de leads', 'NIDO Agent automatiza el 80%', 'Academia completa', 'Red colaborativa'],
-    imagen: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=1400&q=90&fit=crop',
-    cta: 'Acceder a NIDO Pro',
-    href: '/registro',
-  }
+    href: '/login',
+    label: 'Soy asesor',
+    sub: 'Gestioná tus propiedades y leads con IA',
+    eyebrow: 'Asesor',
+    foto: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&q=80',
+    acento: 'oklch(0.52 0.08 230)',
+    icon: '✦',
+  },
 ]
 
 export default function Bienvenida() {
   const router = useRouter()
-
-  useEffect(() => {
-    // No auto-redirect - let user choose every time
-  }, [])
-
-  const handleSelect = (role: typeof ROLES[0]) => {
-    localStorage.setItem('nido_rol', role.id)
-    router.push(role.href)
-  }
+  const [hover, setHover] = useState<string | null>(null)
 
   return (
-    <main style={{ fontFamily: 'DM Sans, system-ui, sans-serif', minHeight: '100vh', background: '#060D08' }}>
+    <main style={{ display:'flex', height:'100vh', width:'100vw', overflow:'hidden', fontFamily:"'DM Sans',sans-serif", position:'relative' }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:wght@300;400;500&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        .role-card { position: relative; overflow: hidden; cursor: pointer; border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); transition: transform 0.2s, border-color 0.2s; -webkit-tap-highlight-color: transparent; }
-        .role-card:active { transform: scale(0.98); border-color: rgba(200,169,110,0.4); }
-        .role-bg { position: absolute; inset: 0; background-size: cover; background-position: center; }
-        .role-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(6,13,8,0.92) 0%, rgba(6,13,8,0.4) 60%, rgba(6,13,8,0.2) 100%); }
-        .role-content { position: relative; z-index: 2; padding: 1.5rem; display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
-        .role-tag { font-size: 0.6rem; letter-spacing: 0.16em; color: #C8A96E; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 8px; }
-        .role-tag::before { content: ''; width: 16px; height: 1px; background: #C8A96E; }
-        .role-title { font-family: 'Cormorant Garamond', serif; font-size: 1.6rem; color: white; line-height: 1.15; margin-bottom: 0.5rem; }
-        .role-desc { font-size: 0.8rem; color: rgba(255,255,255,0.55); line-height: 1.6; margin-bottom: 1rem; font-weight: 300; }
-        .role-features { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 1.2rem; }
-        .role-feature { font-size: 0.75rem; color: rgba(255,255,255,0.5); display: flex; align-items: center; gap: 6px; }
-        .role-feature::before { content: ''; width: 3px; height: 3px; background: #C8A96E; border-radius: 50%; flex-shrink: 0; }
-        .role-cta { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; font-weight: 500; color: rgba(255,255,255,0.8); letter-spacing: 0.06em; border: none; background: none; cursor: pointer; font-family: 'DM Sans', sans-serif; padding: 0; }
-        .role-cta-line { width: 28px; height: 1px; background: rgba(255,255,255,0.5); transition: width 0.3s; }
-        @media (min-width: 768px) {
-          .roles-grid { display: flex !important; flex-direction: row !important; height: 100vh !important; gap: 0 !important; padding: 0 !important; }
-          .role-card { border-radius: 0 !important; border: none !important; border-right: 1px solid rgba(255,255,255,0.06) !important; flex: 1; transition: flex 0.7s cubic-bezier(0.4,0,0.2,1) !important; }
-          .role-card:hover { flex: 2.5 !important; }
-          .role-card:last-child { border-right: none !important; }
-          .role-content { justify-content: flex-end !important; padding: 3rem !important; }
-          .role-title { font-size: 2rem !important; }
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+        * { box-sizing:border-box; margin:0; padding:0; }
+        @keyframes slow-zoom { 0%{transform:scale(1)} 100%{transform:scale(1.08)} }
+        @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:none} }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .panel { transition: flex 0.7s cubic-bezier(0.4,0,0.2,1); }
+        .panel-img { transition: opacity 0.5s ease; animation: slow-zoom 20s ease-in-out infinite alternate; }
+        .panel-content { transition: all 0.4s ease; }
+        .panel-btn { transition: all 0.25s ease; }
+        .panel-btn:hover { transform: translateY(-2px); }
+        .nido-logo { font-family:'Cormorant Garamond',serif; font-size:1.3rem; color:white; letter-spacing:0.08em; opacity:0.9; }
+        @media (max-width: 768px) {
+          .panels-container { flex-direction: column !important; }
+          .panel { flex: 1 !important; min-height: 33.33vh !important; }
+          .panel-h1 { font-size: 1.8rem !important; }
         }
       `}</style>
 
-      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.2rem 1.5rem', background: 'linear-gradient(to bottom, rgba(6,13,8,0.8), transparent)' }}>
-        <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: '1.4rem', color: 'white' }}>
-          NIDO<span style={{ color: '#C8A96E' }}>.</span>
-        </div>
-        <a href="/login" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: '0.75rem', letterSpacing: '0.1em' }}>INGRESAR</a>
-      </nav>
+      {/* Logo flotante */}
+      <div style={{ position:'fixed', top:24, left:32, zIndex:100, animation:'fadeIn 1s ease 0.3s both' }}>
+        <div className="nido-logo">NIDO<span style={{ color:'oklch(0.85 0.06 80)' }}>.</span></div>
+      </div>
 
-      <div style={{ paddingTop: '60px', minHeight: '100vh' }}>
-        <div style={{ padding: '1rem 1rem 0.5rem', textAlign: 'center' }}>
-          <p style={{ fontSize: '0.65rem', letterSpacing: '0.15em', color: '#C8A96E', marginBottom: '0.4rem' }}>BIENVENIDO A NIDO</p>
-          <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: '1.8rem', color: 'white', lineHeight: 1.2, marginBottom: '0.3rem' }}>¿Cómo podemos ayudarte?</h1>
-          <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.8rem' }}>Selecciona tu perfil</p>
-        </div>
+      {/* 3 paneles */}
+      <div className="panels-container" style={{ display:'flex', width:'100%', height:'100%' }}>
+        {PANELES.map((p, idx) => {
+          const isHovered = hover === p.id
+          const anyHovered = hover !== null
+          const flex = anyHovered ? (isHovered ? 2.2 : 0.65) : 1
 
-        <div className="roles-grid" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem' }}>
-          {ROLES.map((role) => (
+          return (
             <div
-              key={role.id}
-              className="role-card"
-              style={{ height: '28vh', minHeight: '180px' }}
-              onClick={() => handleSelect(role)}
+              key={p.id}
+              className="panel"
+              style={{ flex, position:'relative', overflow:'hidden', cursor:'pointer', minWidth:0 }}
+              onMouseEnter={() => setHover(p.id)}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => router.push(p.href)}
             >
-              <div className="role-bg" style={{ backgroundImage: 'url(' + role.imagen + ')' }} />
-              <div className="role-overlay" />
-              <div className="role-content">
-                <div className="role-tag">{role.subtitulo}</div>
-                <div className="role-title">{role.titulo}</div>
-                <div className="role-desc">{role.desc}</div>
-                <div className="role-features">
-                  {role.features.slice(0, 2).map(f => (
-                    <div key={f} className="role-feature">{f}</div>
-                  ))}
+              {/* Foto de fondo */}
+              <div style={{ position:'absolute', inset:'-5%', overflow:'hidden' }}>
+                <img
+                  src={p.foto}
+                  alt={p.label}
+                  className="panel-img"
+                  style={{ width:'110%', height:'110%', objectFit:'cover', display:'block', opacity: isHovered ? 0.55 : 0.35 }}
+                />
+              </div>
+
+              {/* Overlay gradiente */}
+              <div style={{ position:'absolute', inset:0, background: isHovered
+                ? 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.1) 100%)'
+                : 'linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 60%, rgba(0,0,0,0.2) 100%)',
+                transition:'background 0.5s ease'
+              }}/>
+
+              {/* Línea de color acento */}
+              <div style={{ position:'absolute', bottom:0, left:0, right:0, height:3, background:p.acento, opacity: isHovered ? 1 : 0, transition:'opacity 0.3s ease' }}/>
+
+              {/* Divisor vertical */}
+              {idx < PANELES.length - 1 && (
+                <div style={{ position:'absolute', top:'10%', bottom:'10%', right:0, width:1, background:'rgba(255,255,255,0.08)', zIndex:2 }}/>
+              )}
+
+              {/* Contenido */}
+              <div className="panel-content" style={{ position:'absolute', inset:0, display:'flex', flexDirection:'column', justifyContent:'flex-end', padding: isHovered ? '2.5rem 2.5rem 3rem' : '2rem 1.8rem 2.5rem', zIndex:3 }}>
+                {/* Eyebrow */}
+                <div style={{ fontSize:'0.62rem', letterSpacing:'0.22em', textTransform:'uppercase', color: isHovered ? p.acento : 'rgba(255,255,255,0.45)', marginBottom:'0.6rem', transition:'color 0.3s ease', fontWeight:500 }}>
+                  {String(idx+1).padStart(2,'0')} · {p.eyebrow}
                 </div>
-                <button className="role-cta">
-                  <span className="role-cta-line" />
-                  {role.cta.toUpperCase()}
-                </button>
+
+                {/* Título */}
+                <h2 className="panel-h1" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize: isHovered ? 'clamp(2rem,3.5vw,3rem)' : 'clamp(1.4rem,2.5vw,2.2rem)', fontWeight:300, color:'white', lineHeight:1.1, marginBottom:'0.8rem', transition:'font-size 0.4s ease', letterSpacing:'-0.01em' }}>
+                  {p.label}
+                </h2>
+
+                {/* Sub */}
+                <p style={{ fontSize:'0.82rem', color:'rgba(255,255,255,0.5)', marginBottom: isHovered ? '1.5rem' : '0', maxHeight: isHovered ? 60 : 0, overflow:'hidden', transition:'all 0.4s ease', lineHeight:1.6 }}>
+                  {p.sub}
+                </p>
+
+                {/* CTA */}
+                <div style={{ overflow:'hidden', maxHeight: isHovered ? 60 : 0, transition:'max-height 0.4s ease' }}>
+                  <button
+                    className="panel-btn"
+                    style={{ display:'inline-flex', alignItems:'center', gap:8, background:'white', color:'#060D08', border:'none', padding:'10px 20px', borderRadius:999, fontSize:'0.8rem', fontWeight:500, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", letterSpacing:'0.02em' }}
+                  >
+                    Continuar <span style={{ fontSize:'1rem' }}>→</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Número grande decorativo */}
+              <div style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', fontFamily:"'Cormorant Garamond',serif", fontSize:'clamp(6rem,15vw,14rem)', fontWeight:300, color:'rgba(255,255,255,0.03)', lineHeight:1, pointerEvents:'none', userSelect:'none', transition:'all 0.5s ease', opacity: isHovered ? 0 : 1 }}>
+                {String(idx+1)}
               </div>
             </div>
-          ))}
-        </div>
-        <p style={{ textAlign: 'center', fontSize: '0.65rem', color: 'rgba(255,255,255,0.2)', letterSpacing: '0.1em', padding: '1rem', paddingBottom: '2rem' }}>PUEDES CAMBIAR TU PERFIL EN CUALQUIER MOMENTO</p>
+          )
+        })}
+      </div>
+
+      {/* Footer hint */}
+      <div style={{ position:'fixed', bottom:20, left:'50%', transform:'translateX(-50%)', zIndex:100, fontSize:'0.65rem', letterSpacing:'0.15em', color:'rgba(255,255,255,0.2)', textTransform:'uppercase', animation:'fadeIn 1s ease 1s both' }}>
+        Elegí tu camino
       </div>
     </main>
   )
