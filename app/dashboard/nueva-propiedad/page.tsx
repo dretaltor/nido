@@ -20,7 +20,7 @@ const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la monta
 export default function NuevaPropiedad() {
   const [current, setCurrent] = useState(0)
   const [completed, setCompleted] = useState(new Set())
-  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', direccion:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[], photos:[], tour:false, title:'', desc:'', price:'' })
+  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', direccion:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'' })
   const [published, setPublished] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [aiWriting, setAiWriting] = useState(false)
