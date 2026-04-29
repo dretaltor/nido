@@ -1,8 +1,19 @@
 'use client'
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { supabase } from '../../lib/supabase'
 
-export default function Registro() {
+const PLANES_INFO: Record<string, { nombre: string, precio: string, color: string }> = {
+  pro: { nombre: 'Pro', precio: '$49/mes', color: 'var(--accent)' },
+  enterprise: { nombre: 'Enterprise', precio: '$129/mes', color: 'oklch(0.52 0.08 230)' },
+}
+
+function RegistroInner() {
+  const params = useSearchParams()
+  const plan = params.get('plan') || ''
+  const planInfo = PLANES_INFO[plan]
+
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -11,96 +22,170 @@ export default function Registro() {
   const [exito, setExito] = useState(false)
 
   const handleRegistro = async () => {
+    if (!nombre || !email || !password) { setError('Por favor completa todos los campos.'); return }
+    if (password.length < 6) { setError('La contrasena debe tener al menos 6 caracteres.'); return }
     setLoading(true); setError('')
-    const { error } = await supabase.auth.signUp({ email, password, options: { data: { nombre } } })
-    if (error) { setError('Error al registrarse. Intenta de nuevo.') } else { setExito(true) }
+    const { error } = await supabase.auth.signUp({
+      email, password,
+      options: { data: { nombre, plan: plan || 'gratis' } }
+    })
+    if (error) { setError('Error al registrarse. Intenta de nuevo.') }
+    else { setExito(true) }
     setLoading(false)
   }
 
   if (exito) return (
-    <main style={{ fontFamily: "'DM Sans', sans-serif", background: '#FAFAF8', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
-* { margin: 0; padding: 0; box-sizing: border-box; }
-:root { --green: #1B5E3B; --green-light: #2D7A52; --gold: #C8A96E; --cream: #F7F4EE; --dark: #0D1F15; --gray: #6B7280; }
-body { font-family: 'DM Sans', sans-serif; background: #FAFAF8; }
-.nav-link { color: #6B7280; text-decoration: none; font-size: 0.88rem; transition: color 0.2s; }
-.nav-link:hover { color: #1B5E3B; }
-.btn-primary { background: #1B5E3B; color: white; padding: 0.6rem 1.4rem; border-radius: 100px; font-size: 0.85rem; font-weight: 500; text-decoration: none; display: inline-block; transition: all 0.2s; border: none; cursor: pointer; }
-.btn-primary:hover { background: #2D7A52; }
-.btn-outline { border: 1px solid #1B5E3B; color: #1B5E3B; padding: 0.6rem 1.4rem; border-radius: 100px; font-size: 0.85rem; font-weight: 500; text-decoration: none; display: inline-block; background: white; cursor: pointer; }
-.card { background: white; border: 1px solid rgba(27,94,59,0.08); border-radius: 16px; overflow: hidden; transition: all 0.2s; }
-.card:hover { border-color: rgba(27,94,59,0.15); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(27,94,59,0.08); }
-.filter-btn { padding: 0.45rem 1.1rem; border-radius: 100px; border: 1px solid rgba(27,94,59,0.15); font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: all 0.2s; background: white; color: #6B7280; }
-.filter-btn.active { background: #1B5E3B; color: white; border-color: #1B5E3B; }
-input, textarea, select { font-family: 'DM Sans', sans-serif; }
-`}</style>
-      <div style={{ textAlign: 'center', maxWidth: '400px' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎉</div>
-        <h2 style={{ fontFamily: "'Playfair Display', serif", color: '#0D1F15', marginBottom: '0.5rem' }}>Cuenta creada</h2>
-        <p style={{ color: '#9CA3AF', marginBottom: '1.5rem' }}>Revisa tu correo para confirmar y luego ingresa.</p>
-        <a href="/login" className="btn-primary">Ir al login</a>
+    <main style={{ fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+      <style>{CSS}</style>
+      <div style={{ maxWidth:460, textAlign:'center', padding:'0 24px', animation:'fadeUp 0.5s ease' }}>
+        <div style={{ width:72, height:72, borderRadius:'50%', background:'var(--accent)', display:'grid', placeItems:'center', margin:'0 auto 24px', fontSize:28 }}>✓</div>
+        <h1 style={{ fontFamily:'var(--serif)', fontSize:36, fontWeight:400, marginBottom:12 }}>Cuenta <em style={{ fontStyle:'italic', color:'var(--accent)' }}>creada.</em></h1>
+        <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.65, marginBottom:28 }}>
+          Revisas tu correo para confirmar tu cuenta. Luego podes ingresar y empezar a usar NIDO.
+        </p>
+        <div style={{ display:'flex', gap:10, justifyContent:'center' }}>
+          <a href="/login" style={{ background:'var(--ink)', color:'white', padding:'12px 24px', borderRadius:999, fontSize:14, fontWeight:500, textDecoration:'none' }}>Ingresar al dashboard →</a>
+        </div>
       </div>
     </main>
   )
 
   return (
-    <main style={{ fontFamily: "'DM Sans', sans-serif", backgroundColor: '#FAFAF8', minHeight: '100vh', display: 'flex' }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap');
-* { margin: 0; padding: 0; box-sizing: border-box; }
-:root { --green: #1B5E3B; --green-light: #2D7A52; --gold: #C8A96E; --cream: #F7F4EE; --dark: #0D1F15; --gray: #6B7280; }
-body { font-family: 'DM Sans', sans-serif; background: #FAFAF8; }
-.nav-link { color: #6B7280; text-decoration: none; font-size: 0.88rem; transition: color 0.2s; }
-.nav-link:hover { color: #1B5E3B; }
-.btn-primary { background: #1B5E3B; color: white; padding: 0.6rem 1.4rem; border-radius: 100px; font-size: 0.85rem; font-weight: 500; text-decoration: none; display: inline-block; transition: all 0.2s; border: none; cursor: pointer; }
-.btn-primary:hover { background: #2D7A52; }
-.btn-outline { border: 1px solid #1B5E3B; color: #1B5E3B; padding: 0.6rem 1.4rem; border-radius: 100px; font-size: 0.85rem; font-weight: 500; text-decoration: none; display: inline-block; background: white; cursor: pointer; }
-.card { background: white; border: 1px solid rgba(27,94,59,0.08); border-radius: 16px; overflow: hidden; transition: all 0.2s; }
-.card:hover { border-color: rgba(27,94,59,0.15); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(27,94,59,0.08); }
-.filter-btn { padding: 0.45rem 1.1rem; border-radius: 100px; border: 1px solid rgba(27,94,59,0.15); font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: all 0.2s; background: white; color: #6B7280; }
-.filter-btn.active { background: #1B5E3B; color: white; border-color: #1B5E3B; }
-input, textarea, select { font-family: 'DM Sans', sans-serif; }
+    <main style={{ fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', display:'flex', background:'var(--bg)' }}>
+      <style>{CSS}</style>
 
-        .input-field { width: 100%; padding: 0.8rem 1.1rem; border-radius: 10px; border: 1px solid rgba(27,94,59,0.15); font-size: 0.9rem; outline: none; color: #1a1a1a; background: white; transition: border-color 0.2s; box-sizing: border-box; }
-        .input-field:focus { border-color: #1B5E3B; }
-      `}</style>
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-        <div style={{ width: '100%', maxWidth: '400px' }}>
-          <a href="/" style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.8rem', color: '#1B5E3B', textDecoration: 'none', display: 'block', marginBottom: '0.3rem' }}>NIDO<span style={{ color: '#C8A96E' }}>.</span></a>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '1.8rem', color: '#0D1F15', marginBottom: '0.4rem' }}>Crea tu cuenta</h2>
-          <p style={{ color: '#9CA3AF', fontSize: '0.88rem', marginBottom: '2rem' }}>Únete a NIDO Pro como asesor inmobiliario</p>
-          {error && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '10px', padding: '0.8rem', marginBottom: '1rem', color: '#DC2626', fontSize: '0.85rem' }}>{error}</div>}
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Nombre completo</label>
-            <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Tu nombre" className="input-field" />
+      {/* Panel izquierdo */}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', padding:'48px 64px', maxWidth:560, animation:'fadeUp 0.5s ease' }}>
+
+        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:26, color:'var(--ink)', textDecoration:'none', marginBottom:48, display:'block' }}>
+          NIDO<span style={{ color:'var(--accent)' }}>.</span>
+        </a>
+
+        <div style={{ marginBottom:28 }}>
+          <div style={{ fontSize:11, letterSpacing:'0.18em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>
+            {planInfo ? 'Crear cuenta · Plan ' + planInfo.nombre : 'Crear cuenta · Asesor'}
           </div>
-          <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Correo electrónico</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="tu@email.com" className="input-field" />
-          </div>
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 500, color: '#374151', marginBottom: '0.4rem' }}>Contraseña</label>
-            <input value={password} onChange={e => setPassword(e.target.value)} type="password" placeholder="Mínimo 6 caracteres" className="input-field" />
-          </div>
-          <button onClick={handleRegistro} disabled={loading} style={{ width: '100%', padding: '0.85rem', borderRadius: '100px', border: 'none', background: '#1B5E3B', color: 'white', fontSize: '0.95rem', fontWeight: 500, cursor: 'pointer' }}>
-            {loading ? 'Creando cuenta...' : 'Crear cuenta gratis'}
-          </button>
-          <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.85rem', color: '#9CA3AF' }}>
-            ¿Ya tienes cuenta? <a href="/login" style={{ color: '#1B5E3B', fontWeight: 500, textDecoration: 'none' }}>Ingresa aquí</a>
+          <h1 style={{ fontFamily:'var(--serif)', fontSize:'clamp(28px,4vw,42px)', fontWeight:400, lineHeight:1.1, marginBottom:8 }}>
+            Tu carrera empieza <em style={{ fontStyle:'italic', color:'var(--accent)' }}>hoy.</em>
+          </h1>
+          <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6 }}>
+            Crea tu cuenta gratis y empieza a publicar propiedades con Valeria IA de tu lado.
           </p>
         </div>
-      </div>
-      <div style={{ flex: 1, background: '#0D1F15', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4rem' }}>
-        <div style={{ maxWidth: '360px' }}>
-          <div style={{ fontSize: '0.72rem', letterSpacing: '0.1em', color: '#C8A96E', marginBottom: '1.5rem' }}>EMPIEZA GRATIS</div>
-          <h2 style={{ fontFamily: "'Playfair Display', serif", fontSize: '2rem', color: 'white', lineHeight: 1.3, marginBottom: '2rem' }}>Cierra más tratos con inteligencia artificial</h2>
-          {['Sin tarjeta de crédito', '14 días de prueba gratis', 'Cancela cuando quieras', 'Soporte en español'].map(f => (
-            <div key={f} style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ width: '20px', height: '20px', background: '#C8A96E', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', color: '#0D1F15', flexShrink: 0 }}>✓</div>
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.88rem' }}>{f}</p>
+
+        {planInfo && (
+          <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:10, padding:'12px 16px', marginBottom:20, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+            <div>
+              <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--accent)', marginBottom:2 }}>Plan seleccionado</div>
+              <div style={{ fontSize:14, fontWeight:500, color:'var(--ink)' }}>NIDO {planInfo.nombre} · {planInfo.precio}</div>
+            </div>
+            <a href="/precios" style={{ fontSize:12, color:'var(--ink-3)' }}>Cambiar</a>
+          </div>
+        )}
+
+        {error && (
+          <div style={{ background:'oklch(0.97 0.03 20)', border:'1px solid oklch(0.85 0.06 20)', borderRadius:10, padding:'12px 16px', marginBottom:16, color:'oklch(0.45 0.08 20)', fontSize:13 }}>
+            {error}
+          </div>
+        )}
+
+        <div style={{ display:'flex', flexDirection:'column', gap:14, marginBottom:20 }}>
+          <div>
+            <label style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Nombre completo</label>
+            <input className="field-input" type="text" placeholder="María Rodríguez" value={nombre} onChange={e => setNombre(e.target.value)}/>
+          </div>
+          <div>
+            <label style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Correo electrónico</label>
+            <input className="field-input" type="email" placeholder="tu@correo.com" value={email} onChange={e => setEmail(e.target.value)}/>
+          </div>
+          <div>
+            <label style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Contraseña</label>
+            <input className="field-input" type="password" placeholder="Mínimo 6 caracteres" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key==='Enter' && handleRegistro()}/>
+          </div>
+        </div>
+
+        <button className="login-btn" onClick={handleRegistro} disabled={loading}>
+          {loading ? 'Creando cuenta...' : 'Crear cuenta gratis →'}
+        </button>
+
+        <p style={{ textAlign:'center', marginTop:16, fontSize:13, color:'var(--ink-3)' }}>
+          Ya tenes cuenta? <a href="/login" style={{ color:'var(--accent)', fontWeight:500, textDecoration:'none' }}>Ingresá aquí</a>
+        </p>
+
+        <p style={{ textAlign:'center', marginTop:16, fontSize:11, color:'var(--ink-3)', lineHeight:1.6 }}>
+          Al crear una cuenta aceptas los <a href="#" style={{ color:'var(--accent)' }}>Términos de uso</a> y la <a href="#" style={{ color:'var(--accent)' }}>Política de privacidad</a> de NIDO.
+        </p>
+
+        <div style={{ marginTop:40, paddingTop:24, borderTop:'1px solid var(--rule)', display:'flex', gap:20 }}>
+          {[{icon:'✦', label:'Valeria IA incluida'},{icon:'◎', label:'CRM de leads'},{icon:'🏠', label:'Portal premium'}].map(l => (
+            <div key={l.label} style={{ fontSize:12, color:'var(--ink-3)', display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ color:'var(--accent)' }}>{l.icon}</span> {l.label}
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Panel derecho */}
+      <div style={{ flex:1, position:'relative', overflow:'hidden', background:'#060D08', display:'flex', flexDirection:'column', justifyContent:'flex-end', padding:48 }}>
+        <div style={{ position:'absolute', inset:'-5%', backgroundImage:'url(https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80)', backgroundSize:'cover', backgroundPosition:'center', opacity:0.2, animation:'slow-zoom 20s ease-in-out infinite alternate' }}/>
+        <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom, rgba(6,13,8,0.3) 0%, rgba(6,13,8,0.8) 100%)' }}/>
+        <div style={{ position:'absolute', top:'25%', left:'50%', transform:'translate(-50%,-50%)', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, oklch(0.42 0.06 150/0.1) 0%, transparent 70%)' }}/>
+
+        <div style={{ position:'relative', zIndex:2 }}>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:24 }}>
+            {[
+              { val:'87', label:'asesores activos en NIDO', suffix:'%' },
+              { val:'412', label:'propiedades publicadas', suffix:'+' },
+              { val:'2.4', label:'veces mas cierres con Pro', suffix:'×' },
+              { val:'4.9', label:'calificacion promedio asesores', suffix:'★' },
+            ].map(s => (
+              <div key={s.val} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'14px 16px', backdropFilter:'blur(12px)' }}>
+                <div style={{ fontFamily:'var(--serif)', fontSize:26, color:'white', lineHeight:1 }}>{s.val}{s.suffix}</div>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', marginTop:4, lineHeight:1.4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:14, padding:'20px 22px', backdropFilter:'blur(16px)' }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:12 }}>
+              <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg,var(--accent),oklch(0.30 0.08 150))', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--serif)', fontSize:14, fontStyle:'italic', color:'oklch(0.85 0.06 80)' }}>V</div>
+              <div>
+                <div style={{ fontSize:13, fontWeight:500, color:'white' }}>Valeria</div>
+                <div style={{ fontSize:11, color:'rgba(255,255,255,0.4)', display:'flex', alignItems:'center', gap:4 }}>
+                  <span style={{ width:5, height:5, borderRadius:'50%', background:'#22c55e', display:'inline-block' }}/>
+                  Mentora IA de NIDO
+                </div>
+              </div>
+            </div>
+            <p style={{ fontSize:13, color:'rgba(255,255,255,0.6)', lineHeight:1.65, fontStyle:'italic' }}>
+              "Bienvenido a NIDO. Desde tu primer dia, voy a ayudarte a encontrar leads, redactar descripciones y cerrar mas rapido. Empecemos."
+            </p>
+          </div>
         </div>
       </div>
     </main>
   )
 }
+
+export default function Registro() {
+  return (
+    <Suspense fallback={<div style={{padding:40,fontFamily:'sans-serif',color:'#999'}}>Cargando...</div>}>
+      <RegistroInner/>
+    </Suspense>
+  )
+}
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  :root { --bg:oklch(0.97 0.005 80);--bg-elev:oklch(0.985 0.004 80);--bg-card:oklch(0.99 0.003 80);--ink:oklch(0.20 0.005 80);--ink-2:oklch(0.42 0.005 80);--ink-3:oklch(0.60 0.005 80);--rule:oklch(0.88 0.006 80);--accent:oklch(0.42 0.06 150);--accent-tint:oklch(0.95 0.02 150);--serif:"Cormorant Garamond",serif;--sans:"DM Sans",system-ui,sans-serif; }
+  @keyframes slow-zoom{0%{transform:scale(1)}100%{transform:scale(1.06)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .field-input{width:100%;padding:12px 16px;border:1px solid var(--rule);border-radius:10px;font-size:14px;font-family:var(--sans);color:var(--ink);background:white;outline:none;transition:border-color 0.2s;box-sizing:border-box}
+  .field-input:focus{border-color:var(--accent)}
+  .field-input::placeholder{color:var(--ink-3)}
+  .login-btn{width:100%;padding:13px;border-radius:999px;border:none;background:var(--ink);color:white;font-size:15px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all 0.2s}
+  .login-btn:hover:not(:disabled){background:oklch(0.28 0.006 80);transform:translateY(-1px)}
+  .login-btn:disabled{opacity:0.6;cursor:not-allowed}
+  @media(max-width:768px){main>div:last-child{display:none!important}main>div:first-child{padding:32px 24px!important;max-width:100%!important}}
+`

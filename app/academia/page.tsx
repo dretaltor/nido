@@ -99,7 +99,7 @@ export default function Academia() {
         {/* Grid cursos */}
         <div className="cursos-grid" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20, marginBottom:40 }}>
           {filtrados.map(c => (
-            <div key={c.id} className="curso-card" onClick={() => setSel(c)}>
+            <div key={c.id} className="curso-card" onClick={() => { if(c.gratis) { window.location.href = '/academia/curso?id=' + c.id } else { setSel(c) } }}>
               <div style={{ height:120, background:`oklch(0.88 0.03 ${c.hue})`, display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
                 <span style={{ fontSize:36 }}>{c.icon}</span>
                 {c.gratis && <span style={{ position:'absolute', top:10, right:10, background:'var(--accent)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em', fontWeight:500 }}>GRATIS</span>}
