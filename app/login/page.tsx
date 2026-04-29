@@ -6,7 +6,22 @@ export default function Login() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [resetMode, setResetMode] = useState(false)
+  const [resetEmail, setResetEmail] = useState('')
+  const [resetSent, setResetSent] = useState(false)
+  const [resetLoading, setResetLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const handleReset = async () => {
+    if (!resetEmail) { setError('Ingresá tu correo.'); return }
+    setResetLoading(true); setError('')
+    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+      redirectTo: 'https://www.nido-cr.com/reset-password'
+    })
+    if (error) { setError('Error al enviar. Verificá el correo.') }
+    else { setResetSent(true) }
+    setResetLoading(false)
+  }
 
   const handleLogin = async () => {
     setLoading(true); setError('')
@@ -62,15 +77,37 @@ export default function Login() {
           <div>
             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
               <label style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)' }}>Contraseña</label>
-              <a href="#" style={{ fontSize:12, color:'var(--accent)', textDecoration:'none' }}>¿Olvidaste tu contraseña?</a>
+              <button onClick={() => { setResetMode(true); setError('') }} style={{ fontSize:12, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', padding:0, fontFamily:"'DM Sans',sans-serif" }}>¿Olvidaste tu contraseña?</button>
             </div>
             <input className="field-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key==='Enter' && handleLogin()}/>
           </div>
         </div>
 
-        <button className="login-btn" onClick={handleLogin} disabled={loading}>
+        {resetMode && (
+          <div style={{ background:'var(--bg-elev)', border:'1px solid var(--rule)', borderRadius:12, padding:'20px', marginBottom:20 }}>
+            {resetSent ? (
+              <div style={{ textAlign:'center' }}>
+                <div style={{ fontSize:28, marginBottom:8 }}>📧</div>
+                <div style={{ fontFamily:'var(--serif)', fontSize:18, marginBottom:8 }}>Correo enviado</div>
+                <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.6, marginBottom:16 }}>Revisá tu bandeja de entrada y seguí las instrucciones para restablecer tu contraseña.</p>
+                <button onClick={() => { setResetMode(false); setResetSent(false); setResetEmail('') }} style={{ fontSize:13, color:'var(--accent)', background:'none', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>← Volver al login</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize:13, fontWeight:500, marginBottom:12 }}>Restablecer contraseña</div>
+                <p style={{ fontSize:13, color:'var(--ink-3)', marginBottom:12, lineHeight:1.5 }}>Ingresá tu correo y te enviaremos un enlace para crear una nueva contraseña.</p>
+                <input className="field-input" type="email" placeholder="tu@correo.com" value={resetEmail} onChange={e => setResetEmail(e.target.value)} onKeyDown={e => e.key==='Enter' && handleReset()} style={{ marginBottom:12 }}/>
+                <div style={{ display:'flex', gap:8 }}>
+                  <button onClick={() => { setResetMode(false); setError('') }} style={{ flex:1, padding:'10px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:13, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>Cancelar</button>
+                  <button onClick={handleReset} disabled={resetLoading} style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, cursor:'pointer', fontFamily:"'DM Sans',sans-serif", opacity:resetLoading?0.6:1 }}>{resetLoading?'Enviando...':'Enviar enlace'}</button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+        {!resetMode && <button className="login-btn" onClick={handleLogin} disabled={loading}>
           {loading ? 'Ingresando...' : 'Ingresar al dashboard →'}
-        </button>
+        </button>}
 
         <p style={{ textAlign:'center', marginTop:20, fontSize:13, color:'var(--ink-3)' }}>
           ¿No tenés cuenta? <a href="/registro" style={{ color:'var(--accent)', fontWeight:500, textDecoration:'none' }}>Registrate aquí</a>
