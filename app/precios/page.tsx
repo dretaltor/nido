@@ -117,6 +117,25 @@ const CSS = `
 
 export default function Precios() {
   const [anual, setAnual] = useState(false)
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
+
+  const handleSuscribirse = async (planId: string) => {
+    if (planId === 'gratis') { window.location.href = '/registro'; return }
+    setLoadingPlan(planId)
+    try {
+      const res = await fetch('/api/stripe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: planId, anual })
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else alert('Error al procesar. Intenta de nuevo.')
+    } catch {
+      alert('Error al conectar con Stripe.')
+    }
+    setLoadingPlan(null)
+  }
 
   return (
     <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }}>
@@ -197,9 +216,14 @@ export default function Precios() {
                 ))}
               </div>
 
-              <a href={p.href} className={'cta-btn '+(p.featured?'dark':p.id==='gratis'?'light':'accent')} style={{ display:'block', textAlign:'center', textDecoration:'none', padding:13, borderRadius:999, fontSize:14, fontWeight:500, transition:'all 0.2s', marginTop:'auto' }}>
-                {p.cta} →
-              </a>
+              <button
+                onClick={() => handleSuscribirse(p.id)}
+                disabled={loadingPlan === p.id}
+                className={'cta-btn '+(p.featured?'dark':p.id==='gratis'?'light':'accent')}
+                style={{ display:'block', textAlign:'center', width:'100%', padding:13, borderRadius:999, fontSize:14, fontWeight:500, transition:'all 0.2s', marginTop:'auto', cursor:'pointer', opacity:loadingPlan===p.id?0.7:1 }}
+              >
+                {loadingPlan === p.id ? 'Redirigiendo...' : p.cta + ' →'}
+              </button>
             </div>
           ))}
         </div>
@@ -254,8 +278,8 @@ export default function Precios() {
             No necesitás tarjeta de crédito para empezar. El plan Gratis no tiene fecha de vencimiento.
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-            <a href="/registro" style={{ background:'var(--accent)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, fontWeight:500, textDecoration:'none' }}>Crear cuenta gratis →</a>
-            <a href="/registro?plan=enterprise" style={{ border:'1px solid rgba(255,255,255,0.2)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, textDecoration:'none' }}>Ver Enterprise</a>
+            <a href="/registro" style={{ background:'var(--accent)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, fontWeight:500, textDecoration:'none', display:'inline-block' }}>Crear cuenta gratis →</a>
+            <button onClick={() => handleSuscribirse('enterprise')} disabled={loadingPlan==='enterprise'} style={{ border:'1px solid rgba(255,255,255,0.2)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, background:'transparent', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", opacity:loadingPlan==='enterprise'?0.7:1 }}>{loadingPlan==='enterprise'?'Redirigiendo...':'Ver Enterprise'}</button>
           </div>
         </div>
 
