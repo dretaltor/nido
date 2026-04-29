@@ -2,60 +2,263 @@
 import { useState } from 'react'
 
 const PLANES = [
-  { id: 'basico', nombre: 'Basico', precio: 49, color: '#0ea5e9', popular: false, features: ['Hasta 10 propiedades', 'CRM de leads', 'NIDO Agent', 'Soporte email'] },
-  { id: 'pro', nombre: 'Pro', precio: 99, color: '#15803d', popular: true, features: ['Propiedades ilimitadas', 'CRM completo', 'NIDO Agent sin limites', 'Academia completa', 'Ranking destacado', 'Soporte prioritario'] },
-  { id: 'agencia', nombre: 'Agencia', precio: 299, color: '#7c3aed', popular: false, features: ['Todo lo de Pro', 'Hasta 20 asesores', 'Dashboard agencia', 'API access', 'Gerente dedicado'] }
+  {
+    id: 'gratis',
+    nombre: 'Gratis',
+    desc: 'Para empezar a explorar NIDO sin compromiso.',
+    precio_mes: 0,
+    precio_ano: 0,
+    badge: null,
+    cta: 'Crear cuenta gratis',
+    href: '/registro',
+    featured: false,
+    features: [
+      { texto: '2 propiedades publicadas', ok: true },
+      { texto: 'Ficha básica sin fotos premium', ok: true },
+      { texto: 'Acceso de lectura al portal', ok: true },
+      { texto: 'Perfil de asesor público', ok: true },
+      { texto: 'Valeria IA', ok: false },
+      { texto: 'CRM de leads', ok: false },
+      { texto: 'Estadísticas de vistas', ok: false },
+      { texto: 'Academia NIDO', ok: false },
+      { texto: 'Soporte prioritario', ok: false },
+    ]
+  },
+  {
+    id: 'pro',
+    nombre: 'Pro',
+    desc: 'Para asesores que quieren crecer con IA y automatización.',
+    precio_mes: 49,
+    precio_ano: 39,
+    badge: 'Más popular',
+    cta: 'Empezar Pro',
+    href: '/registro?plan=pro',
+    featured: false,
+    features: [
+      { texto: '15 propiedades publicadas', ok: true },
+      { texto: 'Galería de fotos ilimitada', ok: true },
+      { texto: 'Valeria IA — asesora 24/7', ok: true },
+      { texto: 'CRM de leads completo', ok: true },
+      { texto: 'Estadísticas y métricas', ok: true },
+      { texto: 'Academia NIDO completa', ok: true },
+      { texto: 'Tour 360° (1 por mes)', ok: true },
+      { texto: 'Soporte en 24 horas', ok: true },
+      { texto: 'Panel propietario avanzado', ok: false },
+    ]
+  },
+  {
+    id: 'enterprise',
+    nombre: 'Enterprise',
+    desc: 'Para asesores top y equipos que quieren dominar el mercado.',
+    precio_mes: 129,
+    precio_ano: 99,
+    badge: 'Mayor valor',
+    cta: 'Empezar Enterprise',
+    href: '/registro?plan=enterprise',
+    featured: true,
+    features: [
+      { texto: 'Propiedades ilimitadas', ok: true },
+      { texto: 'Galería de fotos ilimitada', ok: true },
+      { texto: 'Valeria IA con memoria y contexto', ok: true },
+      { texto: 'CRM avanzado con score de leads', ok: true },
+      { texto: 'Estadísticas en tiempo real', ok: true },
+      { texto: 'Academia NIDO + certificaciones', ok: true },
+      { texto: 'Tours 360° ilimitados', ok: true },
+      { texto: 'Soporte prioritario en 2 horas', ok: true },
+      { texto: 'Panel propietario avanzado', ok: true },
+    ]
+  },
 ]
 
-export default function Precios() {
-  const [loadingPlan, setLoadingPlan] = useState('')
+const DIFERENCIAS = [
+  { feature: 'Propiedades publicadas', gratis: '2', pro: '15', enterprise: 'Ilimitadas' },
+  { feature: 'Fotos por propiedad', gratis: '3', pro: 'Ilimitadas', enterprise: 'Ilimitadas' },
+  { feature: 'Valeria IA', gratis: '—', pro: 'Básica', enterprise: 'Con memoria y contexto' },
+  { feature: 'CRM de leads', gratis: '—', pro: 'Completo', enterprise: 'Avanzado + score' },
+  { feature: 'Tours 360°', gratis: '—', pro: '1 por mes', enterprise: 'Ilimitados' },
+  { feature: 'Academia NIDO', gratis: '—', pro: 'Cursos básicos', enterprise: 'Todo + certificaciones' },
+  { feature: 'Soporte', gratis: 'Email', pro: '24 horas', enterprise: '2 horas' },
+  { feature: 'Estadísticas', gratis: '—', pro: 'Semanales', enterprise: 'Tiempo real' },
+  { feature: 'Panel propietario', gratis: '—', pro: '—', enterprise: '✓' },
+  { feature: 'Descuento anual', gratis: '—', pro: '20%', enterprise: '23%' },
+]
 
-  const handlePago = async (planId: string) => {
-    setLoadingPlan(planId)
-    try {
-      const res = await fetch('/api/stripe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan: planId }) })
-      const data = await res.json()
-      if (data.url) window.location.href = data.url
-    } catch { alert('Error al procesar') }
-    setLoadingPlan('')
-  }
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  :root { --bg:oklch(0.97 0.005 80);--bg-elev:oklch(0.985 0.004 80);--bg-card:oklch(0.99 0.003 80);--ink:oklch(0.20 0.005 80);--ink-2:oklch(0.42 0.005 80);--ink-3:oklch(0.60 0.005 80);--rule:oklch(0.88 0.006 80);--rule-soft:oklch(0.93 0.005 80);--accent:oklch(0.42 0.06 150);--accent-tint:oklch(0.95 0.02 150);--serif:"Cormorant Garamond",serif;--sans:"DM Sans",system-ui,sans-serif;--mono:"JetBrains Mono",monospace; }
+  a{color:inherit;text-decoration:none} button{font:inherit;color:inherit;cursor:pointer}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .toggle-group{display:inline-flex;border:1px solid var(--rule);border-radius:999px;padding:4px;background:var(--bg-card)}
+  .toggle-btn{padding:8px 22px;border-radius:999px;border:none;background:transparent;font-size:13px;color:var(--ink-2);cursor:pointer;transition:all 0.2s;font-family:var(--sans)}
+  .toggle-btn.active{background:var(--ink);color:white}
+  .plan-card{background:white;border:1px solid var(--rule);border-radius:16px;padding:28px;display:flex;flex-direction:column;gap:20px;transition:all 0.25s;position:relative;overflow:hidden}
+  .plan-card:hover{box-shadow:0 8px 32px rgba(27,94,59,0.1)}
+  .plan-card.featured{border-color:var(--ink);background:var(--ink)}
+  .feat-row{display:flex;align-items:center;gap:10px;font-size:13px}
+  .check{width:18px;height:18px;border-radius:50%;display:grid;place-items:center;flex-shrink:0;font-size:10px}
+  .check.ok{background:var(--accent);color:white}
+  .check.no{background:var(--rule);color:var(--ink-3)}
+  .cta-btn{width:100%;padding:13px;border-radius:999px;border:none;font-size:14px;font-weight:500;cursor:pointer;transition:all 0.2s;font-family:var(--sans)}
+  .cta-btn:hover{transform:translateY(-1px)}
+  .cta-btn.dark{background:white;color:var(--ink)}
+  .cta-btn.dark:hover{background:oklch(0.93 0.005 80)}
+  .cta-btn.light{background:var(--ink);color:white}
+  .cta-btn.light:hover{background:oklch(0.28 0.006 80)}
+  .cta-btn.accent{background:var(--accent);color:white}
+  .cta-btn.accent:hover{background:oklch(0.38 0.06 150)}
+  .table-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:0;border-bottom:1px solid var(--rule-soft)}
+  .table-row:last-child{border-bottom:none}
+  .table-cell{padding:14px 16px;font-size:13px;display:flex;align-items:center}
+  .table-cell.center{justify-content:center;text-align:center}
+  .table-header{background:var(--ink);color:white;border-radius:8px 8px 0 0}
+  @media(max-width:900px){.planes-grid{grid-template-columns:1fr!important}.table-row{display:none!important}.nav-pad{padding:14px 16px!important}.page-pad{padding:32px 16px 80px!important}}
+`
+
+export default function Precios() {
+  const [anual, setAnual] = useState(false)
 
   return (
-    <main style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
-        <a href="/" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#15803d', textDecoration: 'none' }}>NIDO</a>
-        <a href="/registro" style={{ padding: '0.5rem 1.2rem', borderRadius: '8px', backgroundColor: '#15803d', color: 'white', textDecoration: 'none', fontSize: '0.9rem' }}>Registrarse</a>
-      </nav>
-      <div style={{ maxWidth: '1100px', margin: '0 auto', padding: '3rem 2rem' }}>
-        <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
-          <h2 style={{ fontSize: '2.2rem', fontWeight: 'bold', color: '#14532d', margin: '0 0 0.5rem' }}>Planes y precios</h2>
-          <p style={{ color: '#6b7280', margin: 0 }}>Sin contratos. Cancela cuando quieras.</p>
+    <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }}>
+      <style>{CSS}</style>
+
+      <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
+        <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1300, margin:'0 auto' }}>
+          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
+            <a href="/propiedades">Portal</a>
+            <a href="/asesores">Asesores</a>
+            <a href="/academia">Academia</a>
+            <a href="/precios" style={{ color:'var(--accent)', fontWeight:500 }}>Planes</a>
+          </div>
+          <div style={{ display:'flex', gap:10 }}>
+            <a href="/login" style={{ border:'1px solid var(--rule)', padding:'8px 16px', borderRadius:999, fontSize:13 }}>Ingresar</a>
+            <a href="/registro" style={{ background:'var(--ink)', color:'white', padding:'8px 16px', borderRadius:999, fontSize:13 }}>Crear cuenta</a>
+          </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-          {PLANES.map(plan => (
-            <div key={plan.id} style={{ backgroundColor: 'white', borderRadius: '16px', overflow: 'hidden', boxShadow: plan.popular ? '0 8px 32px rgba(21,128,61,0.15)' : '0 2px 8px rgba(0,0,0,0.08)', border: plan.popular ? '2px solid #15803d' : '2px solid transparent' }}>
-              {plan.popular && <div style={{ backgroundColor: '#15803d', textAlign: 'center', padding: '0.4rem', fontSize: '0.8rem', fontWeight: 'bold', color: 'white' }}>MAS POPULAR</div>}
-              <div style={{ padding: '2rem' }}>
-                <h3 style={{ margin: '0 0 1rem', color: plan.color, fontSize: '1.2rem', fontWeight: 'bold' }}>NIDO {plan.nombre}</h3>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <span style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#14532d' }}>${plan.precio}</span>
-                  <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>/mes</span>
+      </nav>
+
+      <div className="page-pad" style={{ maxWidth:1300, margin:'0 auto', padding:'48px 40px 80px' }}>
+
+        {/* Header */}
+        <div style={{ textAlign:'center', maxWidth:640, margin:'0 auto 48px', animation:'fadeUp 0.4s ease' }}>
+          <div style={{ fontSize:11, letterSpacing:'0.2em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:14 }}>Planes para asesores</div>
+          <h1 style={{ fontFamily:'var(--serif)', fontSize:'clamp(36px,5vw,64px)', fontWeight:400, lineHeight:1.05, marginBottom:16 }}>
+            Invertí en tu <em style={{ fontStyle:'italic', color:'var(--accent)' }}>carrera.</em>
+          </h1>
+          <p style={{ fontSize:16, color:'var(--ink-2)', lineHeight:1.65, marginBottom:28 }}>
+            Los asesores NIDO Pro cierran 2.4× más rápido. Los Enterprise dominan su zona.
+          </p>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:14 }}>
+            <div className="toggle-group">
+              <button className={'toggle-btn'+(anual?'':' active')} onClick={() => setAnual(false)}>Mensual</button>
+              <button className={'toggle-btn'+(anual?' active':'')} onClick={() => setAnual(true)}>Anual</button>
+            </div>
+            {anual && <span style={{ fontSize:12, color:'var(--accent)', fontWeight:500, background:'var(--accent-tint)', padding:'4px 12px', borderRadius:999 }}>Ahorrás hasta 23%</span>}
+          </div>
+        </div>
+
+        {/* Planes */}
+        <div className="planes-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:64, alignItems:'start' }}>
+          {PLANES.map((p, idx) => (
+            <div key={p.id} className={'plan-card'+(p.featured?' featured':'')} style={{ animation:'fadeUp 0.4s ease '+(idx*0.1)+'s both' }}>
+              {p.badge && (
+                <div style={{ position:'absolute', top:20, right:20, background:p.featured?'oklch(0.85 0.06 80)':'var(--ink)', color:p.featured?'var(--ink)':'white', fontSize:10, letterSpacing:'0.1em', fontWeight:500, padding:'3px 10px', borderRadius:999, textTransform:'uppercase' }}>
+                  {p.badge}
                 </div>
-                <button onClick={() => handlePago(plan.id)} disabled={loadingPlan === plan.id} style={{ width: '100%', padding: '0.8rem', borderRadius: '10px', border: 'none', backgroundColor: plan.color, color: 'white', fontSize: '0.95rem', fontWeight: 'bold', cursor: 'pointer', marginBottom: '1.5rem' }}>
-                  {loadingPlan === plan.id ? 'Procesando...' : 'Comenzar ahora'}
-                </button>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                  {plan.features.map(f => (
-                    <div key={f} style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
-                      <span style={{ color: '#15803d', fontWeight: 'bold' }}>✓</span>
-                      <p style={{ margin: 0, color: '#374151', fontSize: '0.9rem' }}>{f}</p>
-                    </div>
-                  ))}
+              )}
+
+              <div>
+                <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:p.featured?'oklch(0.85 0.06 80)':'var(--ink-3)', marginBottom:8 }}>{p.nombre}</div>
+                <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:6 }}>
+                  <span style={{ fontFamily:'var(--serif)', fontSize:52, fontWeight:400, color:p.featured?'white':'var(--ink)', lineHeight:1 }}>
+                    {p.precio_mes === 0 ? 'Gratis' : (anual ? p.precio_ano : p.precio_mes) === 0 ? 'Gratis' : '$' + (anual ? p.precio_ano : p.precio_mes)}
+                  </span>
+                  {p.precio_mes > 0 && <span style={{ fontSize:14, color:p.featured?'rgba(255,255,255,0.5)':'var(--ink-3)' }}>/mes</span>}
                 </div>
+                {p.precio_mes > 0 && anual && (
+                  <div style={{ fontSize:12, color:p.featured?'rgba(255,255,255,0.5)':'var(--ink-3)', marginBottom:4 }}>
+                    Facturado como ${p.precio_ano * 12}/año
+                  </div>
+                )}
+                <p style={{ fontSize:13, color:p.featured?'rgba(255,255,255,0.6)':'var(--ink-2)', lineHeight:1.55, marginTop:8 }}>{p.desc}</p>
               </div>
+
+              <div style={{ borderTop:'1px solid '+(p.featured?'rgba(255,255,255,0.1)':'var(--rule)'), paddingTop:20, display:'flex', flexDirection:'column', gap:10 }}>
+                {p.features.map((f, i) => (
+                  <div key={i} className="feat-row">
+                    <span className={'check'+(f.ok?' ok':' no')} style={{ background:f.ok?(p.featured?'var(--accent)':'var(--accent)'):'rgba(255,255,255,0.1)', color:f.ok?'white':(p.featured?'rgba(255,255,255,0.3)':'var(--ink-3)') }}>
+                      {f.ok ? '✓' : '—'}
+                    </span>
+                    <span style={{ color:p.featured?(f.ok?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.35)'):(f.ok?'var(--ink)':'var(--ink-3)'), textDecoration:f.ok?'none':'none' }}>
+                      {f.texto}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <a href={p.href} className={'cta-btn '+(p.featured?'dark':p.id==='gratis'?'light':'accent')} style={{ display:'block', textAlign:'center', textDecoration:'none', padding:13, borderRadius:999, fontSize:14, fontWeight:500, transition:'all 0.2s', marginTop:'auto' }}>
+                {p.cta} →
+              </a>
             </div>
           ))}
         </div>
+
+        {/* Tabla comparativa */}
+        <div style={{ marginBottom:64 }}>
+          <h2 style={{ fontFamily:'var(--serif)', fontSize:28, fontWeight:400, textAlign:'center', marginBottom:32 }}>
+            Comparación <em style={{ fontStyle:'italic', color:'var(--accent)' }}>detallada.</em>
+          </h2>
+          <div style={{ border:'1px solid var(--rule)', borderRadius:12, overflow:'hidden' }}>
+            <div className="table-row table-header">
+              <div className="table-cell" style={{ fontWeight:500, fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase' }}>Funcionalidad</div>
+              {['Gratis','Pro','Enterprise'].map(n => (
+                <div key={n} className="table-cell center" style={{ fontWeight:500, fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase' }}>{n}</div>
+              ))}
+            </div>
+            {DIFERENCIAS.map((r, i) => (
+              <div key={i} className="table-row" style={{ background:i%2===0?'white':'var(--bg-elev)' }}>
+                <div className="table-cell" style={{ fontWeight:500, color:'var(--ink)' }}>{r.feature}</div>
+                <div className="table-cell center" style={{ color:'var(--ink-3)' }}>{r.gratis}</div>
+                <div className="table-cell center" style={{ color:'var(--ink-2)' }}>{r.pro}</div>
+                <div className="table-cell center" style={{ color:'var(--accent)', fontWeight:500 }}>{r.enterprise}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* FAQ */}
+        <div style={{ maxWidth:640, margin:'0 auto 64px' }}>
+          <h2 style={{ fontFamily:'var(--serif)', fontSize:28, fontWeight:400, textAlign:'center', marginBottom:28 }}>Preguntas <em style={{ fontStyle:'italic', color:'var(--accent)' }}>frecuentes.</em></h2>
+          {[
+            { q:'¿Puedo cambiar de plan en cualquier momento?', a:'Sí. Podés hacer upgrade o downgrade en cualquier momento. Si hacés upgrade, el cambio aplica inmediatamente. Si hacés downgrade, aplica al siguiente ciclo.' },
+            { q:'¿Qué pasa con mis propiedades si hago downgrade?', a:'Si bajás al plan Gratis, tus propiedades se pausan (no se eliminan) hasta que volvás a un plan pago.' },
+            { q:'¿Aceptan tarjetas costarricenses?', a:'Sí. Aceptamos Visa y Mastercard locales e internacionales, y próximamente SINPE Móvil.' },
+            { q:'¿Hay contrato de permanencia?', a:'No. En el plan mensual podés cancelar cuando quieras. El plan anual no tiene reembolsos parciales.' },
+            { q:'¿Qué incluye exactamente Valeria IA?', a:'En Pro, Valeria puede redactar descripciones, analizar leads y responder consultas. En Enterprise, además recuerda el historial de tus propiedades y compradores para un asesoramiento más profundo.' },
+          ].map((f, i) => (
+            <div key={i} style={{ borderTop:'1px solid var(--rule)', padding:'18px 0' }}>
+              <div style={{ fontSize:15, fontWeight:500, marginBottom:8, color:'var(--ink)' }}>{f.q}</div>
+              <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.65 }}>{f.a}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA final */}
+        <div style={{ background:'var(--ink)', borderRadius:20, padding:'48px', textAlign:'center', maxWidth:700, margin:'0 auto' }}>
+          <div style={{ fontFamily:'var(--serif)', fontStyle:'italic', fontSize:13, color:'oklch(0.85 0.06 80)', marginBottom:12, letterSpacing:'0.08em' }}>¿Todavía con dudas?</div>
+          <h2 style={{ fontFamily:'var(--serif)', fontSize:36, fontWeight:400, color:'white', marginBottom:12, lineHeight:1.1 }}>
+            Empezá gratis.<br/>Crecé cuando estés listo.
+          </h2>
+          <p style={{ fontSize:14, color:'rgba(255,255,255,0.5)', lineHeight:1.65, marginBottom:28, maxWidth:420, margin:'0 auto 28px' }}>
+            No necesitás tarjeta de crédito para empezar. El plan Gratis no tiene fecha de vencimiento.
+          </p>
+          <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
+            <a href="/registro" style={{ background:'var(--accent)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, fontWeight:500, textDecoration:'none' }}>Crear cuenta gratis →</a>
+            <a href="/registro?plan=enterprise" style={{ border:'1px solid rgba(255,255,255,0.2)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, textDecoration:'none' }}>Ver Enterprise</a>
+          </div>
+        </div>
+
       </div>
     </main>
   )

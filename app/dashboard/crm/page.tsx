@@ -3,161 +3,191 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 
 interface Lead {
-  id: string
-  nombre: string
-  email: string
-  telefono: string
-  mensaje: string
-  zona_interes: string
-  presupuesto: string
-  tipo_busqueda: string
-  estado: string
-  created_at: string
+  id: string; nombre: string; email: string; telefono: string
+  mensaje: string; zona_interes: string; presupuesto: string
+  tipo_busqueda: string; estado: string; created_at: string
 }
 
-const ESTADOS = ['nuevo', 'contactado', 'interesado', 'visita', 'oferta', 'cerrado', 'perdido']
-const COLORES: Record<string, string> = {
-  nuevo: '#3b82f6', contactado: '#8b5cf6', interesado: '#f59e0b',
-  visita: '#06b6d4', oferta: '#f97316', cerrado: '#15803d', perdido: '#6b7280'
+const ESTADOS = ['todos','nuevo','contactado','interesado','visita','oferta','cerrado','perdido']
+const ESTADO_BADGE: Record<string,{bg:string,color:string}> = {
+  nuevo:{bg:'oklch(0.93 0.03 240)',color:'oklch(0.35 0.08 240)'},
+  contactado:{bg:'oklch(0.93 0.03 280)',color:'oklch(0.35 0.08 280)'},
+  interesado:{bg:'oklch(0.93 0.05 80)',color:'oklch(0.45 0.08 80)'},
+  visita:{bg:'oklch(0.93 0.04 200)',color:'oklch(0.35 0.07 200)'},
+  oferta:{bg:'oklch(0.93 0.05 50)',color:'oklch(0.45 0.08 50)'},
+  cerrado:{bg:'var(--accent-tint)',color:'var(--accent)'},
+  perdido:{bg:'oklch(0.93 0.005 80)',color:'var(--ink-3)'},
 }
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  :root { --bg:oklch(0.97 0.005 80);--bg-elev:oklch(0.985 0.004 80);--bg-card:oklch(0.99 0.003 80);--ink:oklch(0.20 0.005 80);--ink-2:oklch(0.42 0.005 80);--ink-3:oklch(0.60 0.005 80);--rule:oklch(0.88 0.006 80);--rule-soft:oklch(0.93 0.005 80);--accent:oklch(0.42 0.06 150);--accent-tint:oklch(0.95 0.02 150);--serif:"Cormorant Garamond",serif;--sans:"DM Sans",system-ui,sans-serif;--mono:"JetBrains Mono",monospace; }
+  a{color:inherit;text-decoration:none} button{font:inherit;color:inherit;cursor:pointer}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .lead-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule-soft);cursor:pointer;transition:background 0.15s}
+  .lead-row:hover{background:var(--bg-elev);margin:0 -16px;padding:14px 16px;border-radius:8px;border-color:transparent}
+  .lead-row:last-child{border-bottom:none}
+  .chip{padding:7px 14px;border-radius:999px;border:1px solid var(--rule);font-size:12px;color:var(--ink-2);cursor:pointer;transition:all 0.15s;background:transparent}
+  .chip:hover{border-color:var(--ink);color:var(--ink)}
+  .chip.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .estado-btn{padding:6px 12px;border-radius:999px;border:1px solid var(--rule);font-size:11px;cursor:pointer;background:transparent;transition:all 0.15s}
+  .estado-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .drawer{position:fixed;top:0;right:0;bottom:0;width:420px;background:white;border-left:1px solid var(--rule);z-index:100;overflow-y:auto;box-shadow:-8px 0 32px rgba(0,0,0,0.08);animation:slideIn 0.3s ease}
+  @keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:99;animation:fadeIn 0.2s ease}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @media(max-width:768px){.drawer{width:100%!important}.nav-pad{padding:14px 16px!important}.page-pad{padding:24px 16px!important}}
+`
 
 export default function CRM() {
   const [leads, setLeads] = useState<Lead[]>([])
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState('todos')
-  const [leadSeleccionado, setLeadSeleccionado] = useState<Lead | null>(null)
+  const [sel, setSel] = useState<Lead | null>(null)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { window.location.href = '/login'; return }
-      cargarLeads()
-    }
-    getUser()
+    supabase.from('leads').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => { setLeads(data || []); setLoading(false) })
   }, [])
-
-  const cargarLeads = async () => {
-    const { data } = await supabase
-      .from('leads')
-      .select('*')
-      .order('created_at', { ascending: false })
-    setLeads(data || [])
-    setLoading(false)
-  }
-
-  const cambiarEstado = async (id: string, estado: string) => {
-    await supabase.from('leads').update({ estado, updated_at: new Date().toISOString() }).eq('id', id)
-    setLeads(leads.map(l => l.id === id ? { ...l, estado } : l))
-    if (leadSeleccionado?.id === id) setLeadSeleccionado({ ...leadSeleccionado, estado })
-  }
 
   const filtrados = filtro === 'todos' ? leads : leads.filter(l => l.estado === filtro)
 
+  const cambiarEstado = async (lead: Lead, nuevoEstado: string) => {
+    setUpdatingId(lead.id)
+    await supabase.from('leads').update({ estado: nuevoEstado }).eq('id', lead.id)
+    setLeads(prev => prev.map(l => l.id === lead.id ? { ...l, estado: nuevoEstado } : l))
+    if (sel?.id === lead.id) setSel({ ...sel, estado: nuevoEstado })
+    setUpdatingId(null)
+  }
+
+  const timeAgo = (s: string) => {
+    const d = Date.now() - new Date(s).getTime(), m = Math.floor(d/60000)
+    if (m < 60) return 'Hace ' + m + ' min'
+    const h = Math.floor(m/60); if (h < 24) return 'Hace ' + h + 'h'
+    return 'Hace ' + Math.floor(h/24) + 'd'
+  }
+
+  const counts = ESTADOS.slice(1).reduce((acc, e) => ({ ...acc, [e]: leads.filter(l => l.estado === e).length }), {} as Record<string,number>)
+
   return (
-    <main style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
-        <a href="/" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#15803d', textDecoration: 'none' }}>NIDO</a>
-        <div style={{ display: 'flex', gap: '1rem' }}>
-          <a href="/dashboard" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.9rem' }}>← Dashboard</a>
+    <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }}>
+      <style>{CSS}</style>
+
+      <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
+        <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1400, margin:'0 auto' }}>
+          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
+            <a href="/dashboard">Dashboard</a>
+            <a href="/dashboard/crm" style={{ color:'var(--accent)', fontWeight:500 }}>CRM</a>
+            <a href="/propiedades">Portal</a>
+          </div>
+          <a href="/dashboard/nueva-propiedad" style={{ background:'var(--ink)', color:'white', padding:'8px 18px', borderRadius:999, fontSize:13 }}>+ Nueva propiedad</a>
         </div>
       </nav>
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#14532d', margin: 0 }}>CRM — Gestión de Leads</h2>
-            <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: '0.3rem 0 0' }}>{leads.length} leads en total</p>
-          </div>
+      <div className="page-pad" style={{ maxWidth:1400, margin:'0 auto', padding:'32px 40px 80px' }}>
+        <div style={{ marginBottom:28, animation:'fadeUp 0.4s ease' }}>
+          <div style={{ fontSize:12, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Gestión de contactos</div>
+          <h1 style={{ fontFamily:'var(--serif)', fontSize:'clamp(28px,4vw,42px)', fontWeight:400, lineHeight:1.1, marginBottom:6 }}>CRM de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>leads.</em></h1>
+          <p style={{ fontSize:14, color:'var(--ink-2)' }}>{leads.length} contactos · {counts['nuevo']||0} sin atender</p>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-          <button onClick={() => setFiltro('todos')} style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: 'none', backgroundColor: filtro === 'todos' ? '#14532d' : '#e5e7eb', color: filtro === 'todos' ? 'white' : '#374151', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold' }}>
-            Todos ({leads.length})
-          </button>
+        {/* Stats rápidas */}
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:8, marginBottom:24 }}>
+          {ESTADOS.slice(1).map(e => (
+            <div key={e} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:10, padding:'12px', textAlign:'center', cursor:'pointer', borderColor:filtro===e?'var(--accent)':'var(--rule)' }} onClick={() => setFiltro(filtro===e?'todos':e)}>
+              <div style={{ fontFamily:'var(--serif)', fontSize:22, color:filtro===e?'var(--accent)':'var(--ink)' }}>{counts[e]||0}</div>
+              <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-3)', marginTop:4 }}>{e}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Filtros */}
+        <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:20 }}>
           {ESTADOS.map(e => (
-            <button key={e} onClick={() => setFiltro(e)} style={{ padding: '0.4rem 1rem', borderRadius: '20px', border: 'none', backgroundColor: filtro === e ? COLORES[e] : '#e5e7eb', color: filtro === e ? 'white' : '#374151', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', textTransform: 'capitalize' }}>
-              {e} ({leads.filter(l => l.estado === e).length})
+            <button key={e} className={'chip'+(filtro===e?' active':'')} onClick={() => setFiltro(e)}>
+              {e==='todos'?'Todos los leads':e} {e!=='todos'&&counts[e]?'('+counts[e]+')':''}
             </button>
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: leadSeleccionado ? '1fr 380px' : '1fr', gap: '1.5rem' }}>
-          <div>
-            {loading ? (
-              <p style={{ textAlign: 'center', color: '#6b7280', padding: '3rem' }}>Cargando leads...</p>
-            ) : filtrados.length === 0 ? (
-              <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '3rem', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
-                <p style={{ fontSize: '2.5rem', margin: '0 0 1rem' }}>📭</p>
-                <p style={{ color: '#374151', fontWeight: 'bold' }}>No hay leads {filtro !== 'todos' ? 'en este estado' : 'aún'}</p>
-                <p style={{ color: '#6b7280', fontSize: '0.9rem' }}>Los leads llegan cuando clientes consultan propiedades</p>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-                {filtrados.map(lead => (
-                  <div key={lead.id} onClick={() => setLeadSeleccionado(leadSeleccionado?.id === lead.id ? null : lead)} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '1.2rem', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', cursor: 'pointer', border: leadSeleccionado?.id === lead.id ? '2px solid #15803d' : '2px solid transparent' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '0.4rem' }}>
-                          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 'bold', color: '#14532d' }}>{lead.nombre || 'Sin nombre'}</h3>
-                          <span style={{ backgroundColor: COLORES[lead.estado] + '20', color: COLORES[lead.estado], padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'capitalize' }}>{lead.estado}</span>
-                        </div>
-                        <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: '0 0 0.3rem' }}>📧 {lead.email} {lead.telefono ? '· 📞 ' + lead.telefono : ''}</p>
-                        {lead.mensaje && <p style={{ color: '#4b5563', fontSize: '0.85rem', margin: 0 }}>💬 {lead.mensaje.substring(0, 80)}{lead.mensaje.length > 80 ? '...' : ''}</p>}
-                      </div>
-                      <p style={{ color: '#9ca3af', fontSize: '0.75rem', margin: 0, whiteSpace: 'nowrap', marginLeft: '1rem' }}>
-                        {new Date(lead.created_at).toLocaleDateString('es-CR')}
-                      </p>
-                    </div>
+        {/* Lista */}
+        <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'0 16px' }}>
+          {loading && <p style={{ padding:'24px', color:'var(--ink-3)', textAlign:'center', fontSize:14 }}>Cargando leads...</p>}
+          {!loading && filtrados.length === 0 && <p style={{ padding:'32px', color:'var(--ink-3)', textAlign:'center', fontSize:14 }}>No hay leads {filtro!=='todos'?'con estado "'+filtro+'"':'aún'}.</p>}
+          {filtrados.map(l => {
+            const badge = ESTADO_BADGE[l.estado] || ESTADO_BADGE.nuevo
+            return (
+              <div key={l.id} className="lead-row" onClick={() => setSel(l)}>
+                <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', border:'1px solid var(--rule)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:17, flexShrink:0 }}>
+                  {(l.nombre||'?')[0].toUpperCase()}
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{l.nombre||'Sin nombre'}</div>
+                  <div style={{ fontSize:12, color:'var(--ink-3)', display:'flex', gap:12 }}>
+                    <span>{l.email||'—'}</span>
+                    {l.zona_interes && <span>· {l.zona_interes}</span>}
+                    {l.presupuesto && <span>· {l.presupuesto}</span>}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {leadSeleccionado && (
-            <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)', height: 'fit-content', position: 'sticky', top: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.2rem' }}>
-                <h3 style={{ margin: 0, color: '#14532d', fontSize: '1.1rem' }}>Detalle del lead</h3>
-                <button onClick={() => setLeadSeleccionado(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '1.2rem' }}>✕</button>
-              </div>
-              <div style={{ marginBottom: '1rem' }}>
-                <p style={{ fontWeight: 'bold', color: '#111827', margin: '0 0 0.8rem', fontSize: '1.1rem' }}>{leadSeleccionado.nombre || 'Sin nombre'}</p>
-                {leadSeleccionado.email && <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: '0 0 0.4rem' }}>📧 {leadSeleccionado.email}</p>}
-                {leadSeleccionado.telefono && <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: '0 0 0.4rem' }}>📞 {leadSeleccionado.telefono}</p>}
-                {leadSeleccionado.zona_interes && <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: '0 0 0.4rem' }}>📍 {leadSeleccionado.zona_interes}</p>}
-                {leadSeleccionado.presupuesto && <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: '0 0 0.4rem' }}>💰 {leadSeleccionado.presupuesto}</p>}
-                {leadSeleccionado.mensaje && (
-                  <div style={{ backgroundColor: '#f9fafb', borderRadius: '8px', padding: '0.8rem', marginTop: '0.8rem' }}>
-                    <p style={{ color: '#374151', fontSize: '0.9rem', margin: 0, lineHeight: '1.5' }}>{leadSeleccionado.mensaje}</p>
-                  </div>
-                )}
-              </div>
-              <div>
-                <p style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#374151', marginBottom: '0.6rem' }}>Cambiar estado:</p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                  {ESTADOS.map(e => (
-                    <button key={e} onClick={() => cambiarEstado(leadSeleccionado.id, e)} style={{ padding: '0.4rem 0.8rem', borderRadius: '20px', border: 'none', backgroundColor: leadSeleccionado.estado === e ? COLORES[e] : '#f3f4f6', color: leadSeleccionado.estado === e ? 'white' : '#374151', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', textTransform: 'capitalize' }}>
-                      {e}
-                    </button>
-                  ))}
+                </div>
+                <div style={{ display:'flex', alignItems:'center', gap:12, flexShrink:0 }}>
+                  <span style={{ fontSize:11, color:'var(--ink-3)' }}>{timeAgo(l.created_at)}</span>
+                  <span style={{ padding:'3px 10px', borderRadius:999, fontSize:11, fontWeight:500, background:badge.bg, color:badge.color }}>{l.estado}</span>
                 </div>
               </div>
-              <div style={{ marginTop: '1.2rem', display: 'flex', gap: '0.8rem' }}>
-                {leadSeleccionado.email && (
-                  <a href={'mailto:' + leadSeleccionado.email} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', backgroundColor: '#15803d', color: 'white', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>
-                    Enviar email
-                  </a>
-                )}
-                {leadSeleccionado.telefono && (
-                  <a href={'tel:' + leadSeleccionado.telefono} style={{ flex: 1, padding: '0.6rem', borderRadius: '8px', backgroundColor: '#0ea5e9', color: 'white', textDecoration: 'none', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>
-                    Llamar
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
+            )
+          })}
         </div>
       </div>
+
+      {/* Drawer detalle */}
+      {sel && (
+        <>
+          <div className="overlay" onClick={() => setSel(null)}/>
+          <div className="drawer">
+            <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--rule)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, background:'white', zIndex:1 }}>
+              <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400 }}>{sel.nombre||'Sin nombre'}</h2>
+              <button onClick={() => setSel(null)} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, display:'grid', placeItems:'center' }}>×</button>
+            </div>
+            <div style={{ padding:'20px 24px' }}>
+              <div style={{ marginBottom:20 }}>
+                <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Datos de contacto</div>
+                {[{l:'Email',v:sel.email},{l:'Teléfono',v:sel.telefono},{l:'Zona de interés',v:sel.zona_interes},{l:'Presupuesto',v:sel.presupuesto},{l:'Tipo de búsqueda',v:sel.tipo_busqueda}].map(f => f.v ? (
+                  <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:14 }}>
+                    <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
+                    <span style={{ fontWeight:500 }}>{f.v}</span>
+                  </div>
+                ) : null)}
+              </div>
+              {sel.mensaje && (
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Mensaje</div>
+                  <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65, background:'var(--bg-elev)', padding:'12px 14px', borderRadius:8 }}>{sel.mensaje}</p>
+                </div>
+              )}
+              <div>
+                <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Cambiar estado</div>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>
+                  {ESTADOS.slice(1).map(e => {
+                    const badge = ESTADO_BADGE[e]
+                    return (
+                      <button key={e} onClick={() => cambiarEstado(sel, e)} disabled={updatingId===sel.id} style={{ padding:'6px 14px', borderRadius:999, border:'1px solid '+(sel.estado===e?'var(--accent)':'var(--rule)'), background:sel.estado===e?'var(--accent)':'transparent', color:sel.estado===e?'white':'var(--ink-2)', fontSize:12, cursor:'pointer', transition:'all 0.15s', opacity:updatingId===sel.id?0.6:1 }}>
+                        {e}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+              <div style={{ marginTop:24, display:'flex', gap:10 }}>
+                <a href={'mailto:'+sel.email} style={{ flex:1, padding:'10px', borderRadius:999, border:'1px solid var(--rule)', fontSize:13, textAlign:'center', color:'var(--ink)', fontWeight:500 }}>Enviar email</a>
+                {sel.telefono && <a href={'https://wa.me/'+sel.telefono.replace(/\D/g,'')} target="_blank" style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:13, textAlign:'center', fontWeight:500 }}>WhatsApp</a>}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </main>
   )
 }
