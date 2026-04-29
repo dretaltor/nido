@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     const anual = session.metadata?.anual === 'true'
     const email = session.customer_email || ''
 
+    // Guardar suscripcion en Supabase
     await supabase.from('suscripciones').upsert({
       correo: email,
       plan,
@@ -37,7 +38,18 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     }, { onConflict: 'correo' })
 
-    console.log('Suscripcion guardada:', email, plan)
+    // Enviar email de confirmacion
+    await fetch(process.env.NEXT_PUBLIC_SITE_URL + '/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: email,
+        tipo: 'suscripcion_exitosa',
+        data: { plan, anual }
+      })
+    })
+
+    console.log('Suscripcion guardada y email enviado:', email, plan)
   }
 
   if (event.type === 'customer.subscription.updated') {
@@ -54,7 +66,6 @@ export async function POST(req: NextRequest) {
       activo: false,
       updated_at: new Date().toISOString(),
     }).eq('stripe_subscription_id', sub.id)
-    console.log('Suscripcion cancelada:', sub.id)
   }
 
   return NextResponse.json({ received: true })
