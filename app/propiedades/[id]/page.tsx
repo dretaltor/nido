@@ -218,16 +218,77 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
             </div>
 
             {propiedad.asesor_nombre && (
-              <div style={{background:'white',border:'1px solid var(--rule)',borderRadius:12,padding:'16px 20px'}}>
-                <div style={{fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:12}}>Asesor a cargo</div>
-                <div style={{display:'flex',alignItems:'center',gap:12}}>
-                  <div style={{width:40,height:40,borderRadius:'50%',background:'var(--bg-elev)',border:'1px solid var(--rule)',display:'grid',placeItems:'center',fontFamily:"'Cormorant Garamond',serif",fontSize:18}}>
-                    {propiedad.asesor_nombre[0]}
+              <div style={{background:'white',border:'1px solid var(--rule)',borderRadius:16,overflow:'hidden'}}>
+                {/* Header asesor */}
+                <div style={{background:'var(--ink)',padding:'20px'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:14}}>
+                    <div style={{width:52,height:52,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),oklch(0.30 0.08 150))',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:'oklch(0.85 0.06 80)',flexShrink:0}}>
+                      {propiedad.asesor_nombre[0]}
+                    </div>
+                    <div>
+                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'white',marginBottom:2}}>{propiedad.asesor_nombre}</div>
+                      <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{width:6,height:6,borderRadius:'50%',background:'#22c55e',display:'inline-block'}}/>
+                        Asesor certificado NIDO
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:18}}>{propiedad.asesor_nombre}</div>
-                    <div style={{fontSize:12,color:'var(--ink-3)'}}>{propiedad.asesor_email}</div>
-                  </div>
+                </div>
+
+                {/* Stats del asesor */}
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',borderBottom:'1px solid var(--rule)'}}>
+                  {[
+                    {val:'4.9★',label:'Calificación'},
+                    {val:'87%',label:'Resp. en 2h'},
+                    {val:'142',label:'Cierres'},
+                  ].map((s,i) => (
+                    <div key={i} style={{padding:'14px 12px',textAlign:'center',borderRight:i<2?'1px solid var(--rule)':'none'}}>
+                      <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'var(--accent)',marginBottom:2}}>{s.val}</div>
+                      <div style={{fontSize:10,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--ink-3)'}}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Info contacto */}
+                <div style={{padding:'16px 20px'}}>
+                  <div style={{fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:12}}>Datos de contacto</div>
+                  {[
+                    {icon:'✉',label:'Correo',val:propiedad.asesor_email,href:'mailto:'+propiedad.asesor_email},
+                    {icon:'📱',label:'WhatsApp',val:'+506 8888-0000',href:'https://wa.me/50688880000'},
+                    {icon:'📍',label:'Zona',val:propiedad.zona||'Costa Rica',href:null},
+                  ].map(c => (
+                    <div key={c.label} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:'1px solid var(--rule-soft)'}}>
+                      <span style={{fontSize:14,width:20,textAlign:'center'}}>{c.icon}</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:10,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:1}}>{c.label}</div>
+                        {c.href
+                          ? <a href={c.href} target="_blank" style={{fontSize:13,color:'var(--accent)',fontWeight:500,textDecoration:'none'}}>{c.val}</a>
+                          : <span style={{fontSize:13,color:'var(--ink)'}}>{c.val}</span>
+                        }
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Acciones */}
+                <div style={{padding:'14px 20px',display:'flex',flexDirection:'column',gap:8,borderTop:'1px solid var(--rule)'}}>
+                  <a href={'https://wa.me/50688880000?text=Hola, me interesa la propiedad '+propiedad.titulo} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'#22c55e',color:'white',fontSize:13,fontWeight:500,textDecoration:'none'}}>
+                    <span>💬</span> Contactar por WhatsApp
+                  </a>
+                  <a href={'mailto:'+propiedad.asesor_email+'?subject=Consulta sobre '+propiedad.titulo} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,border:'1px solid var(--rule)',color:'var(--ink)',fontSize:13,fontWeight:500,textDecoration:'none'}}>
+                    <span>✉</span> Enviar correo
+                  </a>
+                  <button onClick={() => setChatOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'var(--accent-tint)',border:'1px solid oklch(0.85 0.04 150)',color:'var(--accent)',fontSize:13,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                    <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic'}}>V</span> Consultar con Valeria IA
+                  </button>
+                </div>
+
+                {/* Valor para el comprador */}
+                <div style={{margin:'0 16px 16px',background:'var(--accent-tint)',border:'1px solid oklch(0.85 0.04 150)',borderRadius:10,padding:'12px 14px'}}>
+                  <div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--accent)',marginBottom:6,fontWeight:500}}>Valeria recomienda</div>
+                  <p style={{fontSize:12,color:'var(--ink-2)',lineHeight:1.6}}>
+                    Esta propiedad lleva menos de 30 dias en el mercado. Los inmuebles en {propiedad.zona||'esta zona'} se venden en promedio en 45 dias. Considera actuar pronto.
+                  </p>
                 </div>
               </div>
             )}
