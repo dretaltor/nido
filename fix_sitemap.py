@@ -1,4 +1,4 @@
-import { MetadataRoute } from 'next'
+content = """import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = 'https://www.nido-cr.com'
@@ -15,3 +15,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: base+'/academia', lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
   ]
 }
+"""
+with open('app/sitemap.ts', 'w') as f:
+    f.write(content)
+print('ok')
