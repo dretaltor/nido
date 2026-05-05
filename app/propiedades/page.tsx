@@ -1,3 +1,4 @@
+export { metadata } from './metadata'
 'use client'
 import { useEffect, useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
