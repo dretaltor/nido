@@ -25,7 +25,7 @@ const PANELES = [
   },
   {
     id: 'asesor',
-    href: '/login',
+    href: '/unirse',
     label: 'Soy asesor',
     sub: 'Gestioná tus propiedades y leads con IA',
     eyebrow: 'Asesor',

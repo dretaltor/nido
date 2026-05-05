@@ -5,7 +5,7 @@ import { supabase } from '../../../lib/supabase'
 interface Propiedad {
   id: string; titulo: string; descripcion: string; precio: number; tipo: string;
   operacion: string; habitaciones: number; banos: number; metros: number;
-  zona: string; direccion: string; asesor_nombre: string; asesor_email: string;
+  zona: string; direccion: string; asesor_nombre: string; asesor_email: string; asesor_whatsapp: string;
 }
 
 function Icon({ name }: { name: string }) {
@@ -254,7 +254,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                   <div style={{fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:12}}>Datos de contacto</div>
                   {[
                     {icon:'✉',label:'Correo',val:propiedad.asesor_email,href:'mailto:'+propiedad.asesor_email},
-                    {icon:'📱',label:'WhatsApp',val:'+506 8888-0000',href:'https://wa.me/50688880000'},
+                    {icon:'📱',label:'WhatsApp',val:'+506 8888-0000',href:propiedad.asesor_whatsapp?'https://wa.me/'+propiedad.asesor_whatsapp.replace(/[^0-9]/g,''):null},
                     {icon:'📍',label:'Zona',val:propiedad.zona||'Costa Rica',href:null},
                   ].map(c => (
                     <div key={c.label} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:'1px solid var(--rule-soft)'}}>
