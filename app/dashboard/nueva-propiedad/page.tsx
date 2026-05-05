@@ -21,7 +21,7 @@ const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la monta
 export default function NuevaPropiedad() {
   const [current, setCurrent] = useState(0)
   const [completed, setCompleted] = useState(new Set())
-  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', direccion:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'' })
+  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', direccion:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'' })
   const [published, setPublished] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [aiWriting, setAiWriting] = useState(false)
@@ -76,6 +76,7 @@ export default function NuevaPropiedad() {
         disponible: true,
         asesor_email: user?.email||'',
         asesor_nombre: user?.user_metadata?.nombre||'',
+        asesor_whatsapp: data.whatsapp||'',
       })
       setPublished(true)
     } catch { alert('Error al publicar.') }
@@ -289,6 +290,14 @@ export default function NuevaPropiedad() {
         <div className="field-group">
           <label className="field-label">Título público</label>
           <input className="wiz-input" placeholder="Ej. Casa Sereno" value={data.title} onChange={e => patch({title:e.target.value})}/>
+        </div>
+        <div className="field-group">
+          <label className="field-label">Tu WhatsApp de contacto</label>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <span style={{fontFamily:'var(--mono)',fontSize:14,color:'var(--ink-3)',flexShrink:0}}>+506</span>
+            <input className="wiz-input" type="tel" placeholder="8888-8888" value={data.whatsapp} onChange={e => patch({whatsapp:e.target.value})}/>
+          </div>
+          <p style={{fontSize:12,color:'var(--ink-3)',marginTop:8}}>Los compradores te contactarán directamente por WhatsApp desde la ficha de la propiedad.</p>
         </div>
         <div className="field-group">
           <label className="field-label">Descripción</label>
