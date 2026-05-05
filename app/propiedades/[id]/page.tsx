@@ -61,7 +61,6 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
   if (loading) return (
     <main style={{fontFamily:"'DM Sans',sans-serif",minHeight:'100vh',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-      {propiedad && <StructuredDataProperty propiedad={propiedad}/>}
       <style>{CSS}</style>
       <p style={{color:'var(--ink-3)'}}>Cargando propiedad...</p>
     </main>
@@ -69,7 +68,6 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
   if (!propiedad) return (
     <main style={{fontFamily:"'DM Sans',sans-serif",minHeight:'100vh',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center'}}>
-      {propiedad && <StructuredDataProperty propiedad={propiedad}/>}
       <style>{CSS}</style>
       <div style={{textAlign:'center'}}>
         <p style={{color:'var(--ink-3)',marginBottom:16}}>Propiedad no encontrada</p>
@@ -83,7 +81,6 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
   return (
     <main style={{fontFamily:"'DM Sans',sans-serif",background:'var(--bg)',minHeight:'100vh',color:'var(--ink)'}}>
-      {propiedad && <StructuredDataProperty propiedad={propiedad}/>}
       <style>{CSS}</style>
 
       <nav style={{position:'sticky',top:0,zIndex:50,background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--rule)'}}>
