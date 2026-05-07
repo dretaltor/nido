@@ -46,6 +46,8 @@ export default function Dashboard() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
+      const tipo = user.user_metadata?.tipo || 'asesor'
+      if (tipo === 'propietario') { router.push('/dashboard/propietario'); return }
       setUser(user)
       Promise.all([
         supabase.from('propiedades').select('*').eq('asesor_email', user.email),

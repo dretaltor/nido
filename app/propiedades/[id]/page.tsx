@@ -93,7 +93,18 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
             <button onClick={() => setFav(!fav)} style={{width:36,height:36,borderRadius:'50%',border:'1px solid var(--rule)',background:'white',cursor:'pointer',display:'grid',placeItems:'center',color:fav?'#e11d48':'var(--ink-3)'}}>
               <Icon name="heart"/>
             </button>
-            <button onClick={() => navigator.share?.({title:propiedad.titulo,url:window.location.href})} style={{width:36,height:36,borderRadius:'50%',border:'1px solid var(--rule)',background:'white',cursor:'pointer',display:'grid',placeItems:'center',color:'var(--ink-3)'}}>
+            <button
+              onClick={() => {
+                const url = window.location.href
+                if (navigator.share) {
+                  navigator.share({ title: propiedad.titulo, text: '¡Mirá esta propiedad en NIDO! ' + propiedad.titulo + ' - ' + propiedad.zona, url })
+                } else {
+                  navigator.clipboard.writeText(url)
+                  alert('¡Enlace copiado! Compartilo con tu cliente.')
+                }
+              }}
+              title="Compartir ficha con cliente"
+              style={{width:36,height:36,borderRadius:'50%',border:'1px solid var(--rule)',background:'white',cursor:'pointer',display:'grid',placeItems:'center',color:'var(--ink-3)'}}>
               <Icon name="share"/>
             </button>
           </div>

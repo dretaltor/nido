@@ -25,6 +25,8 @@ export default function RegistroPropietario() {
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
+      // Mark user as propietario in metadata
+await supabase.auth.updateUser({ data: { tipo: 'propietario' } })
       await supabase.from('propietarios').upsert({
         user_id: user?.id || null,
         nombre: form.nombre,
@@ -69,7 +71,10 @@ export default function RegistroPropietario() {
       {/* Nav */}
       <nav style={{ position:'relative', zIndex:10, display:'flex', justifyContent:'space-between', alignItems:'center', padding:'1.2rem 2rem', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.4rem', color:'white' }}>NIDO<span style={{ color:'oklch(0.85 0.06 80)' }}>.</span></div>
-        <button onClick={() => router.push('/bienvenida')} style={{ fontSize:'0.7rem', color:'rgba(255,255,255,0.25)', letterSpacing:'0.1em', background:'none', border:'none', cursor:'pointer' }}>← VOLVER</button>
+        <div style={{ display:'flex', alignItems:'center', gap:16 }}>
+          <a href="/login" style={{ fontSize:'0.75rem', color:'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textDecoration:'none', border:'1px solid rgba(255,255,255,0.15)', padding:'6px 14px', borderRadius:999, transition:'all 0.2s' }}>Ya tengo cuenta →</a>
+          <button onClick={() => router.push('/bienvenida')} style={{ fontSize:'0.7rem', color:'rgba(255,255,255,0.25)', letterSpacing:'0.1em', background:'none', border:'none', cursor:'pointer' }}>← VOLVER</button>
+        </div>
       </nav>
 
       {/* Contenido */}
