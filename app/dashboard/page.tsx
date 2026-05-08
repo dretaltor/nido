@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
