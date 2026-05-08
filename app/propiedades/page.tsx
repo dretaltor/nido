@@ -1,7 +1,9 @@
 'use client'
+// @ts-nocheck
 import { useEffect, useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '@/lib/context/AuthContext'
 
 const MapaInteractivo = dynamic(() => import('../../components/MapaInteractivo'), { ssr: false })
 
@@ -191,6 +193,15 @@ const ZONES = [
 ]
 
 export default function Propiedades() {
+  const { user, isAsesor, loading: authLoading } = useAuth()
+  
+  // TEMP: check session directly  
+  const [sessionCheck, setSessionCheck] = useState('')
+  useEffect(() => {
+    supabase.auth.getSession().then(({data:{session}}) => {
+      setSessionCheck(session ? 'SESION: '+session.user.email : 'SIN SESION')
+    })
+  }, [])
   const [propiedades, setPropiedades] = useState<Propiedad[]>([])
   const [loading, setLoading] = useState(true)
   const [query, setQuery] = useState({ location: '', op: 'todo', budget: 'any' })
@@ -267,8 +278,14 @@ export default function Propiedades() {
             <a href="/academia">Academia</a>
           </nav>
           <div className="header-btns" style={{ display: 'flex', gap: 10 }}>
-            <a href="/login" style={{ border: '1px solid var(--rule)', padding: '8px 16px', borderRadius: 999, fontSize: 13 }}>Ingresar</a>
-            <a href="/registro" style={{ border: '1px solid var(--ink)', background: 'var(--ink)', color: 'var(--bg)', padding: '8px 16px', borderRadius: 999, fontSize: 13 }}>Crear cuenta</a>
+{!authLoading && isAsesor ? (
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:12, color:'var(--ink-3)' }}>{user?.email?.split('@')[0]}</span>
+                <a href="/dashboard" style={{ background:'var(--accent)', color:'white', padding:'8px 16px', borderRadius:999, fontSize:13, fontWeight:500 }}>Mi dashboard →</a>
+              </div>
+            ) : (
+              <a href="/unirse" style={{ border: '1px solid var(--ink)', background: 'var(--ink)', color: 'white', padding: '8px 16px', borderRadius: 999, fontSize: 13 }}>Soy asesor →</a>
+            )}
           </div>
         </div>
       </header>

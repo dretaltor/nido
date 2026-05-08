@@ -46,7 +46,10 @@ export default function Dashboard() {
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
-      const tipo = user.user_metadata?.tipo || 'asesor'
+      // Verificar localStorage primero — más confiable que metadata
+      const tipoLocal = typeof window !== 'undefined' ? localStorage.getItem('nido_user_tipo') : null
+      const tipoMeta = user.user_metadata?.tipo
+      const tipo = tipoLocal || tipoMeta || 'asesor'
       if (tipo === 'propietario') { router.push('/dashboard/propietario'); return }
       setUser(user)
       Promise.all([
@@ -191,6 +194,7 @@ export default function Dashboard() {
             {[
               { href:'/dashboard/nueva-propiedad', icon:'＋', label:'Nueva propiedad', desc:'Wizard de 8 pasos' },
               { href:'/dashboard/crm', icon:'◎', label:'CRM de leads', desc:'Gestionar contactos' },
+              { href:'/propiedades', icon:'🏠', label:'Ver todas las propiedades', desc:'Ofertar en cualquier propiedad' },
               { href:'/chat', icon:'✦', label:'Valeria IA', desc:'Tu asistente inteligente' },
               { href:'/academia', icon:'◈', label:'Academia', desc:'Cursos y certificaciones' },
             ].map(m => (

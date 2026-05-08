@@ -11,13 +11,13 @@ const RELACIONES = [
 
 export default function RegistroPropietario() {
   const router = useRouter()
-  const [form, setForm] = useState({ nombre:'', cedula:'', telefono:'', correo:'', relacion:'' })
+  const [form, setForm] = useState({ nombre:'', cedula:'', telefono:'', correo:'', contrasena:'', relacion:'' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const set = (k: string, v: string) => setForm(f => ({...f, [k]:v}))
 
   const handleSubmit = async () => {
-    if (!form.nombre || !form.cedula || !form.telefono || !form.correo || !form.relacion) {
+    if (!form.nombre || !form.cedula || !form.telefono || !form.correo || !form.contrasena || !form.relacion) {
       setError('Por favor completá todos los campos.')
       return
     }
@@ -25,8 +25,18 @@ export default function RegistroPropietario() {
     setLoading(true)
     try {
       const { data: { user } } = await supabase.auth.getUser()
-      // Mark user as propietario in metadata
-await supabase.auth.updateUser({ data: { tipo: 'propietario' } })
+      // Crear cuenta en Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: form.correo,
+        password: form.contrasena,
+        options: { data: { nombre: form.nombre, tipo: 'propietario' } }
+      })
+      if (authError) { setError(authError.message); setLoading(false); return }
+      
+      // Forzar login inmediato para que el metadata quede activo
+      await supabase.auth.signInWithPassword({ email: form.correo, password: form.contrasena })
+      // Guardar tipo en localStorage para el wizard
+      if (typeof window !== 'undefined') localStorage.setItem('nido_user_tipo', 'propietario')
       await supabase.from('propietarios').upsert({
         user_id: user?.id || null,
         nombre: form.nombre,
@@ -36,7 +46,7 @@ await supabase.auth.updateUser({ data: { tipo: 'propietario' } })
         relacion: form.relacion,
         created_at: new Date().toISOString(),
       })
-      router.push('/dashboard/nueva-propiedad')
+      router.push('/dashboard/nueva-propiedad?tipo=propietario')
     } catch {
       setError('Error al guardar. Intenta de nuevo.')
     }
@@ -72,7 +82,7 @@ await supabase.auth.updateUser({ data: { tipo: 'propietario' } })
       <nav style={{ position:'relative', zIndex:10, display:'flex', justifyContent:'space-between', alignItems:'center', padding:'1.2rem 2rem', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.4rem', color:'white' }}>NIDO<span style={{ color:'oklch(0.85 0.06 80)' }}>.</span></div>
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-          <a href="/login" style={{ fontSize:'0.75rem', color:'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textDecoration:'none', border:'1px solid rgba(255,255,255,0.15)', padding:'6px 14px', borderRadius:999, transition:'all 0.2s' }}>Ya tengo cuenta →</a>
+          <a href="/login-propietario" style={{ fontSize:'0.75rem', color:'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textDecoration:'none', border:'1px solid rgba(255,255,255,0.15)', padding:'6px 14px', borderRadius:999, transition:'all 0.2s' }}>Ya tengo cuenta →</a>
           <button onClick={() => router.push('/bienvenida')} style={{ fontSize:'0.7rem', color:'rgba(255,255,255,0.25)', letterSpacing:'0.1em', background:'none', border:'none', cursor:'pointer' }}>← VOLVER</button>
         </div>
       </nav>
@@ -115,6 +125,12 @@ await supabase.auth.updateUser({ data: { tipo: 'propietario' } })
                 <label style={{ fontSize:'10px', letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.35)', display:'block', marginBottom:8 }}>Correo electrónico</label>
                 <input className="field-input" type="email" placeholder="tu@correo.com" value={form.correo} onChange={e => set('correo', e.target.value)}/>
               </div>
+            </div>
+
+            <div style={{ marginBottom:24 }}>
+              <label style={{ fontSize:'10px', letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.35)', display:'block', marginBottom:8 }}>Contraseña</label>
+              <input className="field-input" type="password" placeholder="Mínimo 6 caracteres" value={form.contrasena} onChange={e => set('contrasena', e.target.value)}/>
+              <p style={{ fontSize:11, color:'rgba(255,255,255,0.25)', marginTop:6 }}>Usarás esta contraseña para ingresar a tu panel de propietario.</p>
             </div>
 
             <div style={{ marginBottom:24 }}>

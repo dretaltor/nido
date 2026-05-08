@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { StructuredDataOrg, StructuredDataWebsite } from '@/components/seo/StructuredData'
+import { AuthProvider } from '@/lib/context/AuthContext'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -57,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ margin: 0, padding: 0 }}>
         <StructuredDataOrg/>
         <StructuredDataWebsite/>
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   )

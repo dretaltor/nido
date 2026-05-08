@@ -1,6 +1,9 @@
 'use client'
+// @ts-nocheck
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { useAuth } from '@/lib/context/AuthContext'
+import { OfertaForm } from '@/components/ofertas/OfertaForm'
 
 interface Propiedad {
   id: string; titulo: string; descripcion: string; precio: number; tipo: string;
@@ -26,6 +29,11 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
   const [propiedad, setPropiedad] = useState<Propiedad | null>(null)
   const [loading, setLoading] = useState(true)
   const [chatOpen, setChatOpen] = useState(false)
+  const [ofertaOpen, setOfertaOpen] = useState(false)
+  const [ofertaExito, setOfertaExito] = useState(false)
+  const { user, isAsesor } = useAuth()
+  const userEmail = user?.email || ''
+  const userNombre = user?.user_metadata?.nombre || user?.email?.split('@')[0] || ''
   const [messages, setMessages] = useState<{role:string,content:string}[]>([])
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -33,6 +41,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
   const [imgError, setImgError] = useState(false)
 
   useEffect(() => {
+// Auth handled by AuthContext
     supabase.from('propiedades').select('*').eq('id', id).single().then(({ data }) => {
       setPropiedad(data)
       setLoading(false)
@@ -292,6 +301,17 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                   <button onClick={() => setChatOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'var(--accent-tint)',border:'1px solid oklch(0.85 0.04 150)',color:'var(--accent)',fontSize:13,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
                     <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic'}}>V</span> Consultar con Valeria IA
                   </button>
+                  {isAsesor && (
+                    ofertaExito ? (
+                      <div style={{padding:'11px',borderRadius:10,background:'var(--accent-tint)',border:'1px solid oklch(0.85 0.04 150)',textAlign:'center',fontSize:13,color:'var(--accent)',fontWeight:500}}>
+                        ✓ Oferta enviada al propietario
+                      </div>
+                    ) : (
+                      <button onClick={() => setOfertaOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'var(--accent)',color:'white',border:'none',fontSize:13,fontWeight:500,width:'100%',cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                        <span>📋</span> Enviar oferta al propietario
+                      </button>
+                    )
+                  )}
                 </div>
 
                 {/* Valor para el comprador */}
@@ -306,6 +326,17 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </div>
+    {ofertaOpen && propiedad && (
+        <OfertaForm
+          propiedadId={propiedad.id}
+          propiedadTitulo={propiedad.titulo}
+          propiedadPrecio={propiedad.precio}
+          asesorEmail={userEmail}
+          asesorNombre={userNombre}
+          onClose={() => setOfertaOpen(false)}
+          onSuccess={() => { setOfertaOpen(false); setOfertaExito(true) }}
+        />
+      )}
     </main>
   )
 }

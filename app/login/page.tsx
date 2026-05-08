@@ -27,7 +27,11 @@ export default function Login() {
     setLoading(true); setError('')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError('Correo o contraseña incorrectos') } 
-    else { window.location.href = '/dashboard' }
+    else {
+      // Siempre es asesor cuando entra por este login
+      if (typeof window !== 'undefined') localStorage.setItem('nido_user_tipo', 'asesor')
+      window.location.href = '/dashboard'
+    }
     setLoading(false)
   }
 

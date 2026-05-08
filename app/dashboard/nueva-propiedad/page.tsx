@@ -1,5 +1,6 @@
 // @ts-nocheck
 'use client'
+// @ts-nocheck
 import { useState, useRef } from 'react'
 import { supabase } from '../../../lib/supabase'
 
@@ -127,7 +128,7 @@ export default function NuevaPropiedad() {
           <p style={{color:'var(--ink-2)',lineHeight:1.65,marginBottom:32}}>Valeria está optimizando tu publicación. Pronto aparecerá en el portal.</p>
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
             <a href="/propiedades" style={{background:'var(--ink)',color:'var(--bg)',padding:'12px 24px',borderRadius:999,fontSize:14,textDecoration:'none'}}>Ver portal</a>
-            <a href="/dashboard" style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'12px 24px',borderRadius:999,fontSize:14,textDecoration:'none'}}>Dashboard</a>
+            <a href={typeof window !== 'undefined' && localStorage.getItem('nido_user_tipo') === 'propietario' ? '/dashboard/propietario' : '/dashboard'} style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'12px 24px',borderRadius:999,fontSize:14,textDecoration:'none'}}>Mi panel →</a>
           </div>
         </div>
       </div>
@@ -375,7 +376,7 @@ export default function NuevaPropiedad() {
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 40px',maxWidth:1500,margin:'0 auto'}}>
           <a href="/" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:'var(--ink)',textDecoration:'none'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></a>
           <div style={{fontSize:13,color:'var(--ink-3)'}}>Publicá tu propiedad · Paso {current+1} de 8</div>
-          <a href="/dashboard" style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'8px 16px',borderRadius:999,fontSize:13,textDecoration:'none'}}>Salir</a>
+          <a href={typeof window !== 'undefined' && localStorage.getItem('nido_user_tipo') === 'propietario' ? '/dashboard/propietario' : '/dashboard'} style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'8px 16px',borderRadius:999,fontSize:13,textDecoration:'none'}}>Mi panel</a>
         </div>
       </nav>
       <div className="wizard-grid" style={{maxWidth:1500,margin:'0 auto',padding:'40px 40px 80px',display:'grid',gridTemplateColumns:'200px 1fr 320px',gap:48,alignItems:'start'}}>
