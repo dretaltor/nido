@@ -76,6 +76,7 @@ export default function Chat() {
   const [loading, setLoading] = useState(false)
   const [user, setUser] = useState<any>(null)
   const [mostrarSug, setMostrarSug] = useState(true)
+  const [valeriaPerfil, setValeriaPerfil] = useState<any>(null)
   const chatRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
