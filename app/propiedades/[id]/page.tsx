@@ -8,7 +8,7 @@ import { OfertaForm } from '@/components/ofertas/OfertaForm'
 interface Propiedad {
   id: string; titulo: string; descripcion: string; precio: number; tipo: string;
   operacion: string; habitaciones: number; banos: number; metros: number;
-  zona: string; direccion: string; asesor_nombre: string; asesor_email: string; asesor_whatsapp: string;
+  zona: string; direccion: string; asesor_nombre: string; asesor_email: string; asesor_whatsapp: string; ref_id: string;
 }
 
 function Icon({ name }: { name: string }) {
@@ -148,6 +148,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
           <div>
             <div style={{marginBottom:24}}>
               <div style={{fontSize:12,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:8}}>{propiedad.zona}</div>
+              {propiedad.ref_id && <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:'var(--accent)',letterSpacing:'0.12em',marginBottom:6}}>{propiedad.ref_id}</div>}
               <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'clamp(32px,4vw,52px)',fontWeight:400,lineHeight:1.05,marginBottom:12}}>{propiedad.titulo}</h1>
               <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:28,color:'var(--accent)',marginBottom:4}}>
                 {fmt(propiedad.precio)}{propiedad.operacion==='alquiler'?<span style={{fontSize:14,color:'var(--ink-3)'}}>/mes</span>:null}
@@ -330,7 +331,9 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
         <OfertaForm
           propiedadId={propiedad.id}
           propiedadTitulo={propiedad.titulo}
+          propiedadRef={propiedad.ref_id}
           propiedadPrecio={propiedad.precio}
+          propiedadAsesorEmail={propiedad.asesor_email}
           asesorEmail={userEmail}
           asesorNombre={userNombre}
           onClose={() => setOfertaOpen(false)}

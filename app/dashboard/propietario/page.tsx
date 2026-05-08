@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 
@@ -43,10 +43,7 @@ const FEEDBACKS_MOCK = [
   { id:'2', nombre:'Diego Chaves', propiedad:'Apartamento Escazú', fecha:'28 abr', calificacion:5, comentario:'Perfecto el apartamento, exactamente lo que buscamos. Muy bien ubicado.' },
 ]
 
-const OFERTAS_MOCK = [
-  { id:'1', nombre:'Carlos Jiménez', propiedad:'Casa en Santa Ana', monto:365000, precio_lista:380000, fecha:'Hace 2 días', estado:'pendiente' },
-  { id:'2', nombre:'Familia Rojas', propiedad:'Casa en Santa Ana', monto:370000, precio_lista:380000, fecha:'Hace 5 días', estado:'rechazada' },
-]
+const OFERTAS_MOCK: any[] = []
 
 const MERCADO_DATA = {
   precio_propiedad: 380000,
@@ -61,21 +58,28 @@ const MERCADO_DATA = {
 export default function DashboardPropietario() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
+  const initRef = useRef(false)
   const [tab, setTab] = useState('resumen')
+  const [ofertasReales, setOfertasReales] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [nombre, setNombre] = useState('')
 
   useEffect(() => {
+    if (initRef.current) return
+    initRef.current = true
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push('/login-propietario'); return }
       
       // Solo redirigir si explícitamente es asesor
       const tipo = user.user_metadata?.tipo
       if (tipo === 'asesor') { router.push('/dashboard'); return }
-      
-      // Propietario confirmado - mostrar dashboard
+
       setUser(user)
-      setNombre(user.email?.split('@')[0] || 'propietario')
+      setNombre(user.user_metadata?.nombre || user.email?.split('@')[0] || 'propietario')
+      supabase.from('ofertas')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .then(({ data }) => setOfertasReales(data || []))
       setLoading(false)
     })
   }, [])
@@ -303,27 +307,77 @@ export default function DashboardPropietario() {
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:20 }}>Ofertas recibidas</h2>
             <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-              {OFERTAS_MOCK.map(o => (
-                <div key={o.id} className="oferta-card">
-                  <div style={{ width:48, height:48, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:20, color:'var(--accent)', flexShrink:0 }}>{o.nombre[0]}</div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{o.nombre}</div>
-                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{o.propiedad} · {o.fecha}</div>
+              {ofertasReales.map(o => (
+                <div key={o.id} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:14, overflow:'hidden', transition:'all 0.2s' }}>
+                  {/* Header oferta */}
+                  <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--rule-soft)', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                      <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:18, color:'var(--accent)', flexShrink:0 }}>
+                        {(o.comprador_nombre||'?')[0]}
+                      </div>
+                      <div>
+                        <div style={{ fontSize:15, fontWeight:500 }}>{o.comprador_nombre}</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{new Date(o.created_at).toLocaleDateString('es-CR', {day:'2-digit',month:'long',year:'numeric'})}</div>
+                      </div>
+                    </div>
+                    <span style={{ padding:'4px 12px', borderRadius:999, fontSize:11, fontWeight:500, background:o.estado==='pendiente'?'oklch(0.93 0.05 80)':o.estado==='aceptada'?'var(--accent-tint)':'oklch(0.93 0.005 80)', color:o.estado==='pendiente'?'oklch(0.45 0.08 80)':o.estado==='aceptada'?'var(--accent)':'var(--ink-3)' }}>
+                      {o.estado}
+                    </span>
                   </div>
-                  <div style={{ textAlign:'right' }}>
-                    <div style={{ fontFamily:'var(--mono)', fontSize:20, color:'var(--accent)', marginBottom:2 }}>${o.monto.toLocaleString()}</div>
-                    <div style={{ fontSize:11, color:'var(--ink-3)' }}>Lista: ${o.precio_lista.toLocaleString()} · {Math.round(o.monto/o.precio_lista*100)}%</div>
-                  </div>
-                  <div style={{ display:'flex', gap:8, flexShrink:0 }}>
-                    {o.estado === 'pendiente' ? (
-                      <>
-                        <button style={{ padding:'8px 16px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:13, cursor:'pointer', fontWeight:500 }}>Aceptar</button>
-                        <button style={{ padding:'8px 16px', borderRadius:999, background:'transparent', color:'var(--ink-3)', border:'1px solid var(--rule)', fontSize:13, cursor:'pointer' }}>Rechazar</button>
-                      </>
-                    ) : (
-                      <span className="badge" style={{ background:'oklch(0.93 0.005 80)', color:'var(--ink-3)' }}>Rechazada</span>
+
+                  {/* Detalle financiero */}
+                  <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--rule-soft)' }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16, marginBottom:o.condiciones?16:0 }}>
+                      <div style={{ background:'var(--bg)', borderRadius:8, padding:'12px' }}>
+                        <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Monto ofertado</div>
+                        <div style={{ fontFamily:'var(--mono)', fontSize:20, color:'var(--accent)', fontWeight:500 }}>${Number(o.valor_oferta||0).toLocaleString()}</div>
+                        <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:2 }}>USD</div>
+                      </div>
+                      <div style={{ background:'var(--bg)', borderRadius:8, padding:'12px' }}>
+                        <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Tipo de compra</div>
+                        <div style={{ fontSize:14, fontWeight:500, color:'var(--ink)', marginBottom:2 }}>{o.tipo_compra === 'contado' ? 'Contado' : 'Crédito bancario'}</div>
+                        <div style={{ fontSize:11, color:'var(--ink-3)' }}>{o.forma_pago || (o.pre_aprobado ? 'Pre-aprobado' : 'Sin pre-aprobación')}</div>
+                      </div>
+                      <div style={{ background:'var(--bg)', borderRadius:8, padding:'12px' }}>
+                        <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>
+                          {o.tipo_compra === 'credito' ? 'Prima / Banco' : 'Forma de pago'}
+                        </div>
+                        <div style={{ fontSize:14, fontWeight:500, color:'var(--ink)', marginBottom:2 }}>
+                          {o.tipo_compra === 'credito' ? (o.monto_prima ? '$'+Number(o.monto_prima).toLocaleString() : 'Sin prima') : (o.forma_pago === 'transferencia' ? 'Transferencia' : 'Cheque gerencia')}
+                        </div>
+                        <div style={{ fontSize:11, color:'var(--ink-3)' }}>
+                          {o.banco || ''}
+                        </div>
+                      </div>
+                    </div>
+
+                    {o.condiciones && (
+                      <div style={{ background:'oklch(0.97 0.03 80)', border:'1px solid oklch(0.90 0.02 80)', borderRadius:8, padding:'12px 14px', marginTop:8 }}>
+                        <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Condiciones especiales del comprador</div>
+                        <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6, fontStyle:'italic' }}>"{o.condiciones}"</p>
+                      </div>
                     )}
                   </div>
+
+                  {/* Acciones */}
+                  {o.estado === 'pendiente' && (
+                    <div style={{ padding:'14px 20px', display:'flex', gap:10, background:'var(--bg-elev)' }}>
+                      <button style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:13, cursor:'pointer', fontWeight:500 }}>
+                        ✓ Aceptar oferta
+                      </button>
+                      <button style={{ flex:1, padding:'10px', borderRadius:999, background:'transparent', color:'var(--ink-3)', border:'1px solid var(--rule)', fontSize:13, cursor:'pointer' }}>
+                        ✗ Rechazar
+                      </button>
+                      <button style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, cursor:'pointer' }}>
+                        ↩ Contra oferta
+                      </button>
+                    </div>
+                  )}
+                  {o.estado !== 'pendiente' && (
+                    <div style={{ padding:'12px 20px', background:'var(--bg-elev)', display:'flex', justifyContent:'center' }}>
+                      <span style={{ fontSize:12, color:'var(--ink-3)' }}>Oferta {o.estado}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

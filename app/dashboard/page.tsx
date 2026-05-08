@@ -41,6 +41,21 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [propiedades, setPropiedades] = useState<any[]>([])
   const [leads, setLeads] = useState<any[]>([])
+  const [ofertas, setOfertas] = useState<any[]>([])
+  const [ofertasRecibidas, setOfertasRecibidas] = useState<any[]>([])
+  const [ofertaSel, setOfertaSel] = useState<any>(null)
+  const [updatingOferta, setUpdatingOferta] = useState(false)
+  const [contraOferta, setContraOferta] = useState('')
+  const [showContra, setShowContra] = useState(false)
+
+  const updateOfertaEstado = async (id: string, estado: string) => {
+    setUpdatingOferta(true)
+    await supabase.from('ofertas').update({ estado }).eq('id', id)
+    setOfertas(prev => prev.map((o:any) => o.id===id ? {...o, estado} : o))
+    setOfertasRecibidas(prev => prev.map((o:any) => o.id===id ? {...o, estado} : o))
+    setOfertaSel((prev:any) => prev ? {...prev, estado} : null)
+    setUpdatingOferta(false)
+  }
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -55,9 +70,18 @@ export default function Dashboard() {
       Promise.all([
         supabase.from('propiedades').select('*').eq('asesor_email', user.email),
         supabase.from('leads').select('*').order('created_at', { ascending: false }),
-      ]).then(([{ data: props }, { data: leadsData }]) => {
+        supabase.from('ofertas').select('*').eq('asesor_email', user.email).order('created_at', { ascending: false }),
+      ]).then(([{ data: props }, { data: leadsData }, { data: ofertasData }]) => {
+        // Load ofertas received on this asesor's properties
+        if (props && props.length > 0) {
+          const propIds = props.map((p:any) => p.id)
+          supabase.from('ofertas').select('*').in('propiedad_id', propIds).neq('asesor_email', user.email).order('created_at', { ascending: false })
+            .then(({ data, error }) => { console.log('ofertasRecibidas:', data, error); setOfertasRecibidas(data || []) })
+        }
         setPropiedades(props || [])
         setLeads(leadsData || [])
+        setOfertas(ofertasData || [])
+
         setLoading(false)
       })
     })
@@ -121,6 +145,7 @@ export default function Dashboard() {
             { label:'Propiedades activas', valor:propActivas, sub:propiedades.length+' en total', color:'var(--accent)' },
             { label:'Leads totales', valor:leads.length, sub:leadsNuevos+' nuevos sin atender', color:'var(--accent)' },
             { label:'Leads cerrados', valor:leadsCerrados, sub:'este mes', color:'var(--ink)' },
+            { label:'Ofertas recibidas', valor:ofertas.length, sub:ofertas.filter((o:any)=>o.estado==='pendiente').length+' pendientes', color:'oklch(0.52 0.08 50)' },
             { label:'Tasa de cierre', valor:leads.length>0?Math.round((leadsCerrados/leads.length)*100)+'%':'—', sub:'promedio cartera', color:'var(--accent)' },
           ].map((m,i) => (
             <div key={i} className="dash-card" style={{ animation:'fadeUp 0.4s ease '+(i*0.08)+'s both' }}>
@@ -187,6 +212,62 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* Ofertas enviadas */}
+          {ofertas.length > 0 && (
+            <div style={{ marginBottom:24 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+                <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400 }}>Ofertas enviadas</h2>
+                <span style={{ fontSize:12, color:'var(--ink-3)' }}>{ofertas.filter((o:any)=>o.estado==='pendiente').length} pendientes</span>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {ofertas.slice(0,5).map((o:any) => (
+                  <div key={o.id} className="dash-card" onClick={() => setOfertaSel({...o, tipo_vista:'enviada'})} style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 20px', cursor:'pointer' }}>
+                    <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{(o.comprador_nombre||'?')[0]}</div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13, fontWeight:500, marginBottom:2 }}>{o.comprador_nombre}</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)' }}>{o.tipo_compra==='contado'?'Contado':'Crédito'} · {new Date(o.created_at).toLocaleDateString('es-CR')}</div>
+                    </div>
+                    <div style={{ textAlign:'right', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
+                      <div>
+                        <div style={{ fontFamily:'var(--mono)', fontSize:14, color:'var(--accent)', marginBottom:4 }}>${Number(o.valor_oferta||0).toLocaleString()}</div>
+                        <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:500, background:o.estado==='pendiente'?'oklch(0.93 0.05 80)':o.estado==='aceptada'?'var(--accent-tint)':o.estado==='rechazada'?'oklch(0.93 0.005 80)':'oklch(0.93 0.03 240)', color:o.estado==='pendiente'?'oklch(0.45 0.08 80)':o.estado==='aceptada'?'var(--accent)':o.estado==='rechazada'?'var(--ink-3)':'oklch(0.35 0.08 240)' }}>{o.estado}</span>
+                      </div>
+                      <span style={{ color:'var(--ink-3)', fontSize:18 }}>›</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Ofertas en mis propiedades */}
+          {ofertasRecibidas.length > 0 && (
+            <div style={{ marginBottom:24 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+                <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400 }}>Ofertas en mis propiedades</h2>
+                <span style={{ fontSize:12, color:'var(--ink-3)' }}>{ofertasRecibidas.filter((o:any)=>o.estado==='pendiente').length} pendientes</span>
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                {ofertasRecibidas.slice(0,5).map((o:any) => (
+                  <div key={o.id} className="dash-card" onClick={() => setOfertaSel({...o, tipo_vista:'recibida'})} style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 20px', cursor:'pointer' }}>
+                    <div style={{ width:40, height:40, borderRadius:'50%', background:'oklch(0.93 0.05 80)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'oklch(0.45 0.08 80)', flexShrink:0 }}>{(o.comprador_nombre||'?')[0]}</div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13, fontWeight:500, marginBottom:2 }}>{o.comprador_nombre}</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)' }}>Por: {o.asesor_nombre||o.asesor_email} · {new Date(o.created_at).toLocaleDateString('es-CR')}</div>
+                    </div>
+                    <div style={{ textAlign:'right', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
+                      <div>
+                        <div style={{ fontFamily:'var(--mono)', fontSize:14, color:'var(--accent)', marginBottom:4 }}>${Number(o.valor_oferta||0).toLocaleString()}</div>
+                        <span style={{ padding:'2px 10px', borderRadius:999, fontSize:10, fontWeight:500, background:o.estado==='pendiente'?'oklch(0.93 0.05 80)':o.estado==='aceptada'?'var(--accent-tint)':'oklch(0.93 0.005 80)', color:o.estado==='pendiente'?'oklch(0.45 0.08 80)':o.estado==='aceptada'?'var(--accent)':'var(--ink-3)' }}>{o.estado}</span>
+                      </div>
+                      <span style={{ color:'var(--ink-3)', fontSize:18 }}>›</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
         {/* Módulos rápidos */}
         <div style={{ marginBottom:16 }}>
           <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400, marginBottom:16 }}>Herramientas</h2>
@@ -224,6 +305,123 @@ export default function Dashboard() {
         </div>
 
       </div>
+    {/* Drawer detalle oferta */}
+    {ofertaSel && (
+      <>
+        <div onClick={() => setOfertaSel(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', zIndex:99 }}/>
+        <div style={{ position:'fixed', top:0, right:0, bottom:0, width:440, background:'white', borderLeft:'1px solid var(--rule)', zIndex:100, overflowY:'auto', boxShadow:'-8px 0 32px rgba(0,0,0,0.1)' }}>
+          <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--rule)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', top:0, background:'white', zIndex:1 }}>
+            <div>
+              <div style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:ofertaSel.tipo_vista==='enviada'?'var(--accent)':'oklch(0.45 0.08 80)', marginBottom:4 }}>
+                {ofertaSel.tipo_vista==='enviada'?'Oferta enviada':'Oferta recibida'}
+              </div>
+              <div style={{ fontFamily:'var(--serif)', fontSize:18 }}>{ofertaSel.comprador_nombre}</div>
+            </div>
+            <button onClick={() => setOfertaSel(null)} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', cursor:'pointer', fontSize:16, display:'grid', placeItems:'center' }}>×</button>
+          </div>
+          <div style={{ padding:'20px 24px' }}>
+            {/* Estado */}
+            <div style={{ display:'flex', justifyContent:'center', marginBottom:20 }}>
+              <span style={{ padding:'6px 20px', borderRadius:999, fontSize:12, fontWeight:500, background:ofertaSel.estado==='pendiente'?'oklch(0.93 0.05 80)':ofertaSel.estado==='aceptada'?'var(--accent-tint)':'oklch(0.93 0.005 80)', color:ofertaSel.estado==='pendiente'?'oklch(0.45 0.08 80)':ofertaSel.estado==='aceptada'?'var(--accent)':'var(--ink-3)' }}>
+                {ofertaSel.estado}
+              </span>
+            </div>
+
+            {/* Datos financieros */}
+            <div style={{ marginBottom:20 }}>
+              <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Detalle financiero</div>
+              {[
+                { l:'Comprador', v:ofertaSel.comprador_nombre },
+                { l:'Correo', v:ofertaSel.comprador_email||'—' },
+                { l:'Teléfono', v:ofertaSel.comprador_telefono||'—' },
+                { l:'Valor ofertado', v:'$'+Number(ofertaSel.valor_oferta||0).toLocaleString()+' USD' },
+                { l:'Tipo de compra', v:ofertaSel.tipo_compra==='contado'?'Contado':'Crédito bancario' },
+                ofertaSel.forma_pago ? { l:'Forma de pago', v:ofertaSel.forma_pago } : null,
+                ofertaSel.banco ? { l:'Banco', v:ofertaSel.banco } : null,
+                ofertaSel.pre_aprobado ? { l:'Pre-aprobación', v:'Sí' } : null,
+                ofertaSel.monto_prima ? { l:'Prima', v:'$'+Number(ofertaSel.monto_prima).toLocaleString()+' USD' } : null,
+                { l:'Fecha', v:new Date(ofertaSel.created_at).toLocaleDateString('es-CR',{day:'2-digit',month:'long',year:'numeric'}) },
+              ].filter(Boolean).map((f:any) => (
+                <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+                  <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
+                  <span style={{ fontWeight:500 }}>{f.v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Condiciones */}
+            {ofertaSel.condiciones && (
+              <div style={{ marginBottom:20 }}>
+                <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Condiciones especiales</div>
+                <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65, background:'var(--bg)', padding:'12px 14px', borderRadius:8, fontStyle:'italic' }}>"{ofertaSel.condiciones}"</p>
+              </div>
+            )}
+
+            {/* Acciones según tipo */}
+            <div style={{ display:'flex', flexDirection:'column', gap:10, marginTop:8 }}>
+
+              {/* Acciones para oferta RECIBIDA en mi propiedad */}
+              {ofertaSel.tipo_vista === 'recibida' && ofertaSel.estado === 'pendiente' && (
+                <>
+                  <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:4 }}>Acciones</div>
+                  <button onClick={() => updateOfertaEstado(ofertaSel.id, 'aceptada')} disabled={updatingOferta} style={{ padding:'12px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:13, fontWeight:500, cursor:'pointer', opacity:updatingOferta?0.6:1 }}>
+                    ✓ Aceptar oferta
+                  </button>
+                  <button onClick={() => setShowContra(!showContra)} style={{ padding:'12px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, fontWeight:500, cursor:'pointer' }}>
+                    ↩ Contra ofertar
+                  </button>
+                  {showContra && (
+                    <div style={{ background:'var(--bg)', border:'1px solid var(--rule)', borderRadius:10, padding:'14px' }}>
+                      <div style={{ fontSize:12, fontWeight:500, marginBottom:8 }}>Monto de contra oferta (USD)</div>
+                      <input value={contraOferta} onChange={e => setContraOferta(e.target.value)} placeholder="Ej. 360,000" style={{ width:'100%', padding:'10px 14px', border:'1px solid var(--rule)', borderRadius:8, fontSize:14, fontFamily:'var(--sans)', outline:'none', marginBottom:10, boxSizing:'border-box' as const }}/>
+                      <button onClick={async () => {
+                        if (!contraOferta) return
+                        setUpdatingOferta(true)
+                        await supabase.from('ofertas').update({ estado: 'contra_oferta', condiciones: (ofertaSel.condiciones||'') + ' | Contra oferta: $'+contraOferta+' USD' }).eq('id', ofertaSel.id)
+                        setOfertaSel((p:any) => ({...p, estado:'contra_oferta'}))
+                        setOfertasRecibidas(prev => prev.map((o:any) => o.id===ofertaSel.id ? {...o, estado:'contra_oferta'} : o))
+                        setShowContra(false)
+                        setContraOferta('')
+                        setUpdatingOferta(false)
+                      }} disabled={updatingOferta} style={{ width:'100%', padding:'10px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:13, cursor:'pointer', fontFamily:'var(--sans)' }}>
+                        Enviar contra oferta
+                      </button>
+                    </div>
+                  )}
+                  <button onClick={() => updateOfertaEstado(ofertaSel.id, 'rechazada')} disabled={updatingOferta} style={{ padding:'12px', borderRadius:999, background:'transparent', color:'var(--ink-3)', border:'1px solid var(--rule)', fontSize:13, cursor:'pointer', opacity:updatingOferta?0.6:1 }}>
+                    ✗ Rechazar oferta
+                  </button>
+                </>
+              )}
+
+              {/* Acciones para oferta ENVIADA */}
+              {ofertaSel.tipo_vista === 'enviada' && (
+                <>
+                  <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:4 }}>Contacto</div>
+                  {ofertaSel.comprador_telefono && (
+                    <a href={'https://wa.me/'+ofertaSel.comprador_telefono.replace(/[^0-9]/g,'')} target="_blank" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', borderRadius:999, background:'#22c55e', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>
+                      💬 Contactar comprador por WhatsApp
+                    </a>
+                  )}
+                  {ofertaSel.comprador_email && (
+                    <a href={'mailto:'+ofertaSel.comprador_email} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', fontSize:13, fontWeight:500, textDecoration:'none' }}>
+                      ✉ Enviar email al comprador
+                    </a>
+                  )}
+                </>
+              )}
+
+              {/* Estado final */}
+              {ofertaSel.estado !== 'pendiente' && (
+                <div style={{ padding:'12px', borderRadius:10, background:'var(--bg)', border:'1px solid var(--rule)', textAlign:'center', fontSize:13, color:'var(--ink-3)' }}>
+                  Oferta {ofertaSel.estado} · {new Date(ofertaSel.created_at).toLocaleDateString('es-CR')}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </>
+    )}
     </main>
   )
 }

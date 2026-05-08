@@ -5,14 +5,16 @@ import { supabase } from '../../lib/supabase'
 interface OfertaFormProps {
   propiedadId: string
   propiedadTitulo: string
+  propiedadRef?: string
   propiedadPrecio: number
+  propiedadAsesorEmail: string
   asesorEmail: string
   asesorNombre: string
   onClose: () => void
   onSuccess: () => void
 }
 
-export function OfertaForm({ propiedadId, propiedadTitulo, propiedadPrecio, asesorEmail, asesorNombre, onClose, onSuccess }: OfertaFormProps) {
+export function OfertaForm({ propiedadId, propiedadTitulo, propiedadRef, propiedadPrecio, propiedadAsesorEmail, asesorEmail, asesorNombre, onClose, onSuccess }: OfertaFormProps) {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -54,6 +56,23 @@ export function OfertaForm({ propiedadId, propiedadTitulo, propiedadPrecio, ases
       estado: 'pendiente',
     })
     if (error) { setError('Error al enviar la oferta. Intentá de nuevo.'); setLoading(false); return }
+    // Enviar notificacion por email al asesor
+    await fetch('/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: propiedadAsesorEmail || asesorEmail,
+        tipo: 'nueva_oferta',
+        data: {
+          asesor_nombre: asesorNombre,
+          comprador_nombre: form.comprador_nombre,
+          propiedad: propiedadTitulo,
+          valor_oferta: form.valor_oferta,
+          tipo_compra: form.tipo_compra,
+          condiciones: form.condiciones,
+        }
+      })
+    })
     setLoading(false)
     onSuccess()
   }

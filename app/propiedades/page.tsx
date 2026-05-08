@@ -66,6 +66,7 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
           <span style={{ fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>{p.zona}</span>
           <span style={{ fontFamily: 'var(--mono)', fontSize: 15, color: 'var(--ink)' }}>{priceLabel}</span>
         </div>
+        {p.ref_id && <div style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--accent)', letterSpacing:'0.1em', marginBottom:4 }}>{p.ref_id}</div>}
         <h3 style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 400, margin: '0 0 10px', lineHeight: 1.1 }}>{p.titulo}</h3>
         <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--ink-3)', marginBottom: 12 }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="bed" /> {p.habitaciones} hab</span>
