@@ -116,6 +116,7 @@ export default function Dashboard() {
             <a href="/dashboard/crm" className="nav-link">CRM</a>
             <a href="/propiedades" className="nav-link">Portal</a>
             <a href="/dashboard/nueva-propiedad" className="nav-link">Nueva propiedad</a>
+            <a href="/dashboard/perfil" className="nav-link">Mi perfil</a>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
             <div style={{ textAlign:'right' }}>

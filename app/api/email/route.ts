@@ -5,6 +5,34 @@ export async function POST(req: NextRequest) {
     const { to, tipo, data } = await req.json()
 
     const templates: Record<string, { subject: string, html: string }> = {
+      mensaje_admin: {
+        subject: data?.asunto || 'Mensaje del equipo NIDO',
+        html: `
+        <html>
+        <body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Mensaje del equipo NIDO</p>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h2 style="font-family:Georgia,serif;font-size:24px;font-weight:400;color:#0D1F15;margin:0 0 16px">${data?.asunto}</h2>
+            <div style="font-size:15px;color:#374151;line-height:1.75;white-space:pre-wrap">${data?.mensaje}</div>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:24px 40px;border-top:1px solid #E5E3DC">
+            <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
+              <p style="font-size:12px;color:#9CA3AF;margin:0 0 8px">NIDO · Plataforma Inmobiliaria de Costa Rica</p>
+              <p style="font-size:11px;color:#9CA3AF;margin:0">© 2026 NIDO. Todos los derechos reservados.</p>
+            </td></tr></table>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body>
+        </html>`
+      },
       nueva_oferta: {
         subject: 'Nueva oferta recibida · ' + (data?.propiedad || 'Tu propiedad') + ' · NIDO',
         html: `
