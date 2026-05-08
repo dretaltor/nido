@@ -44,6 +44,8 @@ export default function Dashboard() {
   const [ofertas, setOfertas] = useState<any[]>([])
   const [ofertasRecibidas, setOfertasRecibidas] = useState<any[]>([])
   const [ofertaSel, setOfertaSel] = useState<any>(null)
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false)
+  const [valeriaPerfil, setValeraPerfilDash] = useState<any>(null)
   const [updatingOferta, setUpdatingOferta] = useState(false)
   const [contraOferta, setContraOferta] = useState('')
   const [showContra, setShowContra] = useState(false)
@@ -81,6 +83,10 @@ export default function Dashboard() {
         setPropiedades(props || [])
         setLeads(leadsData || [])
         setOfertas(ofertasData || [])
+        // Check onboarding status
+        supabase.from('perfiles').select('valeria_onboarding_completo,cedula_frente_url,foto_url').eq('id', user.id).maybeSingle().then(({data}) => setValeraPerfilDash(data))
+        const dismissed = localStorage.getItem('nido_onboarding_dismissed')
+        if (dismissed) setOnboardingDismissed(true)
 
         setLoading(false)
       })
@@ -139,6 +145,17 @@ export default function Dashboard() {
           <h1 style={{ fontFamily:'var(--serif)', fontSize:'clamp(28px,4vw,42px)', fontWeight:400, lineHeight:1.1, marginBottom:6 }}>{saludo}, <em style={{ fontStyle:'italic', color:'var(--accent)' }}>{nombre}.</em></h1>
           <p style={{ fontSize:14, color:'var(--ink-2)' }}>Esto es lo que está pasando con tu cartera hoy.</p>
         </div>
+
+        {/* Onboarding checklist */}
+        {!onboardingDismissed && (
+          <OnboardingChecklist
+            tieneFoto={!!valeriaPerfil?.foto_url}
+            tieneValeria={!!valeriaPerfil?.valeria_onboarding_completo}
+            tieneKYC={!!valeriaPerfil?.cedula_frente_url}
+            tienePropiedades={propiedades.length > 0}
+            onDismiss={() => { setOnboardingDismissed(true); localStorage.setItem('nido_onboarding_dismissed','1') }}
+          />
+        )}
 
         {/* Métricas */}
         <div className="dash-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:32 }}>
