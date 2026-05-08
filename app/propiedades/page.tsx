@@ -26,6 +26,7 @@ function Icon({ name }: { name: string }) {
 
 interface Propiedad {
   id: string
+  ref_id: string
   titulo: string
   descripcion: string
   precio: number
