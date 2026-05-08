@@ -96,6 +96,19 @@ export default function AdminPanel() {
     loadAll()
   }
 
+  const verificarPropiedad = async (id: string, aprobar: boolean, notas?: string) => {
+    await supabase.from('propiedades').update({
+      verificacion_estado: aprobar ? 'aprobada' : 'rechazada',
+      verificacion_notas: notas || null,
+      disponible: aprobar,
+      verificado_por: adminUser?.email,
+      verificado_at: new Date().toISOString(),
+    }).eq('id', id)
+    loadAll()
+    setMsg(aprobar ? '✓ Propiedad aprobada y publicada' : '✓ Propiedad rechazada')
+    setSel(null)
+  }
+
   const aprobarKYC = async (id: string, aprobar: boolean, notas?: string) => {
     await supabase.from('perfiles').update({
       verificado: aprobar,
@@ -444,6 +457,7 @@ export default function AdminPanel() {
               onCambiarPlan={cambiarPlan}
               onAprobarKYC={aprobarKYC}
               onTogglePropiedad={togglePropiedad}
+              onVerificarPropiedad={verificarPropiedad}
               onEnviarMensaje={enviarMensaje}
               onMsg={setMsg}
               onReload={loadAll}
@@ -508,7 +522,7 @@ function MensajeForm({ asesores, propietarios, onSend }: any) {
 }
 
 // ── DRAWER DETALLE ──
-function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onEnviarMensaje, onMsg, onReload }: any) {
+function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onMsg, onReload }: any) {
   const [nuevoPlan, setNuevoPlan] = useState('')
   const [notasKYC, setNotasKYC] = useState(sel?.verificacion_notas||'')
   const [msgInterno, setMsgInterno] = useState('')
@@ -667,24 +681,77 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
         <button onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, display:'grid', placeItems:'center', cursor:'pointer' }}>×</button>
       </div>
       <div style={{ padding:'20px 24px' }}>
-        {[
-          { l:'Título', v:sel.titulo },
-          { l:'Zona', v:sel.zona||'—' },
-          { l:'Precio', v:'$'+Number(sel.precio||0).toLocaleString()+' USD' },
-          { l:'Tipo', v:sel.tipo||'—' },
-          { l:'Operación', v:sel.operacion||'—' },
-          { l:'Asesor', v:sel.asesor_email||'—' },
-          { l:'Estado', v:sel.disponible?'Activa':'Pausada' },
-          { l:'Publicada', v:new Date(sel.created_at).toLocaleDateString('es-CR') },
-        ].map(f => (
-          <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
-            <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
-            <span style={{ fontWeight:500 }}>{f.v}</span>
+
+        {/* Estado verificación */}
+        <div style={{ marginBottom:16, padding:'12px 16px', borderRadius:10, background:sel.verificacion_estado==='aprobada'?'var(--accent-tint)':sel.verificacion_estado==='rechazada'?'oklch(0.97 0.03 20)':'oklch(0.93 0.05 80)', border:'1px solid '+(sel.verificacion_estado==='aprobada'?'oklch(0.85 0.04 150)':sel.verificacion_estado==='rechazada'?'oklch(0.85 0.06 20)':'oklch(0.88 0.05 80)') }}>
+          <span style={{ fontSize:13, fontWeight:500, color:sel.verificacion_estado==='aprobada'?'var(--accent)':sel.verificacion_estado==='rechazada'?'oklch(0.45 0.08 20)':'oklch(0.45 0.08 80)' }}>
+            {sel.verificacion_estado==='aprobada'?'✓ Propiedad aprobada y publicada':sel.verificacion_estado==='rechazada'?'✗ Propiedad rechazada':sel.verificacion_estado==='pendiente_verificacion'?'⏳ Pendiente de verificación':'Borrador'}
+          </span>
+        </div>
+
+        {/* Datos generales */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Datos generales</div>
+          {[
+            { l:'Título', v:sel.titulo },
+            { l:'Zona', v:sel.zona||'—' },
+            { l:'Precio', v:'$'+Number(sel.precio||0).toLocaleString()+' USD' },
+            { l:'Tipo', v:sel.tipo||'—' },
+            { l:'Operación', v:sel.operacion||'—' },
+            { l:'Asesor/Propietario', v:sel.asesor_email||'—' },
+            { l:'Publicada', v:new Date(sel.created_at).toLocaleDateString('es-CR') },
+          ].map(f => (
+            <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+              <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
+              <span style={{ fontWeight:500 }}>{f.v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Datos registrales */}
+        <div style={{ marginBottom:16 }}>
+          <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Datos registrales</div>
+          {[
+            { l:'Número de finca', v:sel.numero_finca||'—' },
+            { l:'Número de plano', v:sel.numero_plano||'—' },
+            { l:'Naturaleza', v:sel.naturaleza||'—' },
+            { l:'Área registral', v:sel.area_registral?sel.area_registral+'m²':'—' },
+            { l:'Colindancias', v:sel.colindancias||'—' },
+            { l:'Gravámenes', v:sel.gravamenes||'—' },
+            { l:'Anotaciones', v:sel.anotaciones||'—' },
+            { l:'Libre de gravámenes', v:sel.libre_gravamenes?'✓ Confirmado':'✗ No confirmado' },
+          ].map(f => (
+            <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+              <span style={{ color:'var(--ink-3)', flexShrink:0, marginRight:12 }}>{f.l}</span>
+              <span style={{ fontWeight:500, textAlign:'right', color:f.l==='Libre de gravámenes'?(sel.libre_gravamenes?'var(--accent)':'oklch(0.45 0.08 20)'):'var(--ink)' }}>{f.v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Notas */}
+        <div style={{ marginBottom:16 }}>
+          <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Notas para el propietario/asesor</label>
+          <textarea value={notasKYC} onChange={e => setNotasKYC(e.target.value)} rows={3} placeholder="Ej. Favor verificar el número de finca, no coincide con el plano..." className="field" style={{ resize:'vertical' }}/>
+        </div>
+
+        {/* Acciones verificación */}
+        {sel.verificacion_estado !== 'aprobada' && (
+          <div style={{ display:'flex', gap:10, marginBottom:12 }}>
+            <button onClick={() => onVerificarPropiedad(sel.id, true, notasKYC)} disabled={!sel.libre_gravamenes} className="btn btn-primary" style={{ flex:2, opacity:!sel.libre_gravamenes?0.5:1 }}>
+              ✓ Aprobar y publicar
+            </button>
+            <button onClick={() => onVerificarPropiedad(sel.id, false, notasKYC)} className="btn btn-danger" style={{ flex:1 }}>
+              ✗ Rechazar
+            </button>
           </div>
-        ))}
-        <div style={{ display:'flex', gap:10, marginTop:20 }}>
-          <button onClick={() => { onTogglePropiedad(sel.id, sel.disponible); onClose() }} className={'btn '+(sel.disponible?'btn-danger':'btn-primary')} style={{ flex:1 }}>
-            {sel.disponible ? '⏸ Pausar propiedad' : '▶ Activar propiedad'}
+        )}
+        {!sel.libre_gravamenes && (
+          <p style={{ fontSize:11, color:'oklch(0.45 0.08 20)', marginBottom:12 }}>⚠️ El propietario no confirmó que la propiedad está libre de gravámenes.</p>
+        )}
+
+        <div style={{ display:'flex', gap:10 }}>
+          <button onClick={() => { onTogglePropiedad(sel.id, sel.disponible); onClose() }} className={'btn btn-outline'} style={{ flex:1 }}>
+            {sel.disponible ? '⏸ Pausar' : '▶ Activar'}
           </button>
           <a href={'/propiedades/'+sel.id} target="_blank" className="btn btn-outline" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
             Ver ficha →

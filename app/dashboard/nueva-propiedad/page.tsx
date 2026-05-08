@@ -22,7 +22,7 @@ const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la monta
 export default function NuevaPropiedad() {
   const [current, setCurrent] = useState(0)
   const [completed, setCompleted] = useState(new Set())
-  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', direccion:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'' })
+  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', direccion:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'', numero_finca:'', numero_plano:'', naturaleza:'', area_registral:'', colindancias:'', gravamenes:'', anotaciones:'', libre_gravamenes:false })
   const [published, setPublished] = useState(false)
   const [publishing, setPublishing] = useState(false)
   const [aiWriting, setAiWriting] = useState(false)
@@ -74,10 +74,19 @@ export default function NuevaPropiedad() {
         metros: data.area,
         zona: data.canton||data.provincia,
         direccion: data.direccion,
-        disponible: true,
+        disponible: false,
+        verificacion_estado: 'pendiente_verificacion',
         asesor_email: user?.email||'',
         asesor_nombre: user?.user_metadata?.nombre||'',
         asesor_whatsapp: data.whatsapp||'',
+        numero_finca: data.numero_finca||'',
+        numero_plano: data.numero_plano||'',
+        naturaleza: data.naturaleza||'',
+        area_registral: data.area_registral ? parseFloat(data.area_registral) : null,
+        colindancias: data.colindancias||'',
+        gravamenes: data.gravamenes||'',
+        anotaciones: data.anotaciones||'',
+        libre_gravamenes: data.libre_gravamenes||false,
       })
       setPublished(true)
     } catch { alert('Error al publicar.') }
@@ -339,7 +348,59 @@ export default function NuevaPropiedad() {
     )
     if (current === 7) return (
       <div className="wiz-body">
-        <div className="wiz-eyebrow">Paso 08 · Revisión final</div>
+        <div className="wiz-eyebrow">Paso 08 · Datos registrales</div>
+        <h1 className="wiz-h1">Información <em>registral.</em></h1>
+        <p className="wiz-sub">Necesitamos los datos del Registro Nacional para verificar y aprobar tu propiedad antes de publicarla.</p>
+
+        <div style={{background:'oklch(0.97 0.03 50)',border:'1px solid oklch(0.88 0.05 50)',borderRadius:10,padding:'14px 16px',marginBottom:24,fontSize:13,color:'oklch(0.40 0.06 50)',lineHeight:1.6}}>
+          ⚠️ <strong>Importante:</strong> NIDO no trabaja con propiedades que tengan gravámenes, hipotecas, embargos, anotaciones o cualquier limitación legal que impida o dificulte su libre venta o traspaso. Si tu propiedad tiene estas condiciones, no podrá ser publicada en la plataforma.
+        </div>
+
+        <div className="field-group" style={{marginBottom:16}}>
+          <label className="field-label">Número de finca *</label>
+          <input className="wiz-input" placeholder="Ej. 123456-000" value={data.numero_finca} onChange={e => setData(p => ({...p, numero_finca:e.target.value}))}/>
+        </div>
+        <div className="field-group" style={{marginBottom:16}}>
+          <label className="field-label">Número de plano catastrado</label>
+          <input className="wiz-input" placeholder="Ej. SJ-12345-2020" value={data.numero_plano} onChange={e => setData(p => ({...p, numero_plano:e.target.value}))}/>
+        </div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+          <div className="field-group">
+            <label className="field-label">Naturaleza</label>
+            <input className="wiz-input" placeholder="Ej. Finca filial, Finca madre..." value={data.naturaleza} onChange={e => setData(p => ({...p, naturaleza:e.target.value}))}/>
+          </div>
+          <div className="field-group">
+            <label className="field-label">Área registral (m²)</label>
+            <input className="wiz-input" type="number" placeholder="Ej. 250" value={data.area_registral} onChange={e => setData(p => ({...p, area_registral:e.target.value}))}/>
+          </div>
+        </div>
+        <div className="field-group" style={{marginBottom:16}}>
+          <label className="field-label">Colindancias</label>
+          <textarea className="wiz-input" placeholder="Norte: ..., Sur: ..., Este: ..., Oeste: ..." value={data.colindancias} onChange={e => setData(p => ({...p, colindancias:e.target.value}))} rows={3} style={{resize:'vertical'}}/>
+        </div>
+        <div className="field-group" style={{marginBottom:16}}>
+          <label className="field-label">Gravámenes e hipotecas</label>
+          <input className="wiz-input" placeholder="Ej. Libre de gravámenes / Hipoteca BCR..." value={data.gravamenes} onChange={e => setData(p => ({...p, gravamenes:e.target.value}))}/>
+        </div>
+        <div className="field-group" style={{marginBottom:20}}>
+          <label className="field-label">Anotaciones</label>
+          <input className="wiz-input" placeholder="Ej. Sin anotaciones / Anotación preventiva..." value={data.anotaciones} onChange={e => setData(p => ({...p, anotaciones:e.target.value}))}/>
+        </div>
+
+        <div onClick={() => setData(p => ({...p, libre_gravamenes:!p.libre_gravamenes}))} style={{display:'flex',alignItems:'flex-start',gap:12,padding:'14px 16px',border:'2px solid '+(data.libre_gravamenes?'var(--accent)':'var(--rule)'),borderRadius:10,cursor:'pointer',background:data.libre_gravamenes?'var(--accent-tint)':'white',transition:'all 0.15s'}}>
+          <div style={{width:20,height:20,borderRadius:4,border:'2px solid '+(data.libre_gravamenes?'var(--accent)':'var(--rule)'),background:data.libre_gravamenes?'var(--accent)':'white',display:'grid',placeItems:'center',flexShrink:0,marginTop:1}}>
+            {data.libre_gravamenes && <span style={{color:'white',fontSize:12,fontWeight:700}}>✓</span>}
+          </div>
+          <div>
+            <div style={{fontSize:14,fontWeight:500,marginBottom:2}}>Confirmo que esta propiedad está libre de gravámenes y anotaciones que impidan su venta</div>
+            <div style={{fontSize:12,color:'var(--ink-3)',lineHeight:1.5}}>Al marcar esto, declarás que la propiedad puede transferirse libremente. NIDO verificará esta información en el Registro Nacional.</div>
+          </div>
+        </div>
+      </div>
+    )
+    if (current === 8) return (
+      <div className="wiz-body">
+        <div className="wiz-eyebrow">Paso 09 · Revisión final</div>
         <h1 className="wiz-h1">Última <em>mirada</em>.</h1>
         <p className="wiz-sub">Revisá que todo se vea bien antes de publicar.</p>
         {[
@@ -349,6 +410,7 @@ export default function NuevaPropiedad() {
           {label:'Amenidades', body:data.amenities.length+' seleccionadas', step:3},
           {label:'Fotos', body:data.photos.length+' fotos · '+(data.tour?'Tour 360° solicitado':'Sin tour'), step:4},
           {label:'Descripción', body:data.title||'Sin título', step:5},
+          {label:'Datos registrales', body:data.numero_finca||'Pendiente', step:7},
           {label:'Precio', body:data.price?'$'+parseInt(data.price).toLocaleString('en-US')+(data.op==='alquiler'?'/mes':''):'—', step:6},
         ].map(s => (
           <div key={s.label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid var(--rule-soft)'}}>
