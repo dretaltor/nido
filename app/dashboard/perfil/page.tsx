@@ -18,6 +18,60 @@ const CSS = `
   .section-card{background:white;border:1px solid var(--rule);border-radius:12px;padding:28px 32px;margin-bottom:20px}
 `
 
+function ValeriaPerfilResumen({ userId }: { userId: string }) {
+  const [perfil, setPerfil] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!userId) return
+    supabase.from('perfiles').select('valeria_perfil, valeria_onboarding_completo').eq('id', userId).maybeSingle()
+      .then(({ data }) => { setPerfil(data); setLoading(false) })
+  }, [userId])
+
+  if (loading) return <div style={{ fontSize:13, color:'var(--ink-3)' }}>Cargando...</div>
+
+  if (!perfil?.valeria_onboarding_completo) return (
+    <div style={{ background:'var(--bg)', border:'1px solid var(--rule)', borderRadius:10, padding:'16px 20px', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+      <div>
+        <div style={{ fontSize:14, fontWeight:500, marginBottom:4 }}>Valeria aún no está configurada</div>
+        <div style={{ fontSize:12, color:'var(--ink-3)' }}>Completá el onboarding para personalizar tu asistente.</div>
+      </div>
+      <a href="/dashboard/valeria-onboarding" style={{ padding:'8px 18px', borderRadius:999, background:'var(--accent)', color:'white', fontSize:13, fontWeight:500, textDecoration:'none', flexShrink:0 }}>
+        Configurar →
+      </a>
+    </div>
+  )
+
+  const p = perfil.valeria_perfil
+  return (
+    <div>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
+        {[
+          { l:'Estilo', v:p?.estilo_comunicacion },
+          { l:'Zonas', v:p?.zonas },
+          { l:'Propiedades', v:p?.tipo_propiedades },
+          { l:'Meta mensual', v:p?.objetivo_mensual },
+          { l:'Estilo de cierre', v:p?.estilo_cierre },
+          { l:'Rango de precio', v:p?.rango_precio },
+        ].map(f => f.v ? (
+          <div key={f.l} style={{ background:'var(--bg)', borderRadius:8, padding:'10px 12px' }}>
+            <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:4 }}>{f.l}</div>
+            <div style={{ fontSize:13, color:'var(--ink)', fontWeight:500 }}>{f.v}</div>
+          </div>
+        ) : null)}
+      </div>
+      <div style={{ display:'flex', gap:10 }}>
+        <a href="/chat" style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--accent)', color:'white', fontSize:13, fontWeight:500, textDecoration:'none', textAlign:'center' }}>
+          Hablar con Valeria →
+        </a>
+        <a href="/dashboard/valeria-onboarding" style={{ flex:1, padding:'10px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', fontSize:13, textDecoration:'none', textAlign:'center' }}>
+          Reconfigurar
+        </a>
+      </div>
+    </div>
+  )
+}
+
 function VerificacionKYC({ userId }: { userId: string }) {
   const [estado, setEstado] = useState<any>(null)
   const [uploading, setUploading] = useState<string | null>(null)
@@ -335,6 +389,15 @@ export default function Perfil() {
           </p>
 
           <VerificacionKYC userId={user?.id} />
+        </div>
+
+        {/* Configuración de Valeria */}
+        <div className="section-card">
+          <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Tu Valeria personal</div>
+          <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65, marginBottom:20 }}>
+            Valeria trabaja con tu estilo, tus zonas y tu forma de cerrar tratos. Podés reconfigurar tu perfil en cualquier momento.
+          </p>
+          <ValeriaPerfilResumen userId={user?.id} />
         </div>
 
         {/* Cerrar sesión */}

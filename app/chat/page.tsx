@@ -13,7 +13,34 @@ const SUGERENCIAS = [
   { icon: '🗺️', texto: '¿Qué zonas de Costa Rica tienen más demanda?' },
 ]
 
-const SISTEMA = `Sos Valeria, la mentora IA de NIDO — la plataforma inmobiliaria premium de Costa Rica. Tu rol es ser el copiloto profesional del asesor inmobiliario que te consulta.
+const buildSistema = (perfil: any) => {
+  const base = `Sos Valeria`
+  if (!perfil) return SISTEMA_BASE
+  return SISTEMA_BASE + `
+
+--- PERFIL PERSONALIZADO DE TU ASESOR ---
+Nombre: ${perfil.nombre_asesor}
+Estilo de comunicación: ${perfil.estilo_comunicacion}
+Zonas de especialización: ${perfil.zonas}
+Tipos de propiedades: ${perfil.tipo_propiedades}
+Rango de precios: ${perfil.rango_precio}
+Meta mensual: ${perfil.objetivo_mensual}
+Estilo de cierre: ${perfil.estilo_cierre}
+Propuesta de valor: ${perfil.diferenciador}
+Disponibilidad: ${perfil.disponibilidad}
+Meta en NIDO: ${perfil.meta_nido}
+
+INSTRUCCIONES DE PERSONALIZACIÓN:
+- Siempre llamá al asesor por su nombre: ${perfil.nombre_asesor}
+- Adaptá tu tono al estilo: ${perfil.estilo_comunicacion}
+- Cuando sugieras zonas, priorizá: ${perfil.zonas}
+- Cuando generes descripciones o emails, usá el estilo ${perfil.estilo_comunicacion}
+- Tené en cuenta que su meta es ${perfil.objetivo_mensual} y su diferenciador es: ${perfil.diferenciador}
+- Sus clientes ideales buscan propiedades en rango ${perfil.rango_precio}
+---`
+}
+
+const SISTEMA_BASE = \`Sos Valeria, la mentora IA de NIDO — la plataforma inmobiliaria premium de Costa Rica. Tu rol es ser el copiloto profesional del asesor inmobiliario que te consulta.
 
 Tu personalidad: directa, cálida, experta. Hablás en español latinoamericano (vos/usted según contexto). Sos concisa pero profunda — no das respuestas genéricas.
 
@@ -51,6 +78,16 @@ export default function Chat() {
   const [mostrarSug, setMostrarSug] = useState(true)
   const chatRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    // Load asesor's Valeria profile
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        const { data } = await supabase.from('perfiles').select('valeria_perfil, nombre').eq('id', user.id).maybeSingle()
+        if (data?.valeria_perfil) setValeriaPerfil(data.valeria_perfil)
+      }
+    })
+  }, [])
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {

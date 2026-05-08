@@ -30,7 +30,12 @@ function RegistroInner() {
       options: { data: { nombre, plan: plan || 'gratis' } }
     })
     if (error) { setError('Error al registrarse. Intenta de nuevo.') }
-    else { setExito(true) }
+    else {
+      // Auto login after registration
+      await supabase.auth.signInWithPassword({ email, password })
+      if (typeof window !== 'undefined') localStorage.setItem('nido_user_tipo', 'asesor')
+      window.location.href = '/dashboard/valeria-onboarding'
+    }
     setLoading(false)
   }
 
