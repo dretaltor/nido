@@ -32,7 +32,7 @@ export default function NuevaPropiedad() {
 
   const patch = (p: Partial<typeof data>) => setData(d => ({ ...d, ...p }))
   const setPhotos = (fn: any) => setData(d => ({ ...d, photos: typeof fn === 'function' ? fn(d.photos) : fn }))
-  const next = () => { setCompleted(prev => new Set([...prev, current])); setCurrent(c => Math.min(7, c+1)); window.scrollTo({top:0,behavior:'smooth'}) }
+  const next = () => { setCompleted(prev => new Set([...prev, current])); setCurrent(c => Math.min(8, c+1)); window.scrollTo({top:0,behavior:'smooth'}) }
   const back = () => { setCurrent(c => Math.max(0, c-1)); window.scrollTo({top:0,behavior:'smooth'}) }
   const jumpTo = (i: number) => { setCurrent(i); window.scrollTo({top:0,behavior:'smooth'}) }
   const toggleAmen = (a: string) => patch({ amenities: data.amenities.includes(a) ? data.amenities.filter(x => x!==a) : [...data.amenities, a] })
