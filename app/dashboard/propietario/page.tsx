@@ -61,6 +61,8 @@ export default function DashboardPropietario() {
   const initRef = useRef(false)
   const [tab, setTab] = useState('resumen')
   const [ofertasReales, setOfertasReales] = useState<any[]>([])
+  const [perfilPropietario, setPerfilPropietario] = useState<any>(null)
+  const [uploadingDoc, setUploadingDoc] = useState<string|null>(null)
   const [loading, setLoading] = useState(true)
   const [nombre, setNombre] = useState('')
 
@@ -76,6 +78,9 @@ export default function DashboardPropietario() {
 
       setUser(user)
       setNombre(user.user_metadata?.nombre || user.email?.split('@')[0] || 'propietario')
+      // Cargar perfil de propietario
+      supabase.from('propietarios').select('*').eq('correo', user.email!).maybeSingle()
+        .then(({ data }) => setPerfilPropietario(data))
       supabase.from('ofertas')
         .select('*')
         .order('created_at', { ascending: false })
@@ -103,6 +108,7 @@ export default function DashboardPropietario() {
     { id:'ofertas', label:'Ofertas' },
     { id:'mercado', label:'Valor de Mercado' },
     { id:'facturacion', label:'Facturación' },
+    { id:'verificacion', label:'Verificación' },
   ]
 
   return (
@@ -422,6 +428,98 @@ export default function DashboardPropietario() {
               <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.65 }}>
                 Tu propiedad está tasada un 4.9% por encima del promedio de zona, lo que es razonable dado sus características. En el contexto actual de alta demanda en Santa Ana, te recomiendo mantener el precio. El mercado está absorbiendo propiedades similares en 38 días promedio.
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* VERIFICACIÓN */}
+        {tab === 'verificacion' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>Verificación de identidad</h2>
+            <p style={{ fontSize:13, color:'var(--ink-3)', marginBottom:24, lineHeight:1.6 }}>Para publicar tu propiedad necesitamos verificar tu identidad. Un asesor NIDO revisará tus documentos y te contactará para coordinar una llamada o visita.</p>
+
+            {/* Estado actual */}
+            <div style={{ marginBottom:20, padding:'14px 18px', borderRadius:10, background:
+              perfilPropietario?.verificacion_estado === 'aprobado' ? 'var(--accent-tint)' :
+              perfilPropietario?.verificacion_estado === 'rechazado' ? 'oklch(0.97 0.03 20)' :
+              perfilPropietario?.verificacion_estado === 'en_revision' ? 'oklch(0.93 0.05 80)' :
+              'oklch(0.93 0.005 80)',
+              border: '1px solid ' + (
+                perfilPropietario?.verificacion_estado === 'aprobado' ? 'oklch(0.85 0.04 150)' :
+                perfilPropietario?.verificacion_estado === 'rechazado' ? 'oklch(0.85 0.06 20)' :
+                perfilPropietario?.verificacion_estado === 'en_revision' ? 'oklch(0.88 0.05 80)' :
+                'var(--rule)')
+            }}>
+              <div style={{ fontSize:14, fontWeight:500, color:
+                perfilPropietario?.verificacion_estado === 'aprobado' ? 'var(--accent)' :
+                perfilPropietario?.verificacion_estado === 'rechazado' ? 'oklch(0.45 0.08 20)' :
+                perfilPropietario?.verificacion_estado === 'en_revision' ? 'oklch(0.45 0.08 80)' :
+                'var(--ink-3)'
+              }}>
+                {perfilPropietario?.verificacion_estado === 'aprobado' ? '✓ Identidad verificada — podés publicar propiedades' :
+                 perfilPropietario?.verificacion_estado === 'rechazado' ? '✗ Verificación rechazada — revisá las notas abajo' :
+                 perfilPropietario?.verificacion_estado === 'en_revision' ? '⏳ Documentos en revisión — te contactaremos pronto' :
+                 'Pendiente — subí tus documentos para comenzar'}
+              </div>
+              {perfilPropietario?.verificacion_notas && (
+                <p style={{ fontSize:13, color:'var(--ink-2)', marginTop:8, lineHeight:1.6 }}>
+                  Nota del revisor: {perfilPropietario.verificacion_notas}
+                </p>
+              )}
+            </div>
+
+            {/* Documentos */}
+            <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:24 }}>
+              {[
+                { key:'cedula_frente', label:'Cédula — Frente', desc:'Foto clara del frente de tu cédula de identidad', icon:'🪪' },
+                { key:'cedula_reverso', label:'Cédula — Reverso', desc:'Foto clara del reverso de tu cédula de identidad', icon:'🪪' },
+                { key:'selfie', label:'Selfie con cédula', desc:'Foto tuya sosteniendo tu cédula visible', icon:'🤳' },
+              ].map(doc => {
+                const url = perfilPropietario?.[doc.key + '_url']
+                return (
+                  <div key={doc.key} style={{ border:'1px solid var(--rule)', borderRadius:10, padding:'16px 20px', display:'flex', alignItems:'center', gap:16, background: url ? 'var(--accent-tint)' : 'white' }}>
+                    <div style={{ width:44, height:44, borderRadius:8, background: url ? 'var(--accent)' : 'var(--bg)', display:'grid', placeItems:'center', fontSize:20, flexShrink:0 }}>
+                      {url ? '✓' : doc.icon}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{doc.label}</div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>{url ? 'Documento subido ✓' : doc.desc}</div>
+                    </div>
+                    <div>
+                      <label style={{ padding:'8px 16px', borderRadius:999, background: url ? 'var(--bg)' : 'var(--ink)', color: url ? 'var(--ink-2)' : 'white', fontSize:13, fontWeight:500, cursor:'pointer', border: url ? '1px solid var(--rule)' : 'none' }}>
+                        {uploadingDoc === doc.key ? 'Subiendo...' : url ? 'Cambiar' : 'Subir'}
+                        <input type="file" accept="image/*" style={{ display:'none' }} onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file || !user) return
+                          setUploadingDoc(doc.key)
+                          const ext = file.name.split('.').pop()
+                          const path = 'kyc-propietarios/' + user.id + '_' + doc.key + '.' + ext
+                          await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
+                          const { data: { publicUrl } } = supabase.storage.from('propiedades').getPublicUrl(path)
+                          const update: any = { [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }
+                          await supabase.from('propietarios').update(update).eq('correo', user.email!)
+                          setPerfilPropietario((p:any) => ({ ...p, [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }))
+                          setUploadingDoc(null)
+                        }}/>
+                      </label>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Agendar llamada */}
+            <div style={{ background:'var(--bg)', border:'1px solid var(--rule)', borderRadius:12, padding:'20px 24px' }}>
+              <div style={{ fontSize:14, fontWeight:500, marginBottom:8 }}>¿Necesitás ayuda o querés agendar una llamada?</div>
+              <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.6, marginBottom:16 }}>Un asesor NIDO te contactará en las próximas 24 horas hábiles. También podés escribirnos directamente.</p>
+              <div style={{ display:'flex', gap:10 }}>
+                <a href="https://wa.me/50600000000?text=Hola, me registré como propietario en NIDO y quisiera coordinar la verificación de mi identidad." target="_blank" style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', borderRadius:999, background:'#22c55e', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>
+                  💬 WhatsApp NIDO
+                </a>
+                <a href="mailto:hola@nido-cr.com?subject=Verificación de propietario NIDO" style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', fontSize:13, textDecoration:'none' }}>
+                  ✉ Enviar email
+                </a>
+              </div>
             </div>
           </div>
         )}

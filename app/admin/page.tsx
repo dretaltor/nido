@@ -41,6 +41,7 @@ const MODULES = [
   { id:'suscripciones', icon:'💳', label:'Suscripciones' },
   { id:'kyc', icon:'🪪', label:'Verificaciones KYC' },
   { id:'mensajes', icon:'✉', label:'Mensajes internos' },
+  { id:'kyc_propietarios', icon:'🏠', label:'KYC Propietarios' },
 ]
 
 export default function AdminPanel() {
@@ -432,6 +433,49 @@ export default function AdminPanel() {
           </div>
         )}
 
+        {/* ── KYC PROPIETARIOS ── */}
+        {modulo === 'kyc_propietarios' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Verificación</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>KYC <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Propietarios.</em></h1>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+              {['todos','pendiente_docs','en_revision','aprobado','rechazado'].map(f => (
+                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
+                  {f==='todos'?'Todos':f==='pendiente_docs'?'Sin docs':f==='en_revision'?'En revisión':f.charAt(0).toUpperCase()+f.slice(1)}
+                  <span style={{ marginLeft:6, opacity:0.6 }}>
+                    ({f==='todos'?propietarios.length:propietarios.filter((p:any)=>p.verificacion_estado===f||(f==='pendiente_docs'&&!p.verificacion_estado)).length})
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="card">
+              {propietarios
+                .filter((p:any) => filtro==='todos'||p.verificacion_estado===filtro||(filtro==='pendiente_docs'&&!p.verificacion_estado))
+                .map((p:any) => {
+                  const docs = [p.cedula_frente_url, p.cedula_reverso_url, p.selfie_url].filter(Boolean).length
+                  return (
+                    <div key={p.id} className="row" onClick={() => setSel({...p, _tipo:'kyc_propietario'})}>
+                      <div style={{ width:40, height:40, borderRadius:'50%', background:'oklch(0.93 0.03 240)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'oklch(0.35 0.08 240)', flexShrink:0 }}>{(p.nombre||'?')[0]}</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{p.nombre}</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{p.correo} · {docs}/3 docs · {p.relacion||'Propietario'}</div>
+                      </div>
+                      <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                        <span className="badge" style={{ background:p.verificacion_estado==='aprobado'?'var(--accent-tint)':p.verificacion_estado==='en_revision'?'oklch(0.93 0.05 80)':'oklch(0.93 0.005 80)', color:p.verificacion_estado==='aprobado'?'var(--accent)':p.verificacion_estado==='en_revision'?'oklch(0.45 0.08 80)':'var(--ink-3)' }}>
+                          {p.verificacion_estado==='aprobado'?'✓ Aprobado':p.verificacion_estado==='en_revision'?'En revisión':p.verificacion_estado||'Sin docs'}
+                        </span>
+                        <span style={{ color:'var(--ink-3)', fontSize:16 }}>›</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              {propietarios.length === 0 && <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay propietarios registrados.</div>}
+            </div>
+          </div>
+        )}
+
         {/* ── MENSAJES ── */}
         {modulo === 'mensajes' && (
           <div style={{ animation:'fadeUp 0.4s ease', maxWidth:680 }}>
@@ -794,6 +838,89 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               <option value="enterprise">Enterprise</option>
             </select>
             <button onClick={async () => { if (!nuevoPlan) return; await onCambiarPlan(sel.correo, nuevoPlan); onMsg('✓ Plan actualizado') }} disabled={!nuevoPlan} className="btn btn-dark">Aplicar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  if (sel._tipo === 'kyc_propietario') return (
+    <div>
+      <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--rule)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', top:0, background:'white', zIndex:1 }}>
+        <div>
+          <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'oklch(0.35 0.08 240)', marginBottom:4 }}>KYC Propietario</div>
+          <div style={{ fontFamily:'var(--serif)', fontSize:20 }}>{sel.nombre}</div>
+        </div>
+        <button onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, display:'grid', placeItems:'center', cursor:'pointer' }}>×</button>
+      </div>
+      <div style={{ padding:'20px 24px' }}>
+        {/* Datos */}
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Información</div>
+          {[
+            { l:'Nombre', v:sel.nombre },
+            { l:'Correo', v:sel.correo },
+            { l:'Teléfono', v:sel.telefono||'—' },
+            { l:'Cédula', v:sel.cedula||'—' },
+            { l:'Relación', v:sel.relacion||'—' },
+            { l:'Estado KYC', v:sel.verificacion_estado||'pendiente_docs' },
+            { l:'Registro', v:sel.created_at?new Date(sel.created_at).toLocaleDateString('es-CR'):'—' },
+          ].map(f => (
+            <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'9px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+              <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
+              <span style={{ fontWeight:500 }}>{f.v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Documentos */}
+        <div style={{ marginBottom:20 }}>
+          <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Documentos KYC</div>
+          {[
+            { label:'Cédula Frente', url:sel.cedula_frente_url },
+            { label:'Cédula Reverso', url:sel.cedula_reverso_url },
+            { label:'Selfie con cédula', url:sel.selfie_url },
+          ].map(doc => (
+            <div key={doc.label} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 12px', border:'1px solid var(--rule)', borderRadius:8, marginBottom:6, background:doc.url?'var(--accent-tint)':'var(--bg)' }}>
+              <span style={{ fontSize:13, color:doc.url?'var(--accent)':'var(--ink-3)', display:'flex', alignItems:'center', gap:8 }}>
+                {doc.url?'✓':'○'} {doc.label}
+              </span>
+              {doc.url && <a href={doc.url} target="_blank" style={{ fontSize:12, color:'var(--accent)', fontWeight:500 }}>Ver →</a>}
+            </div>
+          ))}
+        </div>
+
+        {/* Notas y acciones */}
+        <div style={{ marginBottom:16 }}>
+          <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Notas para el propietario</label>
+          <textarea value={notasKYC} onChange={e => setNotasKYC(e.target.value)} rows={3} placeholder="Ej. La foto de la cédula no es legible..." className="field" style={{ resize:'vertical', marginBottom:10 }}/>
+          <div style={{ display:'flex', gap:8 }}>
+            <button onClick={async () => {
+              setUpdating(true)
+              await supabase.from('propietarios').update({ verificado: true, verificacion_estado: 'aprobado', verificacion_notas: notasKYC||null, verificado_at: new Date().toISOString() }).eq('correo', sel.correo)
+              onReload(); onMsg('✓ Propietario aprobado'); onClose()
+              setUpdating(false)
+            }} disabled={updating} className="btn btn-primary" style={{ flex:2, opacity:updating?0.5:1 }}>
+              ✓ Aprobar propietario
+            </button>
+            <button onClick={async () => {
+              if (!notasKYC) { onMsg('Agregá una nota de rechazo'); return }
+              setUpdating(true)
+              await supabase.from('propietarios').update({ verificado: false, verificacion_estado: 'rechazado', verificacion_notas: notasKYC }).eq('correo', sel.correo)
+              onReload(); onMsg('Propietario rechazado'); onClose()
+              setUpdating(false)
+            }} disabled={updating} className="btn btn-danger" style={{ flex:1 }}>
+              ✗ Rechazar
+            </button>
+          </div>
+        </div>
+
+        {/* Contacto directo */}
+        <div style={{ marginTop:16 }}>
+          <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Contacto directo</div>
+          <div style={{ display:'flex', gap:8 }}>
+            {sel.telefono && <a href={'https://wa.me/'+sel.telefono.replace(/[^0-9]/g,'')} target="_blank" className="btn" style={{ flex:1, background:'#22c55e', color:'white', textAlign:'center', textDecoration:'none', padding:'10px' }}>💬 WhatsApp</a>}
+            <a href={'mailto:'+sel.correo+'?subject=Verificación NIDO - '+sel.nombre} className="btn btn-outline" style={{ flex:1, textAlign:'center', textDecoration:'none', padding:'10px' }}>✉ Email</a>
           </div>
         </div>
       </div>

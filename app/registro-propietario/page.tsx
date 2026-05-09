@@ -37,6 +37,28 @@ export default function RegistroPropietario() {
       await supabase.auth.signInWithPassword({ email: form.correo, password: form.contrasena })
       // Guardar tipo en localStorage para el wizard
       if (typeof window !== 'undefined') localStorage.setItem('nido_user_tipo', 'propietario')
+
+      // Enviar email de bienvenida al propietario
+      fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: form.correo,
+          tipo: 'nuevo_propietario_bienvenida',
+          data: { nombre: form.nombre, correo: form.correo }
+        })
+      })
+
+      // Notificar al admin NIDO
+      fetch('/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: 'davidretanaalvarez@gmail.com',
+          tipo: 'nuevo_propietario',
+          data: { nombre: form.nombre, correo: form.correo, telefono: form.telefono, cedula: form.cedula, relacion: form.relacion }
+        })
+      })
       await supabase.from('propietarios').upsert({
         user_id: user?.id || null,
         nombre: form.nombre,
