@@ -1,9 +1,9 @@
 import { Metadata } from 'next'
 import { supabase } from '../../../lib/supabase'
 
-type Props = { params: { id: string } }
+type Props = { params: { id: string }; children: React.ReactNode }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const { data: p } = await supabase
     .from('propiedades')
     .select('titulo, descripcion, precio, zona, tipo, operacion, ref_id, fotos')
@@ -15,11 +15,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: 'Esta propiedad no está disponible en NIDO.',
   }
 
-  const titulo = `${p.titulo} · ${p.ref_id || ''} · NIDO`
+  const titulo = p.ref_id
+    ? `${p.titulo} · ${p.ref_id} · NIDO`
+    : `${p.titulo} · NIDO`
+
   const precio = p.precio ? `$${Number(p.precio).toLocaleString()} USD` : ''
   const desc = p.descripcion
     ? p.descripcion.slice(0, 155)
-    : `${p.tipo || 'Propiedad'} en ${p.operacion || 'venta'} en ${p.zona || 'Costa Rica'}. ${precio}. Encontrala en NIDO, la plataforma inmobiliaria premium de Costa Rica.`
+    : `${p.tipo || 'Propiedad'} en ${p.operacion || 'venta'} en ${p.zona || 'Costa Rica'}. ${precio}. Encontrala en NIDO.`
 
   const imagen = p.fotos?.[0] || 'https://www.nido-cr.com/og-default.jpg'
 
@@ -41,4 +44,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       images: [imagen],
     },
   }
+}
+
+export default function Layout({ children }: Props) {
+  return <>{children}</>
 }
