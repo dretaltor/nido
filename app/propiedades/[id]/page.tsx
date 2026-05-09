@@ -1,5 +1,5 @@
-'use client'
 // @ts-nocheck
+export { generateMetadata } from './metadata'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '@/lib/context/AuthContext'

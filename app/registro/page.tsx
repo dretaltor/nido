@@ -118,7 +118,7 @@ function RegistroInner() {
         </p>
 
         <p style={{ textAlign:'center', marginTop:16, fontSize:11, color:'var(--ink-3)', lineHeight:1.6 }}>
-          Al crear una cuenta aceptas los <a href="#" style={{ color:'var(--accent)' }}>Términos de uso</a> y la <a href="#" style={{ color:'var(--accent)' }}>Política de privacidad</a> de NIDO.
+          Al crear una cuenta aceptás los <a href="/terminos" style={{ color:'var(--accent)' }}>Términos de uso</a> y la <a href="/privacidad" style={{ color:'var(--accent)' }}>Política de privacidad</a> de NIDO.
         </p>
 
         <div style={{ marginTop:40, paddingTop:24, borderTop:'1px solid var(--rule)', display:'flex', gap:20 }}>

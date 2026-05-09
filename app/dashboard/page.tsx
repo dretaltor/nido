@@ -47,6 +47,7 @@ export default function Dashboard() {
   const [ofertaSel, setOfertaSel] = useState<any>(null)
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const [valeriaPerfil, setValeraPerfilDash] = useState<any>(null)
+  const [calificacion, setCalificacion] = useState<any>(null)
   const [updatingOferta, setUpdatingOferta] = useState(false)
   const [contraOferta, setContraOferta] = useState('')
   const [showContra, setShowContra] = useState(false)
@@ -86,6 +87,8 @@ export default function Dashboard() {
         setOfertas(ofertasData || [])
         // Check onboarding status
         supabase.from('perfiles').select('valeria_onboarding_completo,cedula_frente_url,foto_url').eq('id', user.id).maybeSingle().then(({data}) => setValeraPerfilDash(data))
+        // Load real rating
+        supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', user.email).maybeSingle().then(({data}) => { if(data) setCalificacion(data) })
         const dismissed = localStorage.getItem('nido_onboarding_dismissed')
         if (dismissed) setOnboardingDismissed(true)
 
