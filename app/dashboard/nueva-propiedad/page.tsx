@@ -87,6 +87,7 @@ export default function NuevaPropiedad() {
         gravamenes: data.gravamenes||'',
         anotaciones: data.anotaciones||'',
         libre_gravamenes: data.libre_gravamenes||false,
+        fotos: data.photos.filter((p:any) => !p.uploading && p.url && p.url.includes('supabase')).map((p:any) => p.url),
       })
       setPublished(true)
     } catch { alert('Error al publicar.') }

@@ -4,11 +4,12 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '@/lib/context/AuthContext'
 import { OfertaForm } from '@/components/ofertas/OfertaForm'
+import { ContactoForm } from '@/components/contacto/ContactoForm'
 
 interface Propiedad {
   id: string; titulo: string; descripcion: string; precio: number; tipo: string;
   operacion: string; habitaciones: number; banos: number; metros: number;
-  zona: string; direccion: string; asesor_nombre: string; asesor_email: string; asesor_whatsapp: string; ref_id: string;
+  zona: string; direccion: string; asesor_nombre: string; asesor_email: string; asesor_whatsapp: string; ref_id: string; fotos: string[];
 }
 
 function Icon({ name }: { name: string }) {
@@ -125,7 +126,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
         <div style={{position:'relative',height:480,borderRadius:'0 0 16px 16px',overflow:'hidden',marginBottom:32,background:`oklch(0.88 0.03 ${hue})`}}>
           {!imgError ? (
             <img
-              src={'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80'}
+              src={propiedad.fotos && propiedad.fotos.length > 0 ? propiedad.fotos[0] : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80'}
               alt={propiedad.titulo}
               style={{width:'100%',height:'100%',objectFit:'cover'}}
               onError={() => setImgError(true)}
@@ -238,7 +239,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
               )}
             </div>
 
-            {propiedad.asesor_nombre && (
+            {(propiedad.asesor_nombre || propiedad.asesor_email) && (
               <div style={{background:'white',border:'1px solid var(--rule)',borderRadius:16,overflow:'hidden'}}>
                 {/* Header asesor */}
                 <div style={{background:'var(--ink)',padding:'20px'}}>
@@ -293,6 +294,17 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
                 {/* Acciones */}
                 <div style={{padding:'14px 20px',display:'flex',flexDirection:'column',gap:8,borderTop:'1px solid var(--rule)'}}>
+                  {!isAsesor && (
+                    <div style={{marginBottom:12}}>
+                      <ContactoForm
+                        propiedadId={propiedad.id}
+                        propiedadTitulo={propiedad.titulo}
+                        asesorEmail={propiedad.asesor_email}
+                        asesorNombre={propiedad.asesor_nombre}
+                        asesorWhatsapp={propiedad.asesor_whatsapp}
+                      />
+                    </div>
+                  )}
                   <a href={'https://wa.me/50688880000?text=Hola, me interesa la propiedad '+propiedad.titulo} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'#22c55e',color:'white',fontSize:13,fontWeight:500,textDecoration:'none'}}>
                     <span>💬</span> Contactar por WhatsApp
                   </a>
