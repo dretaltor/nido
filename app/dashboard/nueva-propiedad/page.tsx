@@ -491,7 +491,7 @@ export default function NuevaPropiedad() {
         </nav>
         <div>
           {renderStep()}
-          {current < 7 && (
+          {current < 8 && (
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:48,paddingTop:24,borderTop:'1px solid var(--rule)'}}>
               <button onClick={back} disabled={current===0} style={{display:'flex',alignItems:'center',gap:8,background:'none',border:'none',color:current===0?'var(--ink-3)':'var(--ink)',cursor:current===0?'default':'pointer',fontSize:14}}>← Atrás</button>
               <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:'var(--ink-3)'}}>{String(current+1).padStart(2,'0')} / 08</span>
