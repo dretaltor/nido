@@ -48,6 +48,8 @@ export default function Dashboard() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const [valeriaPerfil, setValeraPerfilDash] = useState<any>(null)
   const [calificacion, setCalificacion] = useState<any>(null)
+  const [tourActivo, setTourActivo] = useState(false)
+  const [tourPaso, setTourPaso] = useState(0)
   const [updatingOferta, setUpdatingOferta] = useState(false)
   const [contraOferta, setContraOferta] = useState('')
   const [showContra, setShowContra] = useState(false)
@@ -89,6 +91,9 @@ export default function Dashboard() {
         supabase.from('perfiles').select('valeria_onboarding_completo,cedula_frente_url,foto_url').eq('id', user.id).maybeSingle().then(({data}) => setValeraPerfilDash(data))
         // Load real rating
         supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', user.email).maybeSingle().then(({data}) => { if(data) setCalificacion(data) })
+        // Tour primer ingreso
+        const tourVisto = localStorage.getItem('nido_tour_asesor')
+        if (!tourVisto) { setTourActivo(true); localStorage.setItem('nido_tour_asesor', '1') }
         const dismissed = localStorage.getItem('nido_onboarding_dismissed')
         if (dismissed) setOnboardingDismissed(true)
 
@@ -444,6 +449,52 @@ export default function Dashboard() {
         </div>
       </>
     )}
+      {/* TOUR GUIADO ASESOR */}
+      {tourActivo && (() => {
+        const PASOS_TOUR = [
+          { titulo:'¡Bienvenido a NIDO!', desc:'Este es tu dashboard de asesor. Desde aquí gestionás tus propiedades, leads, ofertas y tu perfil profesional en una sola plataforma.', icon:'✦' },
+          { titulo:'Completá tu perfil', desc:'Antes de publicar, completá tu foto, datos y verificación KYC. Un perfil completo mejora tu ranking en NIDO hasta un +40%.', icon:'👤' },
+          { titulo:'Personalizá a Valeria', desc:'Valeria es tu asistente IA personal. En "Mi Valeria" configurás su estilo de comunicación, zonas y especialidades para que trabaje exactamente como vos.', icon:'✦' },
+          { titulo:'Publicá tu primera propiedad', desc:'Usá el wizard de 9 pasos para cargar una propiedad con datos registrales. Pasa por verificación antes de aparecer en el portal.', icon:'🏠' },
+          { titulo:'Gestioná tus leads', desc:'Cada consulta llega a tu CRM. Filtrá por estado, respondé rápido — los asesores que responden en menos de 2 horas cierran 3× más.', icon:'👥' },
+          { titulo:'Enviá y recibí ofertas', desc:'Podés enviar ofertas formales a cualquier propiedad en nombre de tu comprador. Las ofertas en tus propiedades las ves en "Ofertas recibidas".', icon:'📝' },
+          { titulo:'Aprendé con la Academia', desc:'Accedé a cursos, guiones y recursos para mejorar tus ventas. Los cursos básicos son gratis — el resto incluidos en tu plan Pro.', icon:'📚' },
+        ]
+        const paso = PASOS_TOUR[tourPaso]
+        const esUltimo = tourPaso === PASOS_TOUR.length - 1
+        return (
+          <>
+            <div onClick={() => setTourActivo(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:200, backdropFilter:'blur(4px)' }}/>
+            <div style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:201, background:'white', borderRadius:20, padding:'32px 36px', maxWidth:440, width:'90%', boxShadow:'0 24px 80px rgba(0,0,0,0.2)', fontFamily:"'DM Sans',sans-serif" }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
+                <div style={{ width:52, height:52, borderRadius:12, background:'var(--accent-tint)', display:'grid', placeItems:'center', fontSize:26 }}>{paso.icon}</div>
+                <button onClick={() => setTourActivo(false)} style={{ background:'none', border:'none', fontSize:20, color:'var(--ink-3)', cursor:'pointer', padding:4 }}>×</button>
+              </div>
+              <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--accent)', marginBottom:8 }}>
+                Paso {tourPaso+1} de {PASOS_TOUR.length}
+              </div>
+              <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, fontWeight:400, marginBottom:10, lineHeight:1.2 }}>{paso.titulo}</h3>
+              <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.7, marginBottom:24 }}>{paso.desc}</p>
+              <div style={{ display:'flex', gap:6, marginBottom:20 }}>
+                {PASOS_TOUR.map((_, i) => (
+                  <div key={i} style={{ height:4, flex:1, borderRadius:999, background:i<=tourPaso?'var(--accent)':'var(--rule)', transition:'background 0.3s' }}/>
+                ))}
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                {tourPaso > 0 && (
+                  <button onClick={() => setTourPaso(p => p-1)} style={{ padding:'10px 20px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:13, cursor:'pointer', color:'var(--ink-2)' }}>← Anterior</button>
+                )}
+                <button onClick={() => esUltimo ? setTourActivo(false) : setTourPaso(p => p+1)} style={{ flex:1, padding:'11px 20px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:14, fontWeight:500, cursor:'pointer' }}>
+                  {esUltimo ? '¡Empezar!' : 'Siguiente →'}
+                </button>
+              </div>
+              <button onClick={() => setTourActivo(false)} style={{ display:'block', width:'100%', textAlign:'center', marginTop:12, fontSize:12, color:'var(--ink-3)', background:'none', border:'none', cursor:'pointer' }}>
+                Saltar tutorial
+              </button>
+            </div>
+          </>
+        )
+      })()}
     </main>
   )
 }

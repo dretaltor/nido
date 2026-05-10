@@ -63,6 +63,8 @@ export default function DashboardPropietario() {
   const [ofertasReales, setOfertasReales] = useState<any[]>([])
   const [perfilPropietario, setPerfilPropietario] = useState<any>(null)
   const [uploadingDoc, setUploadingDoc] = useState<string|null>(null)
+  const [tourActivo, setTourActivo] = useState(false)
+  const [tourPaso, setTourPaso] = useState(0)
   const [loading, setLoading] = useState(true)
   const [nombre, setNombre] = useState('')
 
@@ -80,7 +82,12 @@ export default function DashboardPropietario() {
       setNombre(user.user_metadata?.nombre || user.email?.split('@')[0] || 'propietario')
       // Cargar perfil de propietario
       supabase.from('propietarios').select('*').eq('correo', user.email!).maybeSingle()
-        .then(({ data }) => setPerfilPropietario(data))
+        .then(({ data }) => {
+          setPerfilPropietario(data)
+          // Mostrar tour si es primera visita
+          const tourVisto = localStorage.getItem('nido_tour_propietario')
+          if (!tourVisto) { setTourActivo(true); localStorage.setItem('nido_tour_propietario', '1') }
+        })
       supabase.from('ofertas')
         .select('*')
         .order('created_at', { ascending: false })
@@ -433,7 +440,53 @@ export default function DashboardPropietario() {
           </div>
         )}
 
-        {/* VERIFICACIÓN */}
+        {/* TOUR GUIADO */}
+      {tourActivo && (() => {
+        const PASOS_TOUR = [
+          { titulo:'¡Bienvenido a NIDO!', desc:'Este es tu panel de propietario. Desde aquí gestionás tu propiedad, revisás los interesados y seguís todo el proceso de venta.', icon:'🏠', target:'inicio' },
+          { titulo:'Verificá tu identidad', desc:'Antes de publicar tu propiedad necesitás verificar tu identidad. Subí tu cédula y selfie en la pestaña "Verificación" — tu asesor NIDO te contactará en 24 horas.', icon:'🪪', target:'verificacion' },
+          { titulo:'Cargá tu propiedad', desc:'Una vez verificado, podés cargar los datos de tu propiedad con el wizard guiado de 9 pasos. Incluye datos registrales, fotos y descripción.', icon:'📋', target:'propiedades' },
+          { titulo:'Seguí tus leads', desc:'En la pestaña "Leads" ves todos los interesados que consultaron tu propiedad. Los contactos van protegidos — el asesor NIDO los califica antes.', icon:'👥', target:'leads' },
+          { titulo:'Revisá las ofertas', desc:'Cuando alguien esté listo para comprar, su asesor envía una oferta formal. La ves en detalle en "Ofertas" y podés aceptar, rechazar o contraofertar.', icon:'📝', target:'ofertas' },
+          { titulo:'Tu asesor NIDO', desc:'Tenés un asesor dedicado que coordina todo el proceso. Podés contactarlo directamente por WhatsApp o email desde tu dashboard.', icon:'🤝', target:'fin' },
+        ]
+        const paso = PASOS_TOUR[tourPaso]
+        const esUltimo = tourPaso === PASOS_TOUR.length - 1
+        return (
+          <>
+            <div onClick={() => setTourActivo(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.6)', zIndex:200, backdropFilter:'blur(4px)' }}/>
+            <div style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:201, background:'white', borderRadius:20, padding:'32px 36px', maxWidth:440, width:'90%', boxShadow:'0 24px 80px rgba(0,0,0,0.2)', animation:'fadeUp 0.3s ease' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20 }}>
+                <div style={{ width:52, height:52, borderRadius:12, background:'var(--accent-tint)', display:'grid', placeItems:'center', fontSize:26 }}>{paso.icon}</div>
+                <button onClick={() => setTourActivo(false)} style={{ background:'none', border:'none', fontSize:20, color:'var(--ink-3)', cursor:'pointer', padding:4 }}>×</button>
+              </div>
+              <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--accent)', marginBottom:8 }}>
+                Paso {tourPaso+1} de {PASOS_TOUR.length}
+              </div>
+              <h3 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:10, lineHeight:1.2 }}>{paso.titulo}</h3>
+              <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.7, marginBottom:24 }}>{paso.desc}</p>
+              <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+                {PASOS_TOUR.map((_, i) => (
+                  <div key={i} style={{ height:4, flex:1, borderRadius:999, background:i<=tourPaso?'var(--accent)':'var(--rule)', transition:'background 0.3s' }}/>
+                ))}
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                {tourPaso > 0 && (
+                  <button onClick={() => setTourPaso(p => p-1)} style={{ padding:'10px 20px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:13, cursor:'pointer', color:'var(--ink-2)' }}>← Anterior</button>
+                )}
+                <button onClick={() => { if(esUltimo) { setTourActivo(false); if(paso.target!=='fin') setTab(paso.target) } else { setTourPaso(p => p+1) } }} style={{ flex:1, padding:'11px 20px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:14, fontWeight:500, cursor:'pointer' }}>
+                  {esUltimo ? '¡Empezar!' : 'Siguiente →'}
+                </button>
+              </div>
+              <button onClick={() => setTourActivo(false)} style={{ display:'block', width:'100%', textAlign:'center', marginTop:12, fontSize:12, color:'var(--ink-3)', background:'none', border:'none', cursor:'pointer' }}>
+                Saltar tutorial
+              </button>
+            </div>
+          </>
+        )
+      })()}
+
+      {/* VERIFICACIÓN */}
         {tab === 'verificacion' && (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>Verificación de identidad</h2>
