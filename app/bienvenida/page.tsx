@@ -15,7 +15,7 @@ const PANELES = [
   },
   {
     id: 'vendedor',
-    href: '/registro-propietario',
+    href: '/vendedor-onboarding',
     label: 'Quiero vender',
     sub: 'Publicá tu propiedad y llegá a miles de compradores',
     eyebrow: 'Vendedor',

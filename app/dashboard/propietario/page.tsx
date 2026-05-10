@@ -124,6 +124,7 @@ export default function DashboardPropietario() {
               <button key={t.id} className={'tab'+(tab===t.id?' active':'')} onClick={() => setTab(t.id)}>{t.label}</button>
             ))}
           </div>
+          <a href="/dashboard/propietario/perfil" style={{ fontSize:13, color:'var(--ink-3)', border:'1px solid var(--rule)', padding:'6px 14px', borderRadius:999 }}>Mi perfil</a>
           <button onClick={() => supabase.auth.signOut().then(() => router.push('/bienvenida'))} style={{ fontSize:12, color:'var(--ink-3)', background:'none', border:'1px solid var(--rule)', padding:'6px 14px', borderRadius:999, cursor:'pointer' }}>
             Cerrar sesión
           </button>
