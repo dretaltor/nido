@@ -42,6 +42,7 @@ const MODULES = [
   { id:'kyc', icon:'🪪', label:'Verificaciones KYC' },
   { id:'mensajes', icon:'✉', label:'Mensajes internos' },
   { id:'kyc_propietarios', icon:'🏠', label:'KYC Propietarios' },
+  { id:'comisiones', icon:'💰', label:'Comisiones' },
 ]
 
 export default function AdminPanel() {
@@ -51,6 +52,8 @@ export default function AdminPanel() {
   const [metricas, setMetricas] = useState<any>(null)
   const [asesores, setAsesores] = useState<any[]>([])
   const [propietarios, setPropietarios] = useState<any[]>([])
+  const [comisiones, setComisiones] = useState<any[]>([])
+  const [resumenComisiones, setResumenComisiones] = useState<any[]>([])
   const [propiedades, setPropiedades] = useState<any[]>([])
   const [suscripciones, setSuscripciones] = useState<any[]>([])
   const [sel, setSel] = useState<any>(null)
@@ -432,6 +435,108 @@ export default function AdminPanel() {
             </div>
           </div>
         )}
+
+        {/* ── COMISIONES ── */}
+        {modulo === 'comisiones' && (() => {
+          const fmt = (n: number) => '$' + (n||0).toLocaleString('es-CR', { minimumFractionDigits:0, maximumFractionDigits:0 })
+          const ESTADOS: Record<string,{bg:string,color:string,label:string}> = {
+            proyectada: { bg:'oklch(0.93 0.05 80)', color:'oklch(0.45 0.08 80)', label:'Proyectada' },
+            en_proceso: { bg:'oklch(0.93 0.03 240)', color:'oklch(0.35 0.08 240)', label:'En proceso' },
+            cobrada:    { bg:'var(--accent-tint)', color:'var(--accent)', label:'Cobrada' },
+            cancelada:  { bg:'oklch(0.93 0.005 80)', color:'var(--ink-3)', label:'Cancelada' },
+          }
+          const totalCobrado = comisiones.filter(c=>c.estado==='cobrada').reduce((a,c)=>a+(c.monto_comision||0),0)
+          const totalPipeline = comisiones.filter(c=>c.estado!=='cancelada').reduce((a,c)=>a+(c.monto_comision||0),0)
+          const totalProyectado = comisiones.filter(c=>c.estado==='proyectada'||c.estado==='en_proceso').reduce((a,c)=>a+(c.monto_comision||0),0)
+          return (
+            <div style={{ animation:'fadeUp 0.4s ease' }}>
+              <div style={{ marginBottom:24 }}>
+                <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Control financiero</div>
+                <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Comisiones <em style={{ fontStyle:'italic', color:'var(--accent)' }}>NIDO.</em></h1>
+              </div>
+
+              {/* Stats globales */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:24 }}>
+                {[
+                  { label:'Total cobrado', val:fmt(totalCobrado), color:'var(--accent)', sub:comisiones.filter(c=>c.estado==='cobrada').length+' cierres' },
+                  { label:'Pipeline activo', val:fmt(totalProyectado), color:'oklch(0.45 0.08 80)', sub:comisiones.filter(c=>c.estado==='proyectada'||c.estado==='en_proceso').length+' negocios' },
+                  { label:'Pipeline total', val:fmt(totalPipeline), color:'var(--ink)', sub:'Cobrado + activo' },
+                  { label:'Asesores activos', val:String(resumenComisiones.length), color:'oklch(0.42 0.06 230)', sub:'Con negocios registrados' },
+                ].map((s,i) => (
+                  <div key={i} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'18px' }}>
+                    <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>{s.label}</div>
+                    <div style={{ fontFamily:'var(--serif)', fontSize:26, color:s.color, marginBottom:4, lineHeight:1 }}>{s.val}</div>
+                    <div style={{ fontSize:11, color:'var(--ink-3)' }}>{s.sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Resumen por asesor */}
+              <div style={{ marginBottom:20 }}>
+                <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Ranking de asesores por pipeline</div>
+                <div className="card">
+                  <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr', gap:8, padding:'10px 20px', borderBottom:'1px solid var(--rule)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', fontWeight:500 }}>
+                    <span>Asesor</span><span>Cobrado</span><span>Pipeline</span><span>Negocios</span><span>Cerrados</span>
+                  </div>
+                  {resumenComisiones.map((r:any, i:number) => (
+                    <div key={r.asesor_email} style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr', gap:8, padding:'12px 20px', borderBottom:'1px solid var(--rule-soft)', fontSize:13, alignItems:'center' }} onClick={() => setFiltro(r.asesor_email)}>
+                      <div>
+                        <div style={{ fontWeight:500, marginBottom:2 }}>{r.asesor_nombre||r.asesor_email}</div>
+                        <div style={{ fontSize:11, color:'var(--ink-3)' }}>{r.asesor_email}</div>
+                      </div>
+                      <div style={{ fontFamily:'var(--mono)', color:'var(--accent)', fontWeight:500 }}>{fmt(r.total_cobrado)}</div>
+                      <div style={{ fontFamily:'var(--mono)', color:'oklch(0.45 0.08 80)' }}>{fmt(r.total_proyectado)}</div>
+                      <div style={{ color:'var(--ink-2)' }}>{r.total_negocios}</div>
+                      <div style={{ color:'var(--accent)' }}>{r.cerrados}</div>
+                    </div>
+                  ))}
+                  {resumenComisiones.length === 0 && <div style={{ padding:'32px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay comisiones registradas aún.</div>}
+                </div>
+              </div>
+
+              {/* Todas las comisiones */}
+              <div>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+                  <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)' }}>Todos los negocios</div>
+                  {filtro && filtro !== 'todos' && <button onClick={() => setFiltro('todos')} style={{ fontSize:12, color:'var(--accent)', background:'none', border:'none', cursor:'pointer' }}>Ver todos ×</button>}
+                </div>
+                <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>
+                  {['todos','proyectada','en_proceso','cobrada','cancelada'].map(f => (
+                    <button key={f} onClick={() => setFiltro(f)} style={{ padding:'6px 14px', borderRadius:999, border:'1px solid var(--rule)', fontSize:11, cursor:'pointer', background:filtro===f?'var(--ink)':'transparent', color:filtro===f?'white':'var(--ink-2)' }}>
+                      {f==='todos'?'Todos':ESTADOS[f]?.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="card">
+                  {comisiones
+                    .filter(c => filtro==='todos'||c.estado===filtro||c.asesor_email===filtro)
+                    .map((c:any) => {
+                      const est = ESTADOS[c.estado]||ESTADOS.proyectada
+                      return (
+                        <div key={c.id} className="row" onClick={() => setSel({...c, _tipo:'comision'})}>
+                          <div style={{ flex:1 }}>
+                            <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{c.propiedad_titulo}</div>
+                            <div style={{ fontSize:12, color:'var(--ink-3)', display:'flex', gap:10 }}>
+                              <span>{c.asesor_nombre||c.asesor_email}</span>
+                              {c.propiedad_zona && <span>· {c.propiedad_zona}</span>}
+                              {c.fecha_cierre_estimada && <span>· Est. {new Date(c.fecha_cierre_estimada).toLocaleDateString('es-CR')}</span>}
+                            </div>
+                          </div>
+                          <div style={{ textAlign:'right', flexShrink:0 }}>
+                            <div style={{ fontFamily:'var(--mono)', fontSize:16, fontWeight:500, color:c.estado==='cobrada'?'var(--accent)':'var(--ink)', marginBottom:4 }}>{fmt(c.monto_comision||0)}</div>
+                            <span style={{ padding:'3px 10px', borderRadius:999, fontSize:11, fontWeight:500, background:est.bg, color:est.color }}>{est.label}</span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  {comisiones.filter(c => filtro==='todos'||c.estado===filtro||c.asesor_email===filtro).length === 0 && (
+                    <div style={{ padding:'32px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay negocios con ese filtro.</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── KYC PROPIETARIOS ── */}
         {modulo === 'kyc_propietarios' && (
