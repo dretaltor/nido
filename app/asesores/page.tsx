@@ -44,6 +44,7 @@ export default function Asesores() {
           <nav style={{display:'flex',gap:28,fontSize:13,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--ink-2)'}}>
             <a href="/propiedades">Comprar</a>
             <a href="/alquiler">Alquilar</a>
+            <a href="/nosotros" style={{color:'var(--ink-3)',textDecoration:'none',fontSize:13}}>Nosotros</a>
             <a href="/asesores" style={{color:'var(--ink)',borderBottom:'1px solid var(--ink)',paddingBottom:2}}>Asesores</a>
             <a href="/ideas">Ideas</a>
           </nav>

@@ -146,6 +146,7 @@ export default function Precios() {
           <a href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
           <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
             <a href="/propiedades">Portal</a>
+            <a href="/nosotros">Nosotros</a>
             <a href="/asesores">Asesores</a>
             <a href="/academia">Academia</a>
             <a href="/precios" style={{ color:'var(--accent)', fontWeight:500 }}>Planes</a>

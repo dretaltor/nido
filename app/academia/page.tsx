@@ -47,6 +47,7 @@ export default function Academia() {
         <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1400, margin:'0 auto' }}>
           <a href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
           <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
+            <a href="/nosotros" style={{color:"var(--ink-3)",textDecoration:"none",fontSize:13}}>Nosotros</a>
             <a href="/dashboard">Dashboard</a>
             <a href="/dashboard/crm">CRM</a>
             <a href="/academia" style={{ color:'var(--accent)', fontWeight:500 }}>Academia</a>

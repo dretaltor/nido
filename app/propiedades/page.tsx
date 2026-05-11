@@ -276,6 +276,7 @@ export default function Propiedades() {
           <nav className="header-nav" style={{ display: 'flex', gap: 24, fontSize: 13, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>
             <a href="/propiedades" style={{ borderBottom: '1px solid var(--ink)', color: 'var(--ink)', paddingBottom: 2 }}>Comprar</a>
             <a href="/propiedades">Alquilar</a>
+            <a href="/nosotros">Nosotros</a>
             <a href="/asesores">Asesores</a>
             <a href="/academia">Academia</a>
           </nav>
