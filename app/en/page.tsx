@@ -55,7 +55,7 @@ export default function EnglishLanding() {
             Your home in<br/><em style={{ fontStyle:'italic', color:'oklch(0.75 0.06 150)' }}>paradise starts here.</em>
           </h1>
           <p style={{ fontSize:17, color:'rgba(255,255,255,0.55)', lineHeight:1.8, maxWidth:580, margin:'0 auto 40px' }}>
-            NIDO is Costa Rica's premium real estate platform. We connect international buyers with verified properties, certified advisors, and a transparent buying process — all in English.
+            NIDO is Costa Rica\'s premium real estate platform. We connect international buyers with verified properties, certified advisors, and a transparent buying process — all in English.
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
             <button onClick={() => router.push('/propiedades')} className="cta-btn" style={{ background:'oklch(0.42 0.06 150)', color:'white' }}>
@@ -123,7 +123,7 @@ export default function EnglishLanding() {
               Live legally in Costa Rica<br/><em style={{ fontStyle:'italic', color:'oklch(0.75 0.06 150)' }}>with the Rentista Visa.</em>
             </h2>
             <p style={{ fontSize:15, color:'rgba(255,255,255,0.45)', lineHeight:1.75, maxWidth:560, margin:'16px auto 0' }}>
-              Costa Rica's Rentista residency program allows foreigners to live legally in the country by demonstrating a stable passive income. It's one of the most accessible residency programs in Latin America.
+              Costa Rica\'s Rentista residency program allows foreigners to live legally in the country by demonstrating a stable passive income. It is one of the most accessible residency programs in Latin America.
             </p>
           </div>
 
@@ -207,7 +207,7 @@ export default function EnglishLanding() {
             <div style={{ fontSize:12, fontWeight:600, color:'var(--ink-3)', marginBottom:16, textTransform:'uppercase', letterSpacing:'0.08em' }}>Coastal & Beach Zones</div>
             <div className="grid-3">
               {[
-                { zona:'Tamarindo', tipo:'Beach / Investment', precio:'$3,200/m²', desc:'Guanacaste's most vibrant beach town. International airport nearby. Strong rental yields and a well-established expat community.' },
+                { zona:'Tamarindo', tipo:'Beach / Investment', precio:'$3,200/m²', desc:'Guanacaste\'s most vibrant beach town. International airport nearby. Strong rental yields and a well-established expat community.' },
                 { zona:'Santa Teresa', tipo:'Premium surf & wellness', precio:'$3,800/m²', desc:'The Tulum of Costa Rica. Boutique hotels, yoga retreats and surf culture. Rapidly appreciating, attracting high-net-worth buyers.' },
                 { zona:'Manuel Antonio', tipo:'Eco-luxury', precio:'$2,900/m²', desc:'National park views, luxury villas and strong vacation rental market. One of the most visited tourist destinations in the country.' },
               ].map((z, i) => (
@@ -243,7 +243,7 @@ export default function EnglishLanding() {
           </div>
           <div style={{ display:'flex', flexDirection:'column', gap:0, marginBottom:48 }}>
             {[
-              { num:'01', titulo:'Browse & connect', desc:'Explore verified properties on NIDO's portal. Filter by zone, price and type. Contact a certified English-speaking NIDO advisor who will guide you through the process.' },
+              { num:'01', titulo:'Browse & connect', desc:'Explore verified properties on NIDO\'s portal. Filter by zone, price and type. Contact a certified English-speaking NIDO advisor who will guide you through the process.' },
               { num:'02', titulo:'Property visits', desc:'Your advisor coordinates property visits — in person or via virtual tour. We can schedule multiple properties in a single trip to maximize your time.' },
               { num:'03', titulo:'Due diligence', desc:'NIDO verifies the property in the National Registry of Costa Rica. We check title status, liens, encumbrances and zoning restrictions before you make an offer.' },
               { num:'04', titulo:'Letter of intent & offer', desc:'Once you have found your property, your advisor helps draft a letter of intent and a formal purchase offer with all legal protections in place.' },
