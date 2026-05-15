@@ -251,7 +251,7 @@ export default function Propiedades() {
       valeria: 'Hi, I am Valeria. What type of property are you looking for?',
       send: 'Send',
     }
-  }[lang]
+  }[lang] || { title:'Propiedades en Costa Rica', subtitle:'Encontrá tu próximo hogar', search:'Buscar por zona, tipo o precio...', filters:'Filtros', all:'Todas', sale:'Venta', rent:'Alquiler', beds:'Habitaciones', price:'Precio', zone:'Zona', results:'propiedades encontradas', contact:'Contactar asesor', offer:'Enviar oferta', details:'Ver detalles', noResults:'No encontramos propiedades con esos filtros.', map:'Ver en mapa', list:'Ver lista', valeria:'Hola, soy Valeria.', send:'Enviar' }
   const [query, setQuery] = useState({ location: '', op: 'todo', budget: 'any' })
   const [sort, setSort] = useState('featured')
   const [favs, setFavs] = useState(new Set<string>())
@@ -353,7 +353,7 @@ export default function Propiedades() {
           <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(40px, 5vw, 80px)', fontWeight: 400, lineHeight: 0.98, letterSpacing: '-0.015em' }}>
             El próximo lugar<br/>al que llamarás <em style={{ color: 'var(--accent)' }}>casa.</em>
           </h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.6, maxWidth: 400, marginTop: 20 }}>{t.subtitle}</p>
+          <p style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.6, maxWidth: 400, marginTop: 20 }}>{t?.subtitle}</p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 8 }}>
           {[{ num: propiedades.length || '·', label: 'Propiedades activas' }, { num: '38', label: 'Cantones cubiertos' }, { num: '24/7', label: 'Valeria IA' }].map((s, i) => (
