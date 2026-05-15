@@ -148,7 +148,7 @@ export default function EnglishLanding() {
             <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
               {[
                 { titulo:'Residency duration', desc:'Initial 2-year residency, renewable indefinitely. After 3 years you can apply for permanent residency.' },
-                { titulo:'Work authorization', desc:"Rentista visa doesn't authorize employment in Costa Rica, but you can work remotely for foreign companies freely." },
+                { titulo:'Work authorization', desc:"Rentista visa does not authorize employment in Costa Rica, but you can work remotely for foreign companies freely." },
                 { titulo:'Path to citizenship', desc:'After 7 years of legal residency you can apply for Costa Rican citizenship, one of the most valued passports in LATAM.' },
                 { titulo:'Tax benefits', desc:'Foreign-sourced income is generally not taxed in Costa Rica. Consult a local tax attorney for your specific situation.' },
                 { titulo:'Processing time', desc:'Typically 6–18 months. NIDO can connect you with trusted immigration attorneys who specialize in residency applications.' },
@@ -246,7 +246,7 @@ export default function EnglishLanding() {
               { num:'01', titulo:'Browse & connect', desc:'Explore verified properties on NIDO's portal. Filter by zone, price and type. Contact a certified English-speaking NIDO advisor who will guide you through the process.' },
               { num:'02', titulo:'Property visits', desc:'Your advisor coordinates property visits — in person or via virtual tour. We can schedule multiple properties in a single trip to maximize your time.' },
               { num:'03', titulo:'Due diligence', desc:'NIDO verifies the property in the National Registry of Costa Rica. We check title status, liens, encumbrances and zoning restrictions before you make an offer.' },
-              { num:'04', titulo:'Letter of intent & offer', desc:'Once you've found your property, your advisor helps draft a letter of intent and a formal purchase offer with all legal protections in place.' },
+              { num:'04', titulo:'Letter of intent & offer', desc:'Once you have found your property, your advisor helps draft a letter of intent and a formal purchase offer with all legal protections in place.' },
               { num:'05', titulo:'Promise of sale contract', desc:'Both parties sign a promissory sale contract (promesa de compraventa) with your deposit — typically 10% of the agreed price. Legally binding in Costa Rica.' },
               { num:'06', titulo:'Closing at the notary', desc:'The final deed (escritura) is signed before a Costa Rican notary public. Transfer tax (1.5%) and legal fees apply. NIDO accompanies you through the entire closing.' },
             ].map((paso, i) => (
