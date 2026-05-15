@@ -55,7 +55,7 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
         </div>
         <div style={{ position: 'absolute', top: 12, left: 12 }}>
           <span style={{ background: p.operacion === 'alquiler' ? 'var(--ink)' : 'var(--accent)', color: 'white', padding: '4px 10px', borderRadius: 999, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            {p.operacion === 'alquiler' ? 'Alquiler' : 'Venta'}
+            {p.operacion === 'alquiler' ? t.rent : t.sale}
           </span>
         </div>
         <button onClick={e => { e.stopPropagation(); onFav() }} style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%', background: 'white', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', color: fav ? '#e11d48' : 'var(--ink-3)' }}>
@@ -123,7 +123,7 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
             <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55, margin: 0 }}>Esta propiedad cumple con los criterios más solicitados en {p.zona}.</p>
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
-            <a href="/contacto" style={{ display: 'block', padding: '11px 16px', borderRadius: 6, fontSize: 13, border: '1px solid var(--ink)', background: 'var(--ink)', color: 'var(--bg)', textAlign: 'center', textDecoration: 'none' }}>Contactar asesor</a>
+            <a href="/contacto" style={{ display: 'block', padding: '11px 16px', borderRadius: 6, fontSize: 13, border: '1px solid var(--ink)', background: 'var(--ink)', color: 'var(--bg)', textAlign: 'center', textDecoration: 'none' }}>{t.contact}</a>
             <a href="/chat" style={{ display: 'block', padding: '11px 16px', borderRadius: 6, fontSize: 13, border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', textAlign: 'center', textDecoration: 'none' }}>Preguntar a Valeria IA</a>
           </div>
         </div>
@@ -206,6 +206,52 @@ export default function Propiedades() {
   }, [])
   const [propiedades, setPropiedades] = useState<Propiedad[]>([])
   const [loading, setLoading] = useState(true)
+  const [lang, setLang] = useState('es')
+
+  const t = {
+    es: {
+      title: 'Propiedades en Costa Rica',
+      subtitle: 'Encontrá tu próximo hogar',
+      search: 'Buscar por zona, tipo o precio...',
+      filters: 'Filtros',
+      all: 'Todas',
+      sale: 'Venta',
+      rent: 'Alquiler',
+      beds: 'Habitaciones',
+      price: 'Precio',
+      zone: 'Zona',
+      results: 'propiedades encontradas',
+      contact: 'Contactar asesor',
+      offer: 'Enviar oferta',
+      details: 'Ver detalles',
+      noResults: t.noResults,
+      map: 'Ver en mapa',
+      list: 'Ver lista',
+      valeria: 'Hola, soy Valeria. ¿Qué tipo de propiedad buscás?',
+      send: 'Enviar',
+    },
+    en: {
+      title: 'Properties in Costa Rica',
+      subtitle: 'Find your next home',
+      search: 'Search by zone, type or price...',
+      filters: 'Filters',
+      all: 'All',
+      sale: 'For Sale',
+      rent: 'For Rent',
+      beds: 'Bedrooms',
+      price: 'Price',
+      zone: 'Zone',
+      results: 'properties found',
+      contact: 'Contact advisor',
+      offer: 'Send offer',
+      details: 'View details',
+      noResults: 'No properties found with those filters.',
+      map: 'Map view',
+      list: 'List view',
+      valeria: 'Hi, I am Valeria. What type of property are you looking for?',
+      send: 'Send',
+    }
+  }[lang]
   const [query, setQuery] = useState({ location: '', op: 'todo', budget: 'any' })
   const [sort, setSort] = useState('featured')
   const [favs, setFavs] = useState(new Set<string>())
@@ -214,6 +260,8 @@ export default function Propiedades() {
 
   const cargar = () => {
     setLoading(true)
+    const savedLang = localStorage.getItem('nido_lang') || 'es'
+    setLang(savedLang)
     supabase.from('propiedades').select('*').eq('disponible', true).eq('verificacion_estado', 'aprobada').then(({ data }) => {
       setPropiedades(data || [])
       setLoading(false)
@@ -277,6 +325,9 @@ export default function Propiedades() {
             <a href="/propiedades" style={{ borderBottom: '1px solid var(--ink)', color: 'var(--ink)', paddingBottom: 2 }}>Comprar</a>
             <a href="/propiedades">Alquilar</a>
             <a href="/nosotros">Nosotros</a>
+            <button onClick={() => { const nl = lang==='es'?'en':'es'; setLang(nl); localStorage.setItem('nido_lang',nl) }} style={{ fontSize:13, color:'var(--ink-3)', background:'none', border:'1px solid var(--rule)', padding:'4px 12px', borderRadius:999, cursor:'pointer' }}>
+              {lang==='es'?'EN':'ES'}
+            </button>
             <a href="/asesores">Asesores</a>
             <a href="/academia">Academia</a>
           </nav>
@@ -302,7 +353,7 @@ export default function Propiedades() {
           <h1 style={{ fontFamily: 'var(--serif)', fontSize: 'clamp(40px, 5vw, 80px)', fontWeight: 400, lineHeight: 0.98, letterSpacing: '-0.015em' }}>
             El próximo lugar<br/>al que llamarás <em style={{ color: 'var(--accent)' }}>casa.</em>
           </h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.6, maxWidth: 400, marginTop: 20 }}>Propiedades en todo Costa Rica con asesoría de Valeria, tu copiloto inteligente.</p>
+          <p style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.6, maxWidth: 400, marginTop: 20 }}>{t.subtitle}</p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 8 }}>
           {[{ num: propiedades.length || '·', label: 'Propiedades activas' }, { num: '38', label: 'Cantones cubiertos' }, { num: '24/7', label: 'Valeria IA' }].map((s, i) => (
