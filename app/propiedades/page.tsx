@@ -55,7 +55,7 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
         </div>
         <div style={{ position: 'absolute', top: 12, left: 12 }}>
           <span style={{ background: p.operacion === 'alquiler' ? 'var(--ink)' : 'var(--accent)', color: 'white', padding: '4px 10px', borderRadius: 999, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            {p.operacion === 'alquiler' ? t.rent : t.sale}
+            {p.operacion === 'alquiler' ? (typeof window !== 'undefined' && localStorage.getItem('nido_lang') === 'en' ? 'For Rent' : 'Alquiler') : (typeof window !== 'undefined' && localStorage.getItem('nido_lang') === 'en' ? 'For Sale' : 'Venta')}
           </span>
         </div>
         <button onClick={e => { e.stopPropagation(); onFav() }} style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%', background: 'white', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', color: fav ? '#e11d48' : 'var(--ink-3)' }}>
