@@ -41,7 +41,7 @@ export default function Comprador() {
 
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
           {/* Español */}
-          <div className="lang-card" onClick={() => localStorage.setItem('nido_lang','es'); router.push('/comprador-es')}>
+          <div className="lang-card" onClick={() => { localStorage.setItem('nido_lang','es'); router.push('/comprador-es'); }}>
             <div style={{ fontSize:48 }}>🇨🇷</div>
             <div>
               <div style={{ fontFamily:"var(--serif)", fontSize:28, fontWeight:400, marginBottom:6 }}>Español</div>

@@ -36,7 +36,7 @@ export default function EnglishLanding() {
           <a href="/propiedades" style={{ fontSize:13, color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>ES</a>
           <span style={{ color:'rgba(255,255,255,0.2)' }}>|</span>
           <span style={{ fontSize:13, color:'white', fontWeight:500 }}>EN</span>
-          <button onClick={() => localStorage.setItem('nido_lang','en'); router.push('/propiedades')} style={{ marginLeft:8, padding:'9px 20px', borderRadius:999, background:'oklch(0.42 0.06 150)', color:'white', fontSize:13, fontWeight:500, border:'none', cursor:'pointer' }}>
+          <button onClick={() => { localStorage.setItem('nido_lang','en'); router.push('/propiedades'); }} style={{ marginLeft:8, padding:'9px 20px', borderRadius:999, background:'oklch(0.42 0.06 150)', color:'white', fontSize:13, fontWeight:500, border:'none', cursor:'pointer' }}>
             Browse Properties
           </button>
         </div>
@@ -58,7 +58,7 @@ export default function EnglishLanding() {
             NIDO is Costa Rica\'s premium real estate platform. We connect international buyers with verified properties, certified advisors, and a transparent buying process — all in English.
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-            <button onClick={() => localStorage.setItem('nido_lang','en'); router.push('/propiedades')} className="cta-btn" style={{ background:'oklch(0.42 0.06 150)', color:'white' }}>
+            <button onClick={() => { localStorage.setItem('nido_lang','en'); router.push('/propiedades'); }} className="cta-btn" style={{ background:'oklch(0.42 0.06 150)', color:'white' }}>
               Browse Properties →
             </button>
             <a href="#why-cr" className="cta-btn" style={{ background:'rgba(255,255,255,0.06)', color:'rgba(255,255,255,0.7)', border:'1px solid rgba(255,255,255,0.1)' }}>
@@ -321,7 +321,7 @@ export default function EnglishLanding() {
             Browse verified properties or connect with a certified English-speaking NIDO advisor. No commitment required.
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-            <button onClick={() => localStorage.setItem('nido_lang','en'); router.push('/propiedades')} className="cta-btn" style={{ background:'oklch(0.42 0.06 150)', color:'white', fontSize:16 }}>
+            <button onClick={() => { localStorage.setItem('nido_lang','en'); router.push('/propiedades'); }} className="cta-btn" style={{ background:'oklch(0.42 0.06 150)', color:'white', fontSize:16 }}>
               Browse Properties →
             </button>
             <a href="mailto:hola@nido-cr.com?subject=I want to buy property in Costa Rica" className="cta-btn" style={{ background:'rgba(255,255,255,0.06)', color:'rgba(255,255,255,0.7)', border:'1px solid rgba(255,255,255,0.1)' }}>
