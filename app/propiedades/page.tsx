@@ -208,6 +208,11 @@ export default function Propiedades() {
   const [loading, setLoading] = useState(true)
   const [lang, setLang] = useState('es')
 
+  useEffect(() => {
+    const savedLang = localStorage.getItem('nido_lang') || 'es'
+    setLang(savedLang)
+  }, [])
+
   const t = {
     es: {
       title: 'Propiedades en Costa Rica',
@@ -260,8 +265,6 @@ export default function Propiedades() {
 
   const cargar = () => {
     setLoading(true)
-    const savedLang = localStorage.getItem('nido_lang') || 'es'
-    setLang(savedLang)
     supabase.from('propiedades').select('*').eq('disponible', true).eq('verificacion_estado', 'aprobada').then(({ data }) => {
       setPropiedades(data || [])
       setLoading(false)
