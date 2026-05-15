@@ -123,7 +123,7 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
             <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55, margin: 0 }}>Esta propiedad cumple con los criterios más solicitados en {p.zona}.</p>
           </div>
           <div style={{ display: 'grid', gap: 8 }}>
-            <a href="/contacto" style={{ display: 'block', padding: '11px 16px', borderRadius: 6, fontSize: 13, border: '1px solid var(--ink)', background: 'var(--ink)', color: 'var(--bg)', textAlign: 'center', textDecoration: 'none' }}>{t.contact}</a>
+            <a href="/contacto" style={{ display: 'block', padding: '11px 16px', borderRadius: 6, fontSize: 13, border: '1px solid var(--ink)', background: 'var(--ink)', color: 'var(--bg)', textAlign: 'center', textDecoration: 'none' }}>{typeof window !== 'undefined' && localStorage.getItem('nido_lang') === 'en' ? 'Contact advisor' : 'Contactar asesor'}</a>
             <a href="/chat" style={{ display: 'block', padding: '11px 16px', borderRadius: 6, fontSize: 13, border: '1px solid var(--ink)', background: 'transparent', color: 'var(--ink)', textAlign: 'center', textDecoration: 'none' }}>Preguntar a Valeria IA</a>
           </div>
         </div>
@@ -224,7 +224,7 @@ export default function Propiedades() {
       contact: 'Contactar asesor',
       offer: 'Enviar oferta',
       details: 'Ver detalles',
-      noResults: t.noResults,
+      noResults: typeof window !== 'undefined' && localStorage.getItem('nido_lang') === 'en' ? 'No properties found with those filters.' : 'No encontramos propiedades con esos filtros.',
       map: 'Ver en mapa',
       list: 'Ver lista',
       valeria: 'Hola, soy Valeria. ¿Qué tipo de propiedad buscás?',
