@@ -206,50 +206,6 @@ export default function Propiedades() {
   }, [])
   const [propiedades, setPropiedades] = useState<Propiedad[]>([])
   const [loading, setLoading] = useState(true)
-  const UNUSED_t = {
-    es: {
-      title: 'Propiedades en Costa Rica',
-      subtitle: 'Encontrá tu próximo hogar',
-      search: 'Buscar por zona, tipo o precio...',
-      filters: 'Filtros',
-      all: 'Todas',
-      sale: 'Venta',
-      rent: 'Alquiler',
-      beds: 'Habitaciones',
-      price: 'Precio',
-      zone: 'Zona',
-      results: 'propiedades encontradas',
-      contact: 'Contactar asesor',
-      offer: 'Enviar oferta',
-      details: 'Ver detalles',
-      noResults: 'No encontramos propiedades con esos filtros.',
-      map: 'Ver en mapa',
-      list: 'Ver lista',
-      valeria: 'Hola, soy Valeria. ¿Qué tipo de propiedad buscás?',
-      send: 'Enviar',
-    },
-    en: {
-      title: 'Properties in Costa Rica',
-      subtitle: 'Find your next home',
-      search: 'Search by zone, type or price...',
-      filters: 'Filters',
-      all: 'All',
-      sale: 'For Sale',
-      rent: 'For Rent',
-      beds: 'Bedrooms',
-      price: 'Price',
-      zone: 'Zone',
-      results: 'properties found',
-      contact: 'Contact advisor',
-      offer: 'Send offer',
-      details: 'View details',
-      noResults: 'No properties found with those filters.',
-      map: 'Map view',
-      list: 'List view',
-      valeria: 'Hi, I am Valeria. What type of property are you looking for?',
-      send: 'Send',
-    }
-  }[lang] || { title:'Propiedades en Costa Rica', subtitle:'Encontrá tu próximo hogar', search:'Buscar por zona, tipo o precio...', filters:'Filtros', all:'Todas', sale:'Venta', rent:'Alquiler', beds:'Habitaciones', price:'Precio', zone:'Zona', results:'propiedades encontradas', contact:'Contactar asesor', offer:'Enviar oferta', details:'Ver detalles', noResults:'No encontramos propiedades con esos filtros.', map:'Ver en mapa', list:'Ver lista', valeria:'Hola, soy Valeria.', send:'Enviar' }
   const [query, setQuery] = useState({ location: '', op: 'todo', budget: 'any' })
   const [sort, setSort] = useState('featured')
   const [favs, setFavs] = useState(new Set<string>())
