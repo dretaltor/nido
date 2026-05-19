@@ -130,7 +130,7 @@ export default function NuevaPropiedad() {
   const s = { fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }
 
   // Block unverified propietarios
-  if (propietarioVerificado === false) return (
+  if (propietarioVerificado === false || propietarioVerificado === null) return (
     <main style={{ fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');:root{--bg:oklch(0.97 0.005 80);--accent:oklch(0.42 0.06 150);--accent-tint:oklch(0.95 0.02 150);--ink:oklch(0.20 0.005 80);--ink-3:oklch(0.60 0.005 80);--rule:oklch(0.88 0.006 80);}`}</style>
       <div style={{ maxWidth:480, textAlign:'center' }}>
