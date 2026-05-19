@@ -75,18 +75,22 @@ export default function AdminPanel() {
   }, [])
 
   const loadAll = async () => {
-    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }] = await Promise.all([
+    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }] = await Promise.all([
       supabase.from('admin_metricas').select('*').maybeSingle(),
       supabase.from('perfiles').select('*').order('created_at', { ascending: false }),
       supabase.from('propietarios').select('*').order('created_at', { ascending: false }),
       supabase.from('propiedades').select('*').order('created_at', { ascending: false }),
       supabase.from('suscripciones').select('*').order('created_at', { ascending: false }),
+      supabase.from('comisiones').select('*').order('created_at', { ascending: false }),
+      supabase.from('contratos').select('*').order('created_at', { ascending: false }),
     ])
     setMetricas(met)
     setAsesores(as || [])
     setPropietarios(pr || [])
     setPropiedades(pp || [])
     setSuscripciones(sus || [])
+    setComisiones(coms || [])
+    setContratos(cons || [])
     setLoading(false)
   }
 
