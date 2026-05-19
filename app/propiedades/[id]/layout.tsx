@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase'
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
   const { data: p } = await supabase
-    .from('propiedades')
+    .from('Propiedades')
     .select('titulo, descripcion, precio, zona, tipo, operacion, ref_id, fotos')
     .eq('id', id)
     .maybeSingle()

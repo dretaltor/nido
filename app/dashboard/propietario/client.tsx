@@ -49,7 +49,7 @@ export function DashboardPropietarioClient() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { window.location.href = '/login'; return }
       setNombre(user.email?.split('@')[0] || 'ahi')
-      supabase.from('propiedades')
+      supabase.from('Propiedades')
         .select('id,titulo,zona,precio,tipo,disponible,created_at,updated_at')
         .eq('asesor_email', user.email!)
         .order('updated_at', { ascending: false })

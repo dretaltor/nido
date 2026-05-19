@@ -28,7 +28,7 @@ export default function Contrato() {
       setUser(user)
       const [{ data: prop }, { data: props }, { data: contrato }] = await Promise.all([
         supabase.from('propietarios').select('*').eq('correo', user.email!).maybeSingle(),
-        supabase.from('propiedades').select('id,titulo,zona,ref_id').eq('propietario_email', user.email!),
+        supabase.from('Propiedades').select('id,titulo,zona,ref_id').eq('propietario_email', user.email!),
         supabase.from('contratos').select('*').eq('propietario_correo', user.email!).eq('estado', 'activo').maybeSingle()
       ])
       setPropietario(prop)
@@ -80,8 +80,8 @@ export default function Contrato() {
     setUploadingFirma(true)
     const ext = file.name.split('.').pop()
     const path = 'contratos/' + user.id + '_firma.' + ext
-    await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
-    const { data: { publicUrl } } = supabase.storage.from('propiedades').getPublicUrl(path)
+    await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
+    const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
     setFirmaFisicaUrl(publicUrl)
     setUploadingFirma(false)
   }
@@ -417,8 +417,8 @@ export default function Contrato() {
                     setUploadingFirma(true)
                     const ext = file.name.split('.').pop()
                     const path = 'contratos/' + user.id + '_gaudi_' + Date.now() + '.' + ext
-                    await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
-                    const { data: { publicUrl } } = supabase.storage.from('propiedades').getPublicUrl(path)
+                    await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
+                    const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
                     setFirmaDigital(publicUrl)
                     setUploadingFirma(false)
                   }}/>

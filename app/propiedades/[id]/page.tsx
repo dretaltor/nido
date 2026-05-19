@@ -43,7 +43,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
 // Auth handled by AuthContext
-    supabase.from('propiedades').select('*').eq('id', id).single().then(({ data }) => {
+    supabase.from('Propiedades').select('*').eq('id', id).single().then(({ data }) => {
       setPropiedad(data)
       setLoading(false)
       if (data) {

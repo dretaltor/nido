@@ -88,8 +88,8 @@ function VerificacionKYC({ userId }: { userId: string }) {
     setUploading(tipo)
     const ext = file.name.split('.').pop()
     const path = 'kyc/' + userId + '_' + tipo + '.' + ext
-    await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
-    const { data: { publicUrl } } = supabase.storage.from('propiedades').getPublicUrl(path)
+    await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
+    const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
     const update = { [tipo + '_url']: publicUrl }
     await supabase.from('perfiles').upsert({ id: userId, ...update, verificacion_estado: 'en_revision' })
     setDocs(p => ({ ...p, [tipo + '_url']: publicUrl }))
@@ -227,9 +227,9 @@ export default function Perfil() {
     setUploading(true)
     const ext = file.name.split('.').pop()
     const path = 'perfiles/' + user.id + '.' + ext
-    const { error } = await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
+    const { error } = await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
     if (!error) {
-      const { data: { publicUrl } } = supabase.storage.from('propiedades').getPublicUrl(path)
+      const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
       set('foto_url', publicUrl)
     }
     setUploading(false)

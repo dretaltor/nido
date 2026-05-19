@@ -80,8 +80,8 @@ export default function PerfilPropietario() {
     setUploading(true)
     const ext = file.name.split('.').pop()
     const path = 'propietarios/' + user.id + '.' + ext
-    await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
-    const { data: { publicUrl } } = supabase.storage.from('propiedades').getPublicUrl(path)
+    await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
+    const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
     await supabase.from('propietarios').update({ foto_url: publicUrl }).eq('correo', user.email!)
     setPropietario((p:any) => ({ ...p, foto_url: publicUrl }))
     setUploading(false)
@@ -91,8 +91,8 @@ export default function PerfilPropietario() {
     setUploadingDoc(tipo)
     const ext = file.name.split('.').pop()
     const path = 'kyc-propietarios/' + user.id + '_' + tipo + '.' + ext
-    await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
-    const { data: { publicUrl } } = supabase.storage.from('propiedades').getPublicUrl(path)
+    await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
+    const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
     const update: any = { [tipo + '_url']: publicUrl, verificacion_estado: 'en_revision' }
     await supabase.from('propietarios').update(update).eq('correo', user.email!)
     setPropietario((p:any) => ({ ...p, [tipo + '_url']: publicUrl, verificacion_estado: 'en_revision' }))

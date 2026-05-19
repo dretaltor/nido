@@ -79,7 +79,7 @@ export default function AdminPanel() {
       supabase.from('admin_metricas').select('*').maybeSingle(),
       supabase.from('perfiles').select('*').order('created_at', { ascending: false }),
       supabase.from('propietarios').select('*').order('created_at', { ascending: false }),
-      supabase.from('propiedades').select('*').order('created_at', { ascending: false }),
+      supabase.from('Propiedades').select('*').order('created_at', { ascending: false }),
       supabase.from('suscripciones').select('*').order('created_at', { ascending: false }),
       supabase.from('comisiones').select('*').order('created_at', { ascending: false }),
       supabase.from('contratos').select('*').order('created_at', { ascending: false }),
@@ -102,12 +102,12 @@ export default function AdminPanel() {
   }
 
   const togglePropiedad = async (id: string, disponible: boolean) => {
-    await supabase.from('propiedades').update({ disponible: !disponible }).eq('id', id)
+    await supabase.from('Propiedades').update({ disponible: !disponible }).eq('id', id)
     loadAll()
   }
 
   const verificarPropiedad = async (id: string, aprobar: boolean, notas?: string) => {
-    await supabase.from('propiedades').update({
+    await supabase.from('Propiedades').update({
       verificacion_estado: aprobar ? 'aprobada' : 'rechazada',
       verificacion_notas: notas || null,
       disponible: aprobar,

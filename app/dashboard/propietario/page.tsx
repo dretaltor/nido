@@ -551,8 +551,8 @@ export default function DashboardPropietario() {
                           setUploadingDoc(doc.key)
                           const ext = file.name.split('.').pop()
                           const path = 'kyc-propietarios/' + user.id + '_' + doc.key + '.' + ext
-                          await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
-                          const { data: { publicUrl } } = supabase.storage.from('propiedades').getPublicUrl(path)
+                          await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
+                          const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
                           const update: any = { [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }
                           await supabase.from('propietarios').update(update).eq('correo', user.email!)
                           setPerfilPropietario((p:any) => ({ ...p, [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }))
