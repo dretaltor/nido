@@ -121,7 +121,7 @@ export default function Noticias() {
           setNoticias(data)
         } else {
           // Fallback to static noticias if DB empty
-          setNoticias(NOTICIAS_STATIC)
+          setNoticias([])
         }
         setLoading(false)
       })
