@@ -119,22 +119,23 @@ export default function Precios() {
   const [anual, setAnual] = useState(false)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
 
+  const [showPago, setShowPago] = useState(false)
+  const [planSeleccionado, setPlanSeleccionado] = useState<string>('')
+
+  const SINPE = '8822-6436'
+  const IBAN = 'CR21015200009876543210'
+  const BANCO = 'Banco Nacional de Costa Rica'
+  const CUENTA_NOMBRE = 'NIDO Plataforma Inmobiliaria'
+
+  const PLANES_INFO: Record<string, {nombre:string, precio:string, precioAnual:string}> = {
+    pro: { nombre:'NIDO Pro', precio:'$49/mes', precioAnual:'$39/mes (facturado anual)' },
+    enterprise: { nombre:'NIDO Enterprise', precio:'$129/mes', precioAnual:'$99/mes (facturado anual)' },
+  }
+
   const handleSuscribirse = async (planId: string) => {
     if (planId === 'gratis') { window.location.href = '/registro'; return }
-    setLoadingPlan(planId)
-    try {
-      const res = await fetch('/api/stripe', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: planId, anual })
-      })
-      const data = await res.json()
-      if (data.url) window.location.href = data.url
-      else alert('Error al procesar. Intenta de nuevo.')
-    } catch {
-      alert('Error al conectar con Stripe.')
-    }
-    setLoadingPlan(null)
+    setPlanSeleccionado(planId)
+    setShowPago(true)
   }
 
   return (
@@ -285,6 +286,71 @@ export default function Precios() {
         </div>
 
       </div>
+
+      {/* Modal pago SINPE/Transferencia */}
+      {showPago && (
+        <>
+          <div onClick={() => setShowPago(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, backdropFilter:'blur(4px)' }}/>
+          <div style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:201, background:'white', borderRadius:20, padding:'36px', maxWidth:480, width:'90%', boxShadow:'0 24px 80px rgba(0,0,0,0.2)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:24 }}>
+              <div>
+                <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--accent)', marginBottom:4 }}>Plan seleccionado</div>
+                <div style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400 }}>{PLANES_INFO[planSeleccionado]?.nombre}</div>
+                <div style={{ fontSize:14, color:'var(--ink-3)', marginTop:4 }}>{anual ? PLANES_INFO[planSeleccionado]?.precioAnual : PLANES_INFO[planSeleccionado]?.precio}</div>
+              </div>
+              <button onClick={() => setShowPago(false)} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:18, cursor:'pointer', display:'grid', placeItems:'center' }}>×</button>
+            </div>
+
+            <div style={{ background:'var(--bg)', borderRadius:12, padding:'20px', marginBottom:20 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:16 }}>Datos de pago</div>
+              
+              {/* SINPE */}
+              <div style={{ marginBottom:16, paddingBottom:16, borderBottom:'1px solid var(--rule)' }}>
+                <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)', marginBottom:8, display:'flex', alignItems:'center', gap:8 }}>
+                  <span style={{ background:'#00A651', color:'white', fontSize:10, padding:'2px 8px', borderRadius:999, fontWeight:600 }}>SINPE Móvil</span>
+                </div>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                  <span style={{ fontFamily:'var(--mono)', fontSize:22, fontWeight:600, color:'var(--ink)', letterSpacing:'0.1em' }}>{SINPE}</span>
+                  <button onClick={() => navigator.clipboard.writeText(SINPE.replace('-',''))} style={{ fontSize:12, color:'var(--accent)', background:'var(--accent-tint)', border:'none', padding:'5px 12px', borderRadius:999, cursor:'pointer' }}>
+                    Copiar
+                  </button>
+                </div>
+                <div style={{ fontSize:12, color:'var(--ink-3)', marginTop:4 }}>A nombre de: {CUENTA_NOMBRE}</div>
+              </div>
+
+              {/* Transferencia */}
+              <div>
+                <div style={{ fontSize:13, fontWeight:600, color:'var(--ink)', marginBottom:8 }}>Transferencia bancaria</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                  {[
+                    { l:'Banco', v:BANCO },
+                    { l:'Cuenta', v:CUENTA_NOMBRE },
+                    { l:'IBAN', v:IBAN },
+                  ].map(f => (
+                    <div key={f.l} style={{ display:'flex', justifyContent:'space-between', fontSize:13 }}>
+                      <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
+                      <span style={{ fontFamily: f.l==='IBAN'?'var(--mono)':'var(--sans)', fontWeight:500, fontSize: f.l==='IBAN'?11:13 }}>{f.v}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ background:'oklch(0.93 0.05 80)', border:'1px solid oklch(0.88 0.05 80)', borderRadius:10, padding:'12px 16px', marginBottom:20, fontSize:13, color:'oklch(0.40 0.08 80)', lineHeight:1.6 }}>
+              ⚠️ Después de realizar el pago, envianos el comprobante por WhatsApp al <strong>8822-6436</strong> indicando tu correo registrado y el plan elegido. Activamos tu cuenta en menos de 24 horas hábiles.
+            </div>
+
+            <div style={{ display:'flex', gap:10 }}>
+              <a href={'https://wa.me/50688226436?text=Hola NIDO, realicé el pago del plan '+PLANES_INFO[planSeleccionado]?.nombre+'. Mi correo es: '} target="_blank" style={{ flex:1, padding:'12px', borderRadius:999, background:'#22c55e', color:'white', fontSize:14, fontWeight:500, textAlign:'center', textDecoration:'none', display:'block' }}>
+                💬 Enviar comprobante por WhatsApp
+              </a>
+              <button onClick={() => setShowPago(false)} style={{ padding:'12px 20px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:14, cursor:'pointer', color:'var(--ink-2)' }}>
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </main>
   )
 }
