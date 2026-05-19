@@ -278,7 +278,7 @@ export default function Propiedades() {
             <a href="/propiedades">Alquilar</a>
             <a href="/nosotros">Nosotros</a>
             <a href="/asesores">Asesores</a>
-            <a href="/academia">Academia</a>
+            <a href="/noticias">Noticias</a>
           </nav>
           <div className="header-btns" style={{ display: 'flex', gap: 10 }}>
 {!authLoading && isAsesor ? (
@@ -411,7 +411,7 @@ export default function Propiedades() {
         <div className="footer-inner" style={{ padding: '32px 40px', fontSize: 12, color: 'var(--ink-3)', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between' }}>
           <span>© 2026 NIDO · Costa Rica</span>
           <div style={{ display: 'flex', gap: 20 }}>
-            <a href="/precios">Precios</a><a href="/academia">Academia</a><a href="/contacto">Contacto</a>
+            <a href="/precios">Precios</a><a href="/noticias">Noticias</a><a href="/contacto">Contacto</a>
           </div>
         </div>
       </footer>
