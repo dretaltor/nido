@@ -5,6 +5,30 @@ export async function POST(req: NextRequest) {
     const { to, tipo, data } = await req.json()
 
     const templates: Record<string, { subject: string, html: string }> = {
+      contrato_aprobado: {
+        subject: '✅ Tu contrato NIDO está activo — podés publicar tu propiedad',
+        html: `<html><body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h1 style="font-family:Georgia,serif;font-size:26px;font-weight:400;color:#0D1F15;margin:0 0 12px">¡Tu contrato está activo!</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 20px">Hola ${data?.nombre}, tu contrato de ${data?.tipo === 'exclusividad' ? 'exclusividad de 90 días' : 'servicios mensual'} con NIDO fue aprobado y está activo. Ya podés publicar tu propiedad.</p>
+            <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+              <a href="https://www.nido-cr.com/dashboard/propietario" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ir a mi panel →</a>
+            </td></tr></table>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:20px 40px;border-top:1px solid #E5E3DC;text-align:center">
+            <p style="font-size:12px;color:#9CA3AF;margin:0">¿Dudas? Escribinos a <a href="mailto:hola@nido-cr.com" style="color:#1B5E3B">hola@nido-cr.com</a></p>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body></html>`
+      },
       nuevo_contrato: {
         subject: '📋 Nuevo contrato firmado · NIDO · Requiere contrafirma',
         html: `<html><body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">

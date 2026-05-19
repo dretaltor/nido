@@ -368,9 +368,9 @@ export default function Contrato() {
 
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:24 }}>
               <div className={'option-card'+(firmaTipo==='digital'?' selected':'')} onClick={() => setFirmaTipo('digital')} style={{ textAlign:'center' }}>
-                <div style={{ fontSize:32, marginBottom:8 }}>✍️</div>
-                <div style={{ fontSize:15, fontWeight:500, marginBottom:4 }}>Firma digital</div>
-                <div style={{ fontSize:13, color:'var(--ink-3)' }}>Dibujá tu firma directamente en pantalla</div>
+                <div style={{ fontSize:32, marginBottom:8 }}>🔐</div>
+                <div style={{ fontSize:15, fontWeight:500, marginBottom:4 }}>Firma digital GAUDI</div>
+                <div style={{ fontSize:13, color:'var(--ink-3)' }}>Firmá con tu certificado digital oficial de Costa Rica</div>
               </div>
               <div className={'option-card'+(firmaTipo==='fisica'?' selected':'')} onClick={() => setFirmaTipo('fisica')} style={{ textAlign:'center' }}>
                 <div style={{ fontSize:32, marginBottom:8 }}>📄</div>
@@ -381,12 +381,48 @@ export default function Contrato() {
 
             {firmaTipo === 'digital' && (
               <div style={{ marginBottom:24 }}>
-                <div style={{ fontSize:13, color:'var(--ink-3)', marginBottom:10 }}>Dibujá tu firma en el recuadro:</div>
-                <canvas ref={canvasRef} width={680} height={160} style={{ width:'100%', height:160 }}
-                  onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
-                  onTouchStart={e => startDraw(e.touches[0])} onTouchMove={e => draw(e.touches[0])} onTouchEnd={endDraw}
-                />
-                <button onClick={clearCanvas} style={{ marginTop:8, fontSize:12, color:'var(--ink-3)', background:'none', border:'none', cursor:'pointer' }}>Borrar y volver a firmar</button>
+                <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:12, padding:'20px 24px', marginBottom:16 }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--accent)', marginBottom:12 }}>Proceso de firma con GAUDI</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    {['Descargá el contrato en PDF usando el botón de abajo', 'Ingresá a gaudi.go.cr con tu firma digital o tarjeta de identidad', 'Seleccioná "Firmar documento" y cargá el PDF descargado', 'Completá el proceso y descargá el PDF firmado con sello digital', 'Subí el archivo firmado en el campo de abajo'].map((s, i) => (
+                      <div key={i} style={{ display:'flex', gap:10, fontSize:13, color:'var(--ink-2)' }}>
+                        <span style={{ width:22, height:22, borderRadius:'50%', background:'var(--accent)', color:'white', display:'grid', placeItems:'center', fontSize:11, fontWeight:600, flexShrink:0 }}>{i+1}</span>
+                        {s}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ display:'flex', gap:10, marginBottom:20 }}>
+                  <a href={'/api/contrato-pdf?correo='+user?.email+'&tipo='+tipoContrato} target="_blank" style={{ flex:1, padding:'12px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none', textAlign:'center' }}>
+                    ⬇ Descargar contrato PDF
+                  </a>
+                  <a href="https://gaudi.go.cr" target="_blank" style={{ flex:1, padding:'12px', borderRadius:999, background:'transparent', border:'1px solid var(--rule)', color:'var(--ink-2)', fontSize:14, textDecoration:'none', textAlign:'center' }}>
+                    Ir a GAUDI →
+                  </a>
+                </div>
+                <div style={{ fontSize:13, color:'var(--ink-3)', marginBottom:10 }}>Subí el PDF firmado con GAUDI:</div>
+                <label style={{ display:'block', border:'2px dashed var(--rule)', borderRadius:10, padding:'24px', textAlign:'center', cursor:'pointer', transition:'border-color 0.2s' }}>
+                  {firmaDigital ? (
+                    <div style={{ fontSize:14, color:'var(--accent)', fontWeight:500 }}>✓ Archivo cargado — PDF firmado con GAUDI</div>
+                  ) : (
+                    <div>
+                      <div style={{ fontSize:24, marginBottom:8 }}>📎</div>
+                      <div style={{ fontSize:14, color:'var(--ink-3)' }}>{uploadingFirma ? 'Subiendo...' : 'Subí el PDF firmado con GAUDI'}</div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)', marginTop:4 }}>Archivos .pdf con firma digital válida</div>
+                    </div>
+                  )}
+                  <input type="file" accept=".pdf,.p7s" style={{ display:'none' }} onChange={async (e) => {
+                    const file = e.target.files?.[0]
+                    if (!file || !user) return
+                    setUploadingFirma(true)
+                    const ext = file.name.split('.').pop()
+                    const path = 'contratos/' + user.id + '_gaudi_' + Date.now() + '.' + ext
+                    await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
+                    const { data: { publicUrl } } = supabase.storage.from('propiedades').getPublicUrl(path)
+                    setFirmaDigital(publicUrl)
+                    setUploadingFirma(false)
+                  }}/>
+                </label>
               </div>
             )}
 

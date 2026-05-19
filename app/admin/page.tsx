@@ -42,6 +42,7 @@ const MODULES = [
   { id:'kyc', icon:'🪪', label:'Verificaciones KYC' },
   { id:'mensajes', icon:'✉', label:'Mensajes internos' },
   { id:'kyc_propietarios', icon:'🏠', label:'KYC Propietarios' },
+  { id:'contratos', icon:'📋', label:'Contratos' },
   { id:'comisiones', icon:'💰', label:'Comisiones' },
 ]
 
@@ -53,6 +54,7 @@ export default function AdminPanel() {
   const [asesores, setAsesores] = useState<any[]>([])
   const [propietarios, setPropietarios] = useState<any[]>([])
   const [comisiones, setComisiones] = useState<any[]>([])
+  const [contratos, setContratos] = useState<any[]>([])
   const [resumenComisiones, setResumenComisiones] = useState<any[]>([])
   const [propiedades, setPropiedades] = useState<any[]>([])
   const [suscripciones, setSuscripciones] = useState<any[]>([])
@@ -435,6 +437,71 @@ export default function AdminPanel() {
             </div>
           </div>
         )}
+
+        {/* ── CONTRATOS ── */}
+        {modulo === 'contratos' && (() => {
+          const ESTADOS: Record<string,{bg:string,color:string,label:string}> = {
+            pendiente: { bg:'oklch(0.93 0.05 80)', color:'oklch(0.45 0.08 80)', label:'Pendiente firma NIDO' },
+            activo:    { bg:'var(--accent-tint)', color:'var(--accent)', label:'Activo' },
+            vencido:   { bg:'oklch(0.93 0.005 80)', color:'var(--ink-3)', label:'Vencido' },
+            cancelado: { bg:'oklch(0.97 0.03 20)', color:'oklch(0.45 0.08 20)', label:'Cancelado' },
+          }
+          const pendientes = contratos.filter(c => c.estado === 'pendiente')
+          return (
+            <div style={{ animation:'fadeUp 0.4s ease' }}>
+              <div style={{ marginBottom:24 }}>
+                <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Gestión legal</div>
+                <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Contratos <em style={{ fontStyle:'italic', color:'var(--accent)' }}>NIDO.</em></h1>
+              </div>
+
+              {/* Stats */}
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:24 }}>
+                {[
+                  { label:'Total contratos', val:contratos.length, color:'var(--ink)' },
+                  { label:'Pendientes firma', val:pendientes.length, color:'oklch(0.45 0.08 80)' },
+                  { label:'Activos', val:contratos.filter(c=>c.estado==='activo').length, color:'var(--accent)' },
+                  { label:'Exclusividades', val:contratos.filter(c=>c.tipo==='exclusividad').length, color:'oklch(0.42 0.06 230)' },
+                ].map((s,i) => (
+                  <div key={i} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'18px' }}>
+                    <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>{s.label}</div>
+                    <div style={{ fontFamily:'var(--serif)', fontSize:32, color:s.color, lineHeight:1 }}>{s.val}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pendientes urgentes */}
+              {pendientes.length > 0 && (
+                <div style={{ background:'oklch(0.93 0.05 80)', border:'1px solid oklch(0.88 0.05 80)', borderRadius:12, padding:'16px 20px', marginBottom:20 }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:'oklch(0.40 0.08 80)', marginBottom:4 }}>⚠️ {pendientes.length} contrato{pendientes.length>1?'s':''} pendiente{pendientes.length>1?'s':''} de contrafirma</div>
+                  <div style={{ fontSize:12, color:'oklch(0.45 0.06 80)' }}>Estos propietarios ya firmaron — necesitan tu contrafirma para activarse.</div>
+                </div>
+              )}
+
+              {/* Lista */}
+              <div className="card">
+                <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr', gap:8, padding:'10px 20px', borderBottom:'1px solid var(--rule)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', fontWeight:500 }}>
+                  <span>Propietario</span><span>Tipo</span><span>Firma</span><span>Vence</span><span>Estado</span>
+                </div>
+                {contratos.map((c:any) => {
+                  const est = ESTADOS[c.estado] || ESTADOS.pendiente
+                  return (
+                    <div key={c.id} className="row" onClick={() => setSel({...c, _tipo:'contrato'})}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{c.propietario_nombre || c.propietario_correo}</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{c.propietario_correo}</div>
+                      </div>
+                      <div style={{ fontSize:13, color:'var(--ink-2)' }}>{c.tipo === 'exclusividad' ? '90 días' : 'Mensual'}</div>
+                      <div style={{ fontSize:13, color:'var(--ink-2)' }}>{c.firma_tipo === 'digital' ? '🔐 GAUDI' : '📄 Física'}</div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>{c.fecha_vencimiento ? new Date(c.fecha_vencimiento).toLocaleDateString('es-CR') : '—'}</div>
+                      <span style={{ padding:'3px 10px', borderRadius:999, fontSize:11, fontWeight:500, background:est.bg, color:est.color }}>{est.label}</span>
+                    </div>
+                  )
+                })}
+                {contratos.length === 0 && <div style={{ padding:'32px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay contratos registrados aún.</div>}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* ── COMISIONES ── */}
         {modulo === 'comisiones' && (() => {
@@ -943,6 +1010,104 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               <option value="enterprise">Enterprise</option>
             </select>
             <button onClick={async () => { if (!nuevoPlan) return; await onCambiarPlan(sel.correo, nuevoPlan); onMsg('✓ Plan actualizado') }} disabled={!nuevoPlan} className="btn btn-dark">Aplicar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
+  if (sel._tipo === 'contrato') return (
+    <div>
+      <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--rule)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', top:0, background:'white', zIndex:1 }}>
+        <div>
+          <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--accent)', marginBottom:4 }}>Contrato</div>
+          <div style={{ fontFamily:'var(--serif)', fontSize:20 }}>{sel.propietario_nombre || sel.propietario_correo}</div>
+        </div>
+        <button onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, display:'grid', placeItems:'center', cursor:'pointer' }}>×</button>
+      </div>
+      <div style={{ padding:'20px 24px' }}>
+        {/* Datos */}
+        <div style={{ marginBottom:20 }}>
+          {[
+            { l:'Propietario', v:sel.propietario_nombre||'—' },
+            { l:'Correo', v:sel.propietario_correo },
+            { l:'Tipo', v:sel.tipo==='exclusividad'?'Exclusividad 90 días':'Mensual $39.99' },
+            { l:'Estado', v:sel.estado },
+            { l:'Firma', v:sel.firma_tipo==='digital'?'Digital GAUDI':'Física escaneada' },
+            { l:'Inicio', v:sel.fecha_inicio?new Date(sel.fecha_inicio).toLocaleDateString('es-CR'):'—' },
+            { l:'Vencimiento', v:sel.fecha_vencimiento?new Date(sel.fecha_vencimiento).toLocaleDateString('es-CR'):'—' },
+            { l:'Comisión', v:sel.comision_porcentaje+'%' },
+          ].map((f:any) => (
+            <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'9px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+              <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
+              <span style={{ fontWeight:500 }}>{f.v}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Ver firma */}
+        {sel.firma_url && (
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Documento firmado</div>
+            <a href={sel.firma_url} target="_blank" style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', background:'var(--bg)' }}>
+              <span style={{ fontSize:20 }}>{sel.firma_tipo==='digital'?'🔐':'📄'}</span>
+              <div>
+                <div style={{ fontSize:13, fontWeight:500 }}>Ver documento firmado</div>
+                <div style={{ fontSize:11, color:'var(--ink-3)' }}>{sel.firma_tipo==='digital'?'PDF firmado con GAUDI':'Firma física escaneada'}</div>
+              </div>
+              <span style={{ marginLeft:'auto', color:'var(--accent)' }}>→</span>
+            </a>
+          </div>
+        )}
+
+        {/* Ver PDF contrato */}
+        <div style={{ marginBottom:20 }}>
+          <a href={'/api/contrato-pdf?correo='+sel.propietario_correo+'&tipo='+sel.tipo} target="_blank" style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', background:'var(--bg)' }}>
+            <span style={{ fontSize:20 }}>📋</span>
+            <div style={{ fontSize:13, fontWeight:500 }}>Ver contrato original</div>
+            <span style={{ marginLeft:'auto', color:'var(--accent)' }}>→</span>
+          </a>
+        </div>
+
+        {/* Acciones */}
+        {sel.estado === 'pendiente' && (
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Acciones</div>
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              <button onClick={async () => {
+                setUpdating(true)
+                await supabase.from('contratos').update({ estado:'activo', firmado_nido:true, firmado_at: new Date().toISOString() }).eq('id', sel.id)
+                // Notify propietario
+                fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: sel.propietario_correo, tipo:'contrato_aprobado', data:{ nombre: sel.propietario_nombre, tipo: sel.tipo } }) }).catch(()=>{})
+                onReload(); onMsg('✓ Contrato activado'); onClose()
+                setUpdating(false)
+              }} disabled={updating} className="btn btn-primary" style={{ opacity:updating?0.5:1 }}>
+                ✓ Contrafirmar y activar contrato
+              </button>
+              <button onClick={async () => {
+                setUpdating(true)
+                await supabase.from('contratos').update({ estado:'cancelado' }).eq('id', sel.id)
+                onReload(); onMsg('Contrato cancelado'); onClose()
+                setUpdating(false)
+              }} disabled={updating} style={{ padding:'10px', borderRadius:999, border:'1px solid oklch(0.85 0.06 20)', color:'oklch(0.45 0.08 20)', background:'transparent', fontSize:13, cursor:'pointer' }}>
+                ✗ Rechazar contrato
+              </button>
+            </div>
+          </div>
+        )}
+
+        {sel.estado === 'activo' && (
+          <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:10, padding:'14px 18px', fontSize:13, color:'var(--accent)' }}>
+            ✓ Contrato activo y vigente. El propietario puede publicar propiedades.
+          </div>
+        )}
+
+        {/* Contacto */}
+        <div style={{ marginTop:16 }}>
+          <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Contactar propietario</div>
+          <div style={{ display:'flex', gap:8 }}>
+            <a href={'mailto:'+sel.propietario_correo+'?subject=Contrato NIDO - '+sel.propietario_nombre} className="btn btn-outline" style={{ flex:1, textAlign:'center', textDecoration:'none', padding:'10px' }}>✉ Email</a>
+            <a href="https://wa.me/50688226436" target="_blank" className="btn" style={{ flex:1, background:'#22c55e', color:'white', textAlign:'center', textDecoration:'none', padding:'10px', borderRadius:999, fontSize:13, fontWeight:500 }}>💬 WhatsApp</a>
           </div>
         </div>
       </div>
