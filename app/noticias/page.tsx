@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 
-const NOTICIAS = [
+const NOTICIAS_STATIC = [
   {
     id: 1,
     categoria: 'Mercado',
@@ -106,6 +107,25 @@ const CAT_TEXT: Record<string, string> = {
 export default function Noticias() {
   const router = useRouter()
   const [cat, setCat] = useState('Todas')
+  const [noticias, setNoticias] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    supabase.from('noticias')
+      .select('*')
+      .eq('activa', true)
+      .order('fecha_publicacion', { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setNoticias(data)
+        } else {
+          // Fallback to static noticias if DB empty
+          setNoticias(NOTICIAS_STATIC)
+        }
+        setLoading(false)
+      })
+  }, [])
 
   const CSS = `
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');
@@ -121,7 +141,7 @@ export default function Noticias() {
     @media(max-width:768px){.news-grid{grid-template-columns:1fr!important}.nav-pad{padding:14px 16px!important}}
   `
 
-  const filtradas = cat === 'Todas' ? NOTICIAS : NOTICIAS.filter(n => n.categoria === cat)
+  const filtradas = cat === 'Todas' ? noticias : noticias.filter((n:any) => n.categoria === cat)
 
   return (
     <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }}>
@@ -193,8 +213,11 @@ export default function Noticias() {
               <h3 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400, lineHeight:1.2, color:'var(--ink)' }}>{n.titulo}</h3>
               <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.65, flex:1 }}>{n.resumen}</p>
               <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:12, borderTop:'1px solid var(--rule)' }}>
-                <span style={{ fontSize:11, color:'var(--ink-3)' }}>⏱ {n.tiempo} de lectura</span>
-                <span style={{ fontSize:12, color:'var(--accent)', fontWeight:500 }}>Leer más →</span>
+                <span style={{ fontSize:11, color:'var(--ink-3)' }}>{n.fuente_nombre ? `Fuente: ${n.fuente_nombre}` : '⏱ ' + n.tiempo + ' de lectura'}</span>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:2 }}>
+                  <span style={{ fontSize:12, color:'var(--accent)', fontWeight:500 }}>Leer más →</span>
+                  {n.redactado_por && <span style={{ fontSize:10, color:'var(--ink-3)', fontStyle:'italic' }}>{n.redactado_por}</span>}
+                </div>
               </div>
             </div>
           ))}
