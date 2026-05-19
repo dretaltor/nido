@@ -12,7 +12,7 @@ export default async function LayoutPropietario({ children }: { children: React.
       <header style={{background:'white',borderBottom:'1px solid rgba(0,0,0,0.08)',padding:'14px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
         <a href="/" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'oklch(0.20 0.005 80)'}}>NIDO<span style={{color:'oklch(0.42 0.06 150)'}}>.</span></a>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
-          <a href="/dashboard" style={{fontSize:13,color:'rgba(0,0,0,0.4)'}}>Dashboard asesor</a>
+          
           <a href="/login" style={{fontSize:13,color:'rgba(0,0,0,0.4)'}}>Salir</a>
         </div>
       </header>
