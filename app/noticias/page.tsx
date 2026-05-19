@@ -203,7 +203,7 @@ export default function Noticias() {
         {/* Grid noticias */}
         <div className="news-grid" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20 }}>
           {filtradas.map((n, i) => (
-            <div key={n.id} className="news-card" style={{ animation:`fadeUp 0.4s ease ${i*0.06}s both` }}>
+            <div key={n.id} className="news-card" onClick={() => router.push('/noticias/'+n.id)} style={{ animation:`fadeUp 0.4s ease ${i*0.06}s both` }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
                 <span style={{ padding:'4px 10px', borderRadius:999, fontSize:11, fontWeight:500, background:CAT_COLORS[n.categoria]||'var(--bg)', color:CAT_TEXT[n.categoria]||'var(--ink-3)' }}>
                   {n.categoria}
