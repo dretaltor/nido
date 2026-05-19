@@ -63,6 +63,8 @@ export default function DashboardPropietario() {
   const [ofertasReales, setOfertasReales] = useState<any[]>([])
   const [perfilPropietario, setPerfilPropietario] = useState<any>(null)
   const [uploadingDoc, setUploadingDoc] = useState<string|null>(null)
+  const [contrato, setContrato] = useState<any>(null)
+  const [loadingContrato, setLoadingContrato] = useState(true)
   const [tourActivo, setTourActivo] = useState(false)
   const [tourPaso, setTourPaso] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -88,6 +90,7 @@ export default function DashboardPropietario() {
           const tourVisto = localStorage.getItem('nido_tour_propietario')
           if (!tourVisto) { setTourActivo(true); localStorage.setItem('nido_tour_propietario', '1') }
         })
+      supabase.from('contratos').select('*').eq('propietario_correo', user.email!).in('estado', ['activo','pendiente']).order('created_at', { ascending: false }).limit(1).maybeSingle().then(({ data: c }) => { setContrato(c); setLoadingContrato(false) })
       supabase.from('ofertas')
         .select('*')
         .order('created_at', { ascending: false })
@@ -114,7 +117,7 @@ export default function DashboardPropietario() {
     { id:'feedbacks', label:'Feedbacks' },
     { id:'ofertas', label:'Ofertas' },
     { id:'mercado', label:'Valor de Mercado' },
-    { id:'facturacion', label:'Facturación' },
+    { id:'contrato', label:'Contrato' },
     { id:'verificacion', label:'Verificación' },
   ]
 
@@ -579,30 +582,128 @@ export default function DashboardPropietario() {
         )}
 
         {/* FACTURACIÓN */}
-        {tab === 'facturacion' && (
+        {!loadingContrato && !contrato && tab !== 'contrato' && (
+          <div style={{ marginBottom:20, background:'var(--ink)', borderRadius:14, padding:'20px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
+            <div>
+              <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:6 }}>Acción requerida</div>
+              <div style={{ fontFamily:'var(--serif)', fontSize:20, color:'white', fontWeight:400, marginBottom:4 }}>Activá tu cuenta firmando el contrato.</div>
+              <div style={{ fontSize:13, color:'rgba(255,255,255,0.5)', lineHeight:1.6 }}>Sin contrato no podés publicar ni recibir leads. Sin costo previo — solo pagás si vendemos.</div>
+            </div>
+            <a href="/dashboard/propietario/contrato" style={{ padding:'11px 22px', borderRadius:999, background:'oklch(0.42 0.06 150)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none', flexShrink:0 }}>Firmar contrato →</a>
+          </div>
+        )}
+        {!loadingContrato && contrato?.estado === 'pendiente' && tab !== 'contrato' && (
+          <div style={{ marginBottom:20, background:'oklch(0.93 0.05 80)', border:'1px solid oklch(0.88 0.05 80)', borderRadius:12, padding:'16px 20px', display:'flex', gap:12, alignItems:'center' }}>
+            <span style={{ fontSize:20 }}>⏳</span>
+            <div>
+              <div style={{ fontSize:13, fontWeight:500, color:'oklch(0.40 0.08 80)' }}>Contrato en revisión — te notificamos en 24 horas hábiles.</div>
+              <div style={{ fontSize:12, color:'oklch(0.45 0.06 80)' }}>Un asesor NIDO lo contrafirmará pronto.</div>
+            </div>
+            <a href="https://wa.me/50688226436" target="_blank" style={{ marginLeft:'auto', padding:'8px 14px', borderRadius:999, background:'#22c55e', color:'white', fontSize:12, fontWeight:500, textDecoration:'none', flexShrink:0 }}>💬 WhatsApp</a>
+          </div>
+        )}
+
+        {tab === 'contrato' && (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
-            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:20 }}>Facturación</h2>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20 }}>
-              <div className="card card-pad">
-                <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Plan actual</div>
-                <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--ink)', marginBottom:4 }}>Plan Gratis</div>
-                <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.6, marginBottom:16 }}>Acceso básico al panel de propietario. Para funciones avanzadas como análisis de mercado detallado y reportes, considerá el plan Pro.</p>
-                <a href="/precios" style={{ display:'inline-block', padding:'10px 20px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:13, fontWeight:500 }}>Ver planes →</a>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>Mi contrato</h2>
+            <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.65, marginBottom:24 }}>Gestioná tu contrato de servicios con NIDO. Sin contrato activo no podés publicar ni recibir leads.</p>
+
+            {!contrato ? (
+              <div style={{ background:'var(--ink)', borderRadius:16, padding:'32px', textAlign:'center' }}>
+                <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'white', fontWeight:400, marginBottom:12 }}>Sin contrato activo</div>
+                <p style={{ fontSize:14, color:'rgba(255,255,255,0.5)', lineHeight:1.7, maxWidth:440, margin:'0 auto 24px' }}>
+                  Firmá un contrato de corretaje con NIDO para publicar tu propiedad y empezar a recibir compradores calificados. Sin costo previo — solo pagás si vendemos.
+                </p>
+                <div style={{ display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap', marginBottom:24 }}>
+                  {[
+                    { icon:'🎯', t:'Compradores calificados' },
+                    { icon:'📊', t:'Dashboard en tiempo real' },
+                    { icon:'⚖️', t:'Asesoría legal incluida' },
+                    { icon:'📣', t:'Marketing en redes' },
+                  ].map((b:any) => (
+                    <div key={b.t} style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'rgba(255,255,255,0.6)' }}>
+                      <span>{b.icon}</span> {b.t}
+                    </div>
+                  ))}
+                </div>
+                <a href="/dashboard/propietario/contrato" style={{ display:'inline-block', padding:'13px 32px', borderRadius:999, background:'oklch(0.42 0.06 150)', color:'white', fontSize:15, fontWeight:500, textDecoration:'none' }}>
+                  Firmar contrato ahora →
+                </a>
+                <div style={{ marginTop:16, fontSize:12, color:'rgba(255,255,255,0.3)' }}>
+                  Exclusividad 90 días · 4% solo al cerrar · Sin costo si no vendemos
+                </div>
               </div>
-              <div className="card card-pad">
-                <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Próxima factura</div>
-                <div style={{ fontFamily:'var(--serif)', fontSize:48, color:'var(--ink)', marginBottom:4 }}>$0</div>
-                <div style={{ fontSize:13, color:'var(--ink-3)' }}>Plan gratuito activo</div>
+            ) : contrato.estado === 'pendiente' ? (
+              <div style={{ background:'oklch(0.93 0.05 80)', border:'1px solid oklch(0.88 0.05 80)', borderRadius:14, padding:'28px', textAlign:'center' }}>
+                <div style={{ fontSize:36, marginBottom:12 }}>⏳</div>
+                <div style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8, color:'oklch(0.40 0.08 80)' }}>Contrato en revisión</div>
+                <p style={{ fontSize:14, color:'oklch(0.45 0.06 80)', lineHeight:1.7, maxWidth:440, margin:'0 auto 20px' }}>
+                  Recibimos tu firma. Un asesor NIDO lo revisará y contrafirmará en las próximas 24 horas hábiles. Te notificaremos por correo cuando esté activo.
+                </p>
+                <a href="https://wa.me/50688226436" target="_blank" style={{ display:'inline-block', padding:'11px 24px', borderRadius:999, background:'#22c55e', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>
+                  💬 Contactar asesor NIDO
+                </a>
               </div>
-            </div>
-            <div className="card">
-              <div className="card-pad" style={{ borderBottom:'1px solid var(--rule)' }}>
-                <span style={{ fontSize:14, fontWeight:500 }}>Historial de pagos</span>
+            ) : (
+              <div>
+                <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:14, padding:'24px 28px', marginBottom:20 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap:12 }}>
+                    <div>
+                      <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--accent)', marginBottom:8 }}>✓ Contrato activo</div>
+                      <div style={{ fontFamily:'var(--serif)', fontSize:22, fontWeight:400, marginBottom:6 }}>
+                        {contrato.tipo === 'exclusividad' ? 'Exclusividad 90 días' : 'Plan mensual $39.99'}
+                      </div>
+                      <div style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.7 }}>
+                        Inicio: {contrato.fecha_inicio ? new Date(contrato.fecha_inicio).toLocaleDateString('es-CR') : '—'} ·
+                        Vence: {contrato.fecha_vencimiento ? new Date(contrato.fecha_vencimiento).toLocaleDateString('es-CR') : '—'}
+                      </div>
+                    </div>
+                    <div style={{ textAlign:'right' }}>
+                      <div style={{ fontFamily:'var(--serif)', fontSize:36, color:'var(--accent)' }}>
+                        {contrato.tipo === 'exclusividad' ? '4%' : '$39.99'}
+                      </div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>
+                        {contrato.tipo === 'exclusividad' ? 'comisión al cierre' : 'por mes'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
+                  {[
+                    { l:'Tipo de contrato', v:contrato.tipo === 'exclusividad' ? 'Exclusividad 90 días' : 'Mensual' },
+                    { l:'Estado', v:'Activo ✓' },
+                    { l:'Comisión', v:contrato.comision_porcentaje+'% al cierre' },
+                    { l:'Firma', v:contrato.firma_tipo === 'digital' ? 'Digital' : 'Física escaneada' },
+                  ].map((f:any) => (
+                    <div key={f.l} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:10, padding:'14px 18px' }}>
+                      <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>{f.l}</div>
+                      <div style={{ fontSize:15, fontWeight:500 }}>{f.v}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'20px 24px' }}>
+                  <div style={{ fontSize:13, fontWeight:500, marginBottom:12 }}>Al vencer el contrato podés:</div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    <a href="/dashboard/propietario/contrato" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', transition:'all 0.2s' }}>
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>Renovar exclusividad 90 días</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>Mismas condiciones · 4% solo al cierre</div>
+                      </div>
+                      <span style={{ color:'var(--accent)' }}>→</span>
+                    </a>
+                    <a href="/dashboard/propietario/contrato" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)' }}>
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>Plan mensual $39.99</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>Sin exclusividad · Cancelá cuando quieras</div>
+                      </div>
+                      <span style={{ color:'var(--ink-3)' }}>→</span>
+                    </a>
+                  </div>
+                </div>
               </div>
-              <div style={{ padding:'32px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>
-                No hay pagos registrados aún.
-              </div>
-            </div>
+            )}
           </div>
         )}
 
