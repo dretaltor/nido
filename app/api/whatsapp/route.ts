@@ -8,7 +8,7 @@ const supabaseAdmin = createClient(
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'nido-webhook-2026'
 const WA_TOKEN = process.env.WHATSAPP_TOKEN || ''
-const PHONE_ID = process.env.WHATSAPP_PHONE_ID || ''
+const PHONE_ID = process.env.WHATSAPP_PHONE_ID || '989317950154079'
 
 // Verificación webhook Meta
 export async function GET(req: NextRequest) {
