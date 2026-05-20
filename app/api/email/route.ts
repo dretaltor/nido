@@ -337,6 +337,21 @@ export async function POST(req: NextRequest) {
 
     const result = await res.json()
     if (!res.ok) throw new Error(JSON.stringify(result))
+    // Send WhatsApp notification if phone available
+    if (data?.asesor_telefono || data?.telefono) {
+      const phone = data.asesor_telefono || data.telefono
+      const waMsg = tipo === 'nuevo_lead' 
+        ? `🏠 *Nuevo lead NIDO*\n\nPropiedad: ${data?.propiedad || '—'}\nNombre: ${data?.nombre || '—'}\nTeléfono: ${data?.telefono || '—'}\nMensaje: ${data?.mensaje || '—'}\n\nRespondé rápido — los primeros 2 min son clave.`
+        : tipo === 'nueva_oferta'
+        ? `💼 *Nueva oferta NIDO*\n\nPropiedad: ${data?.propiedad || '—'}\nComprador: ${data?.comprador || '—'}\nOferta: ${data?.monto || '—'}\n\nRevisá tu dashboard para ver los detalles.`
+        : null
+      
+      if (waMsg) {
+        const { sendWhatsApp } = await import('../../../lib/whatsapp')
+        await sendWhatsApp(phone, waMsg).catch(() => {})
+      }
+    }
+
     return NextResponse.json({ success: true, id: result.id })
   } catch (error: any) {
     console.error('Email error:', error)
