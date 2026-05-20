@@ -76,6 +76,7 @@ Si preguntan por propiedades específicas, deciles que visiten www.nido-cr.com/p
     const aiData = await aiRes.json()
     const reply = aiData.content?.[0]?.text || 'Hola, soy Valeria de NIDO 🏠 ¿En qué puedo ayudarte?'
 
+    console.log('Sending to:', from, 'reply length:', reply.length)
     await sendWA(from, reply)
 
     // Log message
