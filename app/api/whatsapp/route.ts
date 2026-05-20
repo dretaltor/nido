@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
 )
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'nido-webhook-2026'
-const WA_TOKEN = process.env.WHATSAPP_TOKEN || 'EAA9uUc0RdRkBRh8ZCUCpUGHU3PYxE0y5pd6TzRZAu1qY6lssjjH7Hdpou21KSngLHyO9LMDwvzg74R2MpgFGBBuyXMoGf3w0ZAYgZCKnKIEp1qomQpkhg9DpFqlz6nNvPd3GDO9D90evMaDr87hYS7zMcGirUsS8KsENsmziIF1kdqs30I2PUdSxstXfPrFAhOeJ3BwwoqfAZBc0KbZBmgPperXMrIRqQJrmlP'
+const WA_TOKEN = process.env.WHATSAPP_TOKEN || ''
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID || '1156099824249418'
 
 // Verificación webhook Meta
@@ -28,8 +28,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
 
   try {
-    console.log('WA body:', JSON.stringify(body).slice(0, 500))
-  const entry = body.entry?.[0]
+    const entry = body.entry?.[0]
     const changes = entry?.changes?.[0]
     const value = changes?.value
     const message = value?.messages?.[0]
@@ -76,7 +75,6 @@ Si preguntan por propiedades específicas, deciles que visiten www.nido-cr.com/p
     const aiData = await aiRes.json()
     const reply = aiData.content?.[0]?.text || 'Hola, soy Valeria de NIDO 🏠 ¿En qué puedo ayudarte?'
 
-    console.log('Sending to:', from, 'reply length:', reply.length)
     await sendWA(from, reply)
 
     // Log message
