@@ -9,7 +9,7 @@ import { ContactoForm } from '@/components/contacto/ContactoForm'
 interface Propiedad {
   id: string; titulo: string; descripcion: string; precio: number; tipo: string;
   operacion: string; habitaciones: number; banos: number; metros: number;
-  zona: string; direccion: string; asesor_nombre: string; asesor_email: string; asesor_whatsapp: string; ref_id: string; fotos: string[];
+  zona: string; direccion: string; asesor_nombre: string; asesor_email: string; asesor_telefono?: string; asesor_whatsapp: string; ref_id: string; fotos: string[];
 }
 
 function Icon({ name }: { name: string }) {
