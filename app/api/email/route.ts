@@ -347,7 +347,7 @@ export async function POST(req: NextRequest) {
         : null
       
       if (waMsg) {
-        const { sendWhatsApp } = await import('../../../lib/whatsapp')
+        const { sendWhatsApp } = await import('../../lib/whatsapp')
         await sendWhatsApp(phone, waMsg).catch(() => {})
       }
     }
