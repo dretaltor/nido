@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
 
   try {
-    const entry = body.entry?.[0]
+    console.log('WA body:', JSON.stringify(body).slice(0, 500))
+  const entry = body.entry?.[0]
     const changes = entry?.changes?.[0]
     const value = changes?.value
     const message = value?.messages?.[0]
