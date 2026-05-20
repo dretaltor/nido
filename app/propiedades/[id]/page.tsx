@@ -276,7 +276,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                   <div style={{fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:12}}>Datos de contacto</div>
                   {[
                     {icon:'✉',label:'Correo',val:propiedad.asesor_email,href:'mailto:'+propiedad.asesor_email},
-                    {icon:'📱',label:'WhatsApp',val:'+506 8888-0000',href:propiedad.asesor_whatsapp?'https://wa.me/'+propiedad.asesor_whatsapp.replace(/[^0-9]/g,''):null},
+                    {icon:'📱',label:'WhatsApp',val:'+506 8822-6436',href:propiedad.asesor_whatsapp?'https://wa.me/'+propiedad.asesor_whatsapp.replace(/[^0-9]/g,''):null},
                     {icon:'📍',label:'Zona',val:propiedad.zona||'Costa Rica',href:null},
                   ].map(c => (
                     <div key={c.label} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:'1px solid var(--rule-soft)'}}>
@@ -305,7 +305,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                       />
                     </div>
                   )}
-                  <a href={'https://wa.me/50688880000?text=Hola, me interesa la propiedad '+propiedad.titulo} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'#22c55e',color:'white',fontSize:13,fontWeight:500,textDecoration:'none'}}>
+                  <a href={'https://wa.me/50688226436?text=Hola, me interesa la propiedad '+propiedad.titulo} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'#22c55e',color:'white',fontSize:13,fontWeight:500,textDecoration:'none'}}>
                     <span>💬</span> Contactar por WhatsApp
                   </a>
                   <a href={'mailto:'+propiedad.asesor_email+'?subject=Consulta sobre '+propiedad.titulo} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,border:'1px solid var(--rule)',color:'var(--ink)',fontSize:13,fontWeight:500,textDecoration:'none'}}>

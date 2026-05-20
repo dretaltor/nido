@@ -570,7 +570,7 @@ export default function DashboardPropietario() {
               <div style={{ fontSize:14, fontWeight:500, marginBottom:8 }}>¿Necesitás ayuda o querés agendar una llamada?</div>
               <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.6, marginBottom:16 }}>Un asesor NIDO te contactará en las próximas 24 horas hábiles. También podés escribirnos directamente.</p>
               <div style={{ display:'flex', gap:10 }}>
-                <a href="https://wa.me/50600000000?text=Hola, me registré como propietario en NIDO y quisiera coordinar la verificación de mi identidad." target="_blank" style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', borderRadius:999, background:'#22c55e', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>
+                <a href="https://wa.me/50688226436?text=Hola, me registré como propietario en NIDO y quisiera coordinar la verificación de mi identidad." target="_blank" style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', borderRadius:999, background:'#22c55e', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>
                   💬 WhatsApp NIDO
                 </a>
                 <a href="mailto:hola@nido-cr.com?subject=Verificación de propietario NIDO" style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 18px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', fontSize:13, textDecoration:'none' }}>
