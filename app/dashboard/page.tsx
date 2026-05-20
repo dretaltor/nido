@@ -74,7 +74,7 @@ export default function Dashboard() {
       if (tipo === 'propietario') { router.push('/dashboard/propietario'); return }
       setUser(user)
       Promise.all([
-        supabase.from('Propiedades').select('*').eq('asesor_email', user.email),
+        supabase.from('propiedades').select('*').eq('asesor_email', user.email),
         supabase.from('leads').select('*').order('created_at', { ascending: false }),
         supabase.from('ofertas').select('*').eq('asesor_email', user.email).order('created_at', { ascending: false }),
       ]).then(([{ data: props }, { data: leadsData }, { data: ofertasData }]) => {

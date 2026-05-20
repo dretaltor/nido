@@ -214,7 +214,7 @@ export default function Propiedades() {
 
   const cargar = () => {
     setLoading(true)
-    supabase.from('Propiedades').select('*').eq('disponible', true).eq('verificacion_estado', 'aprobada').then(({ data }) => {
+    supabase.from('propiedades').select('*').eq('disponible', true).eq('verificacion_estado', 'aprobada').then(({ data }) => {
       setPropiedades(data || [])
       setLoading(false)
     })
