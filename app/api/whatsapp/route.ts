@@ -78,13 +78,15 @@ Si preguntan por propiedades específicas, deciles que visiten www.nido-cr.com/p
     await sendWA(from, reply)
 
     // Log message
-    await supabaseAdmin.from('whatsapp_logs').insert({
-      from_number: from,
-      message: text,
-      reply,
-      user_type: userType,
-      user_name: userName,
-    }).catch(() => {})
+    try {
+      await supabaseAdmin.from('whatsapp_logs').insert({
+        from_number: from,
+        message: text,
+        reply,
+        user_type: userType,
+        user_name: userName,
+      })
+    } catch (_) {}
 
   } catch (err) {
     console.error('WA webhook error:', err)
