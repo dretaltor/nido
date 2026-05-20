@@ -338,6 +338,7 @@ export async function POST(req: NextRequest) {
     const result = await res.json()
     if (!res.ok) throw new Error(JSON.stringify(result))
     // Send WhatsApp notification if phone available
+    console.log('WA check - telefono:', data?.asesor_telefono, data?.telefono, 'tipo:', tipo)
     if (data?.asesor_telefono || data?.telefono) {
       const phone = data.asesor_telefono || data.telefono
       const waMsg = tipo === 'nuevo_lead' 
