@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
 )
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'nido-webhook-2026'
-const WA_TOKEN = process.env.WHATSAPP_TOKEN || ''
+const WA_TOKEN = process.env.WHATSAPP_TOKEN || 'EAA9uUc0RdRkBRgZAXFtJZBQquwNH1TAOattPXwIWfcqOThgmzeY5OB4evfzEAeJoHSgpeMeEgxbHxTb5Ji8czlLJZADJPhtX5q1td0T18FS0ECUow55IvJmD8CEAMU35lHozC6ymhlYemalIJcf7OzfBdjfEbfBQJM4KkiXn78YiI9ZC5EroPQ2VRab753nN8jREcqFMv2zFt6De5UIpT38qW9n3UrYHoGZBT'
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID || '989317950154079'
 
 // Verificación webhook Meta
@@ -65,7 +65,7 @@ Si preguntan por propiedades específicas, deciles que visiten www.nido-cr.com/p
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 300,
         system: sistemaPrompt,
         messages: [{ role: 'user', content: text }]
