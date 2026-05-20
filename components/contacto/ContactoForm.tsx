@@ -5,11 +5,12 @@ interface ContactoFormProps {
   propiedadId: string
   propiedadTitulo: string
   asesorEmail: string
+  asesorTelefono?: string
   asesorNombre: string
   asesorWhatsapp?: string
 }
 
-export function ContactoForm({ propiedadId, propiedadTitulo, asesorEmail, asesorNombre, asesorWhatsapp }: ContactoFormProps) {
+export function ContactoForm({ propiedadId, propiedadTitulo, asesorEmail, asesorNombre, asesorTelefono, asesorWhatsapp }: ContactoFormProps) {
   const [form, setForm] = useState({ nombre: '', email: '', telefono: '', mensaje: '' })
   const [enviando, setEnviando] = useState(false)
   const [exito, setExito] = useState(false)
@@ -38,6 +39,7 @@ export function ContactoForm({ propiedadId, propiedadTitulo, asesorEmail, asesor
           mensaje: form.mensaje,
           propiedad: propiedadTitulo,
           propiedad_id: propiedadId,
+          asesor_telefono: asesorTelefono,
         }
       })
     })

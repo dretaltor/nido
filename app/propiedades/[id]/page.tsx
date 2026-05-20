@@ -302,6 +302,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                         asesorEmail={propiedad.asesor_email}
                         asesorNombre={propiedad.asesor_nombre}
                         asesorWhatsapp={propiedad.asesor_whatsapp}
+                        asesorTelefono={propiedad.asesor_telefono}
                       />
                     </div>
                   )}
