@@ -39,7 +39,7 @@ export function ContactoForm({ propiedadId, propiedadTitulo, asesorEmail, asesor
           mensaje: form.mensaje,
           propiedad: propiedadTitulo,
           propiedad_id: propiedadId,
-          asesor_telefono: asesorTelefono,
+          asesor_telefono: asesorTelefono || asesorWhatsapp,
         }
       })
     })

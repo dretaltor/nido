@@ -338,9 +338,9 @@ export async function POST(req: NextRequest) {
     const result = await res.json()
     if (!res.ok) throw new Error(JSON.stringify(result))
     // Send WhatsApp notification if phone available
-    console.log('WA check - telefono:', data?.asesor_telefono, data?.telefono, 'tipo:', tipo)
-    if (data?.asesor_telefono || data?.telefono) {
-      const phone = data.asesor_telefono || data.telefono
+    console.log('WA check - telefono:', data?.asesor_telefono, data?.telefono, data?.asesor_whatsapp, 'tipo:', tipo)
+    if (data?.asesor_telefono || data?.telefono || data?.asesor_whatsapp) {
+      const phone = data.asesor_telefono || data.telefono || data.asesor_whatsapp
       const waMsg = tipo === 'nuevo_lead' 
         ? `🏠 *Nuevo lead NIDO*\n\nPropiedad: ${data?.propiedad || '—'}\nNombre: ${data?.nombre || '—'}\nTeléfono: ${data?.telefono || '—'}\nMensaje: ${data?.mensaje || '—'}\n\nRespondé rápido — los primeros 2 min son clave.`
         : tipo === 'nueva_oferta'
