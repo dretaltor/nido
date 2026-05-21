@@ -49,8 +49,10 @@ export default function CRM() {
   const [sel, setSel] = useState<Lead | null>(null)
   const [visitaOpen, setVisitaOpen] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [userEmail, setUserEmail] = useState('')
 
   useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => { if (user) setUserEmail(user.email || '') })
     supabase.from('leads').select('*').order('created_at', { ascending: false })
       .then(({ data }) => { setLeads(data || []); setLoading(false) })
   }, [])
@@ -202,8 +204,8 @@ export default function CRM() {
             <VisitaForm
               propiedadId={sel.propiedad_id || ''}
               propiedadTitulo={sel.propiedad_titulo || sel.propiedad || ''}
-              asesorEmail={user?.email || ''}
-              asesorWhatsapp={user?.user_metadata?.whatsapp || ''}
+              asesorEmail={userEmail}
+              asesorWhatsapp={''}
               onClose={() => setVisitaOpen(false)}
               onSuccess={() => { setVisitaOpen(false); alert('Visita agendada ✓') }}
             />
