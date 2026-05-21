@@ -48,6 +48,9 @@ export default function CRM() {
   const [filtro, setFiltro] = useState('todos')
   const [sel, setSel] = useState<Lead | null>(null)
   const [visitaOpen, setVisitaOpen] = useState(false)
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiMensaje, setAiMensaje] = useState('')
+  const [aiAccion, setAiAccion] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('')
 
@@ -58,6 +61,36 @@ export default function CRM() {
   }, [])
 
   const filtrados = filtro === 'todos' ? leads : leads.filter(l => l.estado === filtro)
+
+  const generarMensajeIA = async (accion: string) => {
+    if (!sel) return
+    setAiLoading(true)
+    setAiAccion(accion)
+    setAiMensaje('')
+
+    const prompts: Record<string,string> = {
+      seguimiento: `Redactá un mensaje de seguimiento breve y profesional en español para un lead inmobiliario. Nombre: ${sel.nombre}. Interesado en: ${sel.zona_interes || 'propiedades en Costa Rica'}. Presupuesto: ${sel.presupuesto || 'no especificado'}. Estado actual: ${sel.estado}. El mensaje debe ser cálido, personal y terminar con una pregunta abierta. Máximo 3 oraciones. Solo el mensaje, sin saludos formales ni firma.`,
+      propuesta: `Redactá un mensaje de propuesta de propiedad para un lead. Nombre: ${sel.nombre}. Zona de interés: ${sel.zona_interes || 'Costa Rica'}. Presupuesto: ${sel.presupuesto || 'no especificado'}. Indicá que tenés opciones que podrían interesarle e invitá a coordinar una visita. Máximo 4 oraciones. Solo el mensaje.`,
+      recordatorio: `Redactá un recordatorio amigable para un cliente interesado en propiedades. Nombre: ${sel.nombre}. El objetivo es retomar contacto sin ser invasivo. Máximo 2 oraciones directas. Solo el mensaje.`,
+      cierre: `Redactá un mensaje de cierre para un lead que ya mostró interés. Nombre: ${sel.nombre}. Zona: ${sel.zona_interes}. Creá urgencia genuina y ofrecé ayuda concreta para dar el siguiente paso. Máximo 3 oraciones. Solo el mensaje.`,
+    }
+
+    const res = await fetch('/api/valeria-crm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompts[accion] })
+    })
+    const data = await res.json()
+    setAiMensaje(data.text || '')
+    setAiLoading(false)
+  }
+
+  const enviarWA = async (mensaje: string) => {
+    if (!sel?.telefono || !mensaje) return
+    const phone = sel.telefono.replace(/\D/g,'')
+    const url = 'https://wa.me/' + (phone.startsWith('506') ? phone : '506'+phone) + '?text=' + encodeURIComponent(mensaje)
+    window.open(url, '_blank')
+  }
 
   const cambiarEstado = async (lead: Lead, nuevoEstado: string) => {
     setUpdatingId(lead.id)
@@ -185,7 +218,53 @@ export default function CRM() {
                   })}
                 </div>
               </div>
-              <div style={{ marginTop:24, display:'flex', gap:10 }}>
+              {/* ACCIONES IA */}
+              <div style={{ marginTop:20 }}>
+                <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Acciones con IA</div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
+                  {[
+                    { id:'seguimiento', label:'💬 Seguimiento', desc:'Retomar contacto' },
+                    { id:'propuesta', label:'🏠 Propuesta', desc:'Ofrecer propiedad' },
+                    { id:'recordatorio', label:'🔔 Recordatorio', desc:'Suave recordatorio' },
+                    { id:'cierre', label:'🎯 Cierre', desc:'Empujar decisión' },
+                  ].map(a => (
+                    <button key={a.id} onClick={() => generarMensajeIA(a.id)} disabled={aiLoading} style={{ padding:'10px 8px', borderRadius:10, border:'1px solid var(--rule)', background:aiAccion===a.id?'var(--accent-tint)':'white', cursor:'pointer', textAlign:'left', opacity:aiLoading&&aiAccion!==a.id?0.5:1 }}>
+                      <div style={{ fontSize:12, fontWeight:500, color:aiAccion===a.id?'var(--accent)':'var(--ink)' }}>{a.label}</div>
+                      <div style={{ fontSize:10, color:'var(--ink-3)' }}>{a.desc}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {aiLoading && (
+                  <div style={{ padding:'12px', background:'var(--bg)', borderRadius:8, fontSize:12, color:'var(--ink-3)', textAlign:'center' }}>
+                    Valeria está redactando...
+                  </div>
+                )}
+
+                {aiMensaje && !aiLoading && (
+                  <div style={{ marginBottom:12 }}>
+                    <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:10, padding:'12px 14px', marginBottom:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+                        <div style={{ width:20, height:20, borderRadius:'50%', background:'var(--accent)', display:'grid', placeItems:'center', fontSize:10, color:'white' }}>V</div>
+                        <span style={{ fontSize:10, color:'var(--accent)', fontWeight:500 }}>Valeria · Mensaje sugerido</span>
+                      </div>
+                      <textarea value={aiMensaje} onChange={e => setAiMensaje(e.target.value)} rows={4} style={{ width:'100%', border:'none', background:'transparent', fontSize:13, color:'var(--ink-2)', lineHeight:1.65, resize:'vertical', fontFamily:'var(--sans)', outline:'none' }}/>
+                    </div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      {sel.telefono && (
+                        <button onClick={() => enviarWA(aiMensaje)} style={{ flex:1, padding:'9px', borderRadius:999, background:'#22c55e', color:'white', border:'none', fontSize:12, fontWeight:500, cursor:'pointer' }}>
+                          💬 Enviar por WhatsApp
+                        </button>
+                      )}
+                      <button onClick={() => { navigator.clipboard.writeText(aiMensaje) }} style={{ padding:'9px 14px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:12, cursor:'pointer', color:'var(--ink-2)' }}>
+                        📋 Copiar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop:12, display:'flex', gap:10 }}>
                 <a href={'mailto:'+sel.email} style={{ flex:1, padding:'10px', borderRadius:999, border:'1px solid var(--rule)', fontSize:13, textAlign:'center', color:'var(--ink)', fontWeight:500 }}>Enviar email</a>
                 {sel.telefono && <a href={'https://wa.me/'+sel.telefono.replace(/\D/g,'')} target="_blank" style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:13, textAlign:'center', fontWeight:500 }}>WhatsApp</a>}
               </div>
