@@ -29,6 +29,8 @@ function Icon({ name }: { name: string }) {
 export default function PropiedadDetalle({ params }: { params: Promise<{ id: string }> }) {
   const { id } = require('react').use(params)
   const [propiedad, setPropiedad] = useState<Propiedad | null>(null)
+  const [visitaOpen, setVisitaOpen] = useState<boolean>(false)
+  const [visitaExito, setVisitaExito] = useState<boolean>(false)
   const [loading, setLoading] = useState(true)
   const [chatOpen, setChatOpen] = useState(false)
   const [ofertaOpen, setOfertaOpen] = useState(false)
