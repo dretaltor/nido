@@ -85,7 +85,7 @@ Para cualquier otra consulta, responde normalmente en texto.`
         const action = JSON.parse(jsonMatch[0])
         
         if (action.action === 'buscar_propiedades') {
-          let query = supabaseAdmin.from('propiedades').select('titulo, zona, precio, tipo, operacion, ref_id').eq('disponible', true).eq('verificacion_estado', 'aprobada').limit(3)
+          let query = supabaseAdmin.from('propiedades').select('id, titulo, zona, precio, tipo, operacion, ref_id').eq('disponible', true).eq('verificacion_estado', 'aprobada').limit(3)
           if (action.zona) query = query.ilike('zona', '%' + action.zona + '%')
           if (action.tipo) query = query.eq('tipo', action.tipo)
           if (action.precio_max) query = query.lte('precio', action.precio_max)
@@ -94,7 +94,7 @@ Para cualquier otra consulta, responde normalmente en texto.`
           
           if (props && props.length > 0) {
             finalReply = '🏠 *Propiedades disponibles en NIDO:*\n\n' + props.map((p: any, i: number) => 
-              `${i+1}. *${p.titulo}*\n📍 ${p.zona} | ${p.tipo}\n💰 $${Number(p.precio).toLocaleString()} USD\n🔖 ${p.ref_id || ''}\n🌐 nido-cr.com/propiedades`
+              `${i+1}. *${p.titulo}*\n📍 ${p.zona} | ${p.tipo}\n💰 $${Number(p.precio).toLocaleString()} USD\n🔖 ${p.ref_id || ''}\n🔗 nido-cr.com/propiedades/${p.id}`
             ).join('\n\n') + '\n\n¿Te interesa alguna? Puedo darte más detalles o agendar una visita. 😊'
           } else {
             finalReply = '🔍 No encontré propiedades con esos criterios en este momento.\n\nPodés ver todas las opciones disponibles en:\n🌐 www.nido-cr.com/propiedades\n\n¿Querés que amplíe la búsqueda?'
