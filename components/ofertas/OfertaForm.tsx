@@ -16,7 +16,7 @@ interface OfertaFormProps {
   onSuccess: () => void
 }
 
-export function OfertaForm({ propiedadId, propiedadTitulo, propiedadRef, propiedadPrecio, propiedadAsesorEmail, propiedadAsesorWhatsapp, asesorEmail, asesorNombre, asesorWhatsapp, onClose, onSuccess }: OfertaFormProps) {sesorEmail, asesorEmail, asesorNombre, onClose, onSuccess }: OfertaFormProps) {
+export function OfertaForm({ propiedadId, propiedadTitulo, propiedadRef, propiedadPrecio, propiedadAsesorEmail, propiedadAsesorWhatsapp, asesorEmail, asesorNombre, asesorWhatsapp, onClose, onSuccess }: OfertaFormProps) {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
