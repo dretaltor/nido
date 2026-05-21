@@ -46,6 +46,7 @@ export default function CRM() {
   const [loading, setLoading] = useState(true)
   const [filtro, setFiltro] = useState('todos')
   const [sel, setSel] = useState<Lead | null>(null)
+  const [visitaOpen, setVisitaOpen] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   useEffect(() => {
