@@ -56,10 +56,12 @@ export async function POST(req: NextRequest) {
     // Call Valeria AI
     const sistemaPrompt = `Sos Valeria, la asistente IA de NIDO — plataforma inmobiliaria premium de Costa Rica.
 Respondés por WhatsApp — mensajes cortos, claros y directos. Máximo 3 párrafos.
-${userName ? `Estás hablando con ${userName}, ${userType} de NIDO.` : 'Es un usuario nuevo — podría ser comprador, vendedor o asesor.'}
+${userName ? 'Estás hablando con ' + userName + ', ' + userType + ' de NIDO.' : 'Es un usuario nuevo — podría ser comprador, vendedor o asesor.'}
 Ayudás con: consultas sobre propiedades, proceso de compra/venta, información sobre NIDO, agendar visitas.
 Siempre terminá con una pregunta o siguiente paso concreto.
-Si preguntan por propiedades específicas, deciles que visiten www.nido-cr.com/propiedades`
+Si el usuario pregunta por propiedades, DEBES responder con el JSON especial: {"action":"buscar_propiedades","zona":"zona mencionada o null","tipo":"casa/apartamento/lote/local o null","precio_max":numero_o_null}
+Si el usuario quiere agendar una visita: {"action":"agendar_visita","propiedad":"nombre si mencionó alguna"}
+Para cualquier otra consulta, responde normalmente en texto.`
 
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -75,7 +77,35 @@ Si preguntan por propiedades específicas, deciles que visiten www.nido-cr.com/p
     const aiData = await aiRes.json()
     const reply = aiData.content?.[0]?.text || 'Hola, soy Valeria de NIDO 🏠 ¿En qué puedo ayudarte?'
 
-    await sendWA(from, reply)
+    // Check if Valeria returned a JSON action
+    let finalReply = reply
+    try {
+      const jsonMatch = reply.match(/\{[^}]*"action"[^}]*\}/)
+      if (jsonMatch) {
+        const action = JSON.parse(jsonMatch[0])
+        
+        if (action.action === 'buscar_propiedades') {
+          let query = supabaseAdmin.from('propiedades').select('titulo, zona, precio, tipo, operacion, ref_id').eq('disponible', true).eq('verificacion_estado', 'aprobada').limit(3)
+          if (action.zona) query = query.ilike('zona', '%' + action.zona + '%')
+          if (action.tipo) query = query.eq('tipo', action.tipo)
+          if (action.precio_max) query = query.lte('precio', action.precio_max)
+          
+          const { data: props } = await query
+          
+          if (props && props.length > 0) {
+            finalReply = '🏠 *Propiedades disponibles en NIDO:*\n\n' + props.map((p: any, i: number) => 
+              `${i+1}. *${p.titulo}*\n📍 ${p.zona} | ${p.tipo}\n💰 $${Number(p.precio).toLocaleString()} USD\n🔖 ${p.ref_id || ''}\n🌐 nido-cr.com/propiedades`
+            ).join('\n\n') + '\n\n¿Te interesa alguna? Puedo darte más detalles o agendar una visita. 😊'
+          } else {
+            finalReply = '🔍 No encontré propiedades con esos criterios en este momento.\n\nPodés ver todas las opciones disponibles en:\n🌐 www.nido-cr.com/propiedades\n\n¿Querés que amplíe la búsqueda?'
+          }
+        } else if (action.action === 'agendar_visita') {
+          finalReply = '📅 Para agendar una visita, ingresá a la ficha de la propiedad en:\n🌐 www.nido-cr.com/propiedades\n\nO decime tu nombre y teléfono y un asesor NIDO te contactará para coordinarla. 🏠'
+        }
+      }
+    } catch {}
+
+    await sendWA(from, finalReply)
 
     // Log message
     try {
