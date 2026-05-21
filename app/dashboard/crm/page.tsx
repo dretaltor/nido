@@ -1,4 +1,5 @@
 'use client'
+import { VisitaForm } from '@/components/visitas/VisitaForm'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 
@@ -185,6 +186,25 @@ export default function CRM() {
                 {sel.telefono && <a href={'https://wa.me/'+sel.telefono.replace(/\D/g,'')} target="_blank" style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:13, textAlign:'center', fontWeight:500 }}>WhatsApp</a>}
               </div>
             </div>
+          </div>
+        </>
+      )}
+      {visitaOpen && sel && (
+        <>
+          <div onClick={() => setVisitaOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:300, backdropFilter:'blur(4px)' }}/>
+          <div style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:301, background:'white', borderRadius:16, padding:'28px', width:'90%', maxWidth:500, boxShadow:'0 24px 80px rgba(0,0,0,0.2)' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+              <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:400 }}>Agendar visita</h3>
+              <button onClick={() => setVisitaOpen(false)} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, cursor:'pointer' }}>×</button>
+            </div>
+            <VisitaForm
+              propiedadId={sel.propiedad_id || ''}
+              propiedadTitulo={sel.propiedad_titulo || sel.propiedad || ''}
+              asesorEmail={user?.email || ''}
+              asesorWhatsapp={user?.user_metadata?.whatsapp || ''}
+              onClose={() => setVisitaOpen(false)}
+              onSuccess={() => { setVisitaOpen(false); alert('Visita agendada ✓') }}
+            />
           </div>
         </>
       )}
