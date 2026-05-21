@@ -69,7 +69,7 @@ export default function Dashboard() {
   const [visitas, setVisitas] = useState<any[]>([])
   const [tareas, setTareas] = useState<any[]>([])
   const [nuevaTarea, setNuevaTarea] = useState(false)
-  const [formTarea, setFormTarea] = useState({ titulo:'', descripcion:'', prioridad:'media', fecha_vencimiento:'' })
+  const [formTarea, setFormTarea] = useState({ titulo:'', descripcion:'', prioridad:'media', fecha_vencimiento:'', propiedad_id:'', lead_id:'' })
   const [tourActivo, setTourActivo] = useState(false)
   const [tourPaso, setTourPaso] = useState(0)
   const [updatingOferta, setUpdatingOferta] = useState(false)
@@ -414,17 +414,21 @@ END:VCALENDAR`
                   <option value="baja">🟢 Baja</option>
                 </select>
                 <input type="date" value={formTarea.fecha_vencimiento} onChange={e => setFormTarea(p=>({...p,fecha_vencimiento:e.target.value}))} style={{ padding:'9px 12px', border:'1px solid var(--rule)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', outline:'none' }}/>
+                <select value={formTarea.propiedad_id} onChange={e => setFormTarea(p=>({...p,propiedad_id:e.target.value,lead_id:''}))} style={{ padding:'9px 12px', border:'1px solid var(--rule)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', outline:'none', gridColumn:'1/-1' }}>
+                  <option value="">🏠 Sin propiedad asignada</option>
+                  {propiedades.map((p:any) => <option key={p.id} value={p.id}>{p.ref_id ? p.ref_id+' · ' : ''}{p.titulo}</option>)}
+                </select>
               </div>
               <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
                 <button onClick={() => setNuevaTarea(false)} style={{ padding:'8px 16px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:12, cursor:'pointer' }}>Cancelar</button>
                 <button onClick={async () => {
                   if (!formTarea.titulo) return
                   const { data: u } = await supabase.auth.getUser()
-                  await supabase.from('tareas').insert({ asesor_email: u.user?.email, titulo: formTarea.titulo, descripcion: formTarea.descripcion, prioridad: formTarea.prioridad, fecha_vencimiento: formTarea.fecha_vencimiento || null })
+                  await supabase.from('tareas').insert({ asesor_email: u.user?.email, titulo: formTarea.titulo, descripcion: formTarea.descripcion, prioridad: formTarea.prioridad, fecha_vencimiento: formTarea.fecha_vencimiento || null, propiedad_id: formTarea.propiedad_id || null })
                   const { data } = await supabase.from('tareas').select('*').eq('asesor_email', u.user?.email).order('fecha_vencimiento', { ascending: true })
                   setTareas(data || [])
                   setNuevaTarea(false)
-                  setFormTarea({ titulo:'', descripcion:'', prioridad:'media', fecha_vencimiento:'' })
+                  setFormTarea({ titulo:'', descripcion:'', prioridad:'media', fecha_vencimiento:'', propiedad_id:'', lead_id:'' })
                 }} style={{ padding:'8px 16px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:12, fontWeight:500, cursor:'pointer' }}>
                   Guardar tarea
                 </button>
@@ -452,6 +456,11 @@ END:VCALENDAR`
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:500, color:vencida?'oklch(0.45 0.08 20)':'var(--ink)' }}>{t.titulo}</div>
                       {t.descripcion && <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:2 }}>{t.descripcion}</div>}
+                    {t.propiedad_id && propiedades.find((p:any)=>p.id===t.propiedad_id) && (
+                      <div style={{ fontSize:10, color:'var(--accent)', marginTop:2 }}>
+                        🏠 {(propiedades.find((p:any)=>p.id===t.propiedad_id) as any)?.titulo}
+                      </div>
+                    )}
                     </div>
                     <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
                       <span style={{ fontSize:10, fontWeight:600, color:prioColor }}>{t.prioridad.toUpperCase()}</span>
