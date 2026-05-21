@@ -1,6 +1,7 @@
 'use client'
 // @ts-nocheck
 import { useEffect, useState } from 'react'
+import { VisitaForm } from '@/components/visitas/VisitaForm'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '@/lib/context/AuthContext'
 import { OfertaForm } from '@/components/ofertas/OfertaForm'
@@ -306,6 +307,9 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                       />
                     </div>
                   )}
+                  <button onClick={() => setVisitaOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'var(--accent)',color:'white',border:'none',fontSize:13,fontWeight:500,cursor:'pointer',width:'100%',marginBottom:6}}>
+                    <span>📅</span> Agendar visita
+                  </button>
                   <a href={'https://wa.me/50688226436?text=Hola, me interesa la propiedad '+propiedad.titulo} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'#22c55e',color:'white',fontSize:13,fontWeight:500,textDecoration:'none'}}>
                     <span>💬</span> Contactar por WhatsApp
                   </a>
@@ -353,6 +357,35 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
           onClose={() => setOfertaOpen(false)}
           onSuccess={() => { setOfertaOpen(false); setOfertaExito(true) }}
         />
+      )}
+
+      {visitaOpen && propiedad && (
+        <>
+          <div onClick={() => setVisitaOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:200,backdropFilter:'blur(4px)'}}/>
+          <div style={{position:'fixed',top:'50%',left:'50%',transform:'translate(-50%,-50%)',zIndex:201,background:'white',borderRadius:16,padding:'28px',width:'90%',maxWidth:500,boxShadow:'0 24px 80px rgba(0,0,0,0.2)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:20}}>
+              <h3 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:400}}>Agendar visita</h3>
+              <button onClick={() => setVisitaOpen(false)} style={{width:32,height:32,borderRadius:'50%',border:'1px solid var(--rule)',background:'transparent',fontSize:16,cursor:'pointer'}}>×</button>
+            </div>
+            {visitaExito ? (
+              <div style={{textAlign:'center',padding:'20px 0'}}>
+                <div style={{fontSize:48,marginBottom:12}}>✅</div>
+                <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,marginBottom:8}}>Solicitud enviada</div>
+                <p style={{fontSize:14,color:'var(--ink-3)',lineHeight:1.7,marginBottom:20}}>El asesor recibirá tu solicitud y te confirmará la visita por WhatsApp en las próximas horas.</p>
+                <button onClick={() => { setVisitaOpen(false); setVisitaExito(false) }} style={{padding:'10px 24px',borderRadius:999,background:'var(--ink)',color:'white',border:'none',fontSize:14,cursor:'pointer'}}>Cerrar</button>
+              </div>
+            ) : (
+              <VisitaForm
+                propiedadId={propiedad.id}
+                propiedadTitulo={propiedad.titulo}
+                asesorEmail={propiedad.asesor_email || ''}
+                asesorWhatsapp={propiedad.asesor_whatsapp || ''}
+                onClose={() => setVisitaOpen(false)}
+                onSuccess={() => setVisitaExito(true)}
+              />
+            )}
+          </div>
+        </>
       )}
     </main>
   )

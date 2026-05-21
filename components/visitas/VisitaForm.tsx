@@ -45,9 +45,9 @@ export function VisitaForm({ propiedadId, propiedadTitulo, asesorEmail, asesorWh
     // Notify both parties immediately
     const fechaFmt = new Date(form.fecha + 'T12:00:00').toLocaleDateString('es-CR', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
     
-    const msgAsesor = `📅 *Visita agendada NIDO*\n\nPropiedad: ${propiedadTitulo}\nComprador: ${form.comprador_nombre}\nTeléfono: ${form.comprador_telefono}\nFecha: ${fechaFmt}\nHora: ${form.hora}\nTipo: ${form.tipo === 'virtual' ? 'Virtual' : 'Presencial'}${form.notas ? '\nNotas: ' + form.notas : ''}`
+    const msgAsesor = `📅 *Solicitud de visita NIDO*\n\nPropiedad: ${propiedadTitulo}\nComprador: ${form.comprador_nombre}\nTeléfono: ${form.comprador_telefono}\nFecha: ${fechaFmt}\nHora: ${form.hora}\nTipo: ${form.tipo === 'virtual' ? 'Virtual' : 'Presencial'}${form.notas ? '\nNotas: ' + form.notas : ''}`
     
-    const msgComprador = `🏠 *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${propiedadTitulo}\nFecha: ${fechaFmt}\nHora: ${form.hora}\nTipo: ${form.tipo === 'virtual' ? 'Virtual — recibirás el link' : 'Presencial'}\n\nTe enviaremos un recordatorio 24 horas antes.`
+    const msgComprador = `🏠 *Solicitud de visita recibida NIDO*\n\nRecibimos tu solicitud de visita:\n\nPropiedad: ${propiedadTitulo}\nFecha: ${fechaFmt}\nHora: ${form.hora}\nTipo: ${form.tipo === 'virtual' ? 'Virtual — recibirás el link' : 'Presencial'}\n\nEl asesor la confirmará en las próximas horas.`
 
     await Promise.all([
       asesorWhatsapp ? fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: asesorWhatsapp, message: msgAsesor }) }) : Promise.resolve(),
