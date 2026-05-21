@@ -7,6 +7,7 @@ interface Lead {
   id: string; nombre: string; email: string; telefono: string
   mensaje: string; zona_interes: string; presupuesto: string
   tipo_busqueda: string; estado: string; created_at: string
+  propiedad_id?: string; propiedad_titulo?: string; propiedad?: string
 }
 
 const ESTADOS = ['todos','nuevo','contactado','interesado','visita','oferta','cerrado','perdido']
