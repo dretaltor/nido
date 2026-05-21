@@ -318,7 +318,8 @@ export default function Dashboard() {
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {visitas.slice(0,5).map((v:any) => {
                 const isPendiente = v.estado === 'pendiente'
-                const fechaEvento = v.fecha ? new Date(v.fecha + 'T' + (v.hora || '10:00') + ':00') : new Date()
+                const rawFecha = v.fecha && v.hora ? v.fecha + 'T' + v.hora + ':00' : v.fecha ? v.fecha + 'T10:00:00' : null
+                const fechaEvento = rawFecha ? new Date(rawFecha) : new Date()
                 const googleCal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Visita propiedad NIDO: '+v.propiedad_titulo)}&dates=${fechaEvento.toISOString().replace(/[-:]/g,'').split('.')[0]}Z/${new Date(fechaEvento.getTime()+3600000).toISOString().replace(/[-:]/g,'').split('.')[0]}Z&details=${encodeURIComponent('Comprador: '+v.comprador_nombre+' | Tel: '+v.comprador_telefono)}&location=${encodeURIComponent(v.propiedad_titulo)}`
                 const appleCal = `data:text/calendar;charset=utf8,BEGIN:VCALENDAR
 VERSION:2.0
