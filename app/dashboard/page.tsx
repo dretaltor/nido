@@ -37,6 +37,24 @@ const CSS = `
   @media(max-width:768px) { .dash-grid { grid-template-columns:1fr!important; } .sidebar { display:none!important; } .nav-pad { padding:14px 16px!important; } }
 `
 
+
+const safeDate = (dateStr: string | null | undefined, timeStr?: string): Date => {
+  try {
+    if (!dateStr) return new Date()
+    const dt = timeStr ? dateStr + 'T' + timeStr + ':00' : dateStr + 'T12:00:00'
+    const d = new Date(dt)
+    return isNaN(d.getTime()) ? new Date() : d
+  } catch { return new Date() }
+}
+const safeFmt = (dateStr: string | null | undefined, opts: any): string => {
+  try {
+    if (!dateStr) return ''
+    const d = new Date(dateStr + 'T12:00:00')
+    if (isNaN(d.getTime())) return ''
+    return d.toLocaleDateString('es-CR', opts)
+  } catch { return '' }
+}
+
 export default function Dashboard() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -318,8 +336,7 @@ export default function Dashboard() {
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
               {visitas.slice(0,5).map((v:any) => {
                 const isPendiente = v.estado === 'pendiente'
-                const rawFecha = v.fecha && v.hora ? v.fecha + 'T' + v.hora + ':00' : v.fecha ? v.fecha + 'T10:00:00' : null
-                const fechaEvento = rawFecha ? new Date(rawFecha) : new Date()
+                const fechaEvento = safeDate(v.fecha, v.hora)
                 const googleCal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Visita propiedad NIDO: '+v.propiedad_titulo)}&dates=${fechaEvento.toISOString().replace(/[-:]/g,'').split('.')[0]}Z/${new Date(fechaEvento.getTime()+3600000).toISOString().replace(/[-:]/g,'').split('.')[0]}Z&details=${encodeURIComponent('Comprador: '+v.comprador_nombre+' | Tel: '+v.comprador_telefono)}&location=${encodeURIComponent(v.propiedad_titulo)}`
                 const appleCal = `data:text/calendar;charset=utf8,BEGIN:VCALENDAR
 VERSION:2.0
@@ -338,7 +355,7 @@ END:VCALENDAR`
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:13, fontWeight:500, marginBottom:2 }}>{v.propiedad_titulo}</div>
                       <div style={{ fontSize:11, color:'var(--ink-3)' }}>
-                        {v.comprador_nombre} · {v.comprador_telefono} · {v.fecha ? new Date(v.fecha+'T12:00:00').toLocaleDateString('es-CR',{weekday:'short',month:'short',day:'numeric'}) : ''} {v.hora}
+                        {v.comprador_nombre} · {v.comprador_telefono} · {safeFmt(v.fecha, {weekday:'short',month:'short',day:'numeric'})} {v.hora}
                       </div>
                     </div>
                     <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
@@ -348,7 +365,7 @@ END:VCALENDAR`
                           setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'confirmada'} : x))
                           // Notify comprador
                           if (v.comprador_telefono) {
-                            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `✅ *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${v.propiedad_titulo}\nFecha: ${v.fecha ? new Date(v.fecha+'T12:00:00').toLocaleDateString('es-CR',{weekday:'long',month:'long',day:'numeric'}) : ''}\nHora: ${v.hora}\nTipo: ${v.tipo === 'virtual' ? 'Virtual' : 'Presencial'}\n\nTe enviaremos un recordatorio el día antes. 🏠` }) }).catch(()=>{})
+                            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `✅ *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${v.propiedad_titulo}\nFecha: ${safeFmt(v.fecha, {weekday:'long',month:'long',day:'numeric'})}\nHora: ${v.hora}\nTipo: ${v.tipo === 'virtual' ? 'Virtual' : 'Presencial'}\n\nTe enviaremos un recordatorio el día antes. 🏠` }) }).catch(()=>{})
                           }
                         }} style={{ padding:'6px 12px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:11, fontWeight:500, cursor:'pointer' }}>
                           Confirmar
@@ -438,7 +455,7 @@ END:VCALENDAR`
                     </div>
                     <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
                       <span style={{ fontSize:10, fontWeight:600, color:prioColor }}>{t.prioridad.toUpperCase()}</span>
-                      {t.fecha_vencimiento && <span style={{ fontSize:11, color:vencida?'oklch(0.45 0.08 20)':'var(--ink-3)' }}>{t.fecha_vencimiento ? new Date(t.fecha_vencimiento+'T12:00:00').toLocaleDateString('es-CR',{month:'short',day:'numeric'}) : ''}</span>}
+                      {t.fecha_vencimiento && <span style={{ fontSize:11, color:vencida?'oklch(0.45 0.08 20)':'var(--ink-3)' }}>{safeFmt(t.fecha_vencimiento, {month:'short',day:'numeric'})}</span>}
                     </div>
                   </div>
                 )
