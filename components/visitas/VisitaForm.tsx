@@ -27,7 +27,7 @@ export function VisitaForm({ propiedadId, propiedadTitulo, asesorEmail, asesorWh
     setLoading(true); setError('')
 
     const { error: err } = await supabase.from('visitas').insert({
-      propiedad_id: propiedadId,
+      propiedad_id: propiedadId || null,
       propiedad_titulo: propiedadTitulo,
       asesor_email: asesorEmail,
       asesor_whatsapp: asesorWhatsapp,
@@ -40,7 +40,7 @@ export function VisitaForm({ propiedadId, propiedadTitulo, asesorEmail, asesorWh
       notas: form.notas,
     })
 
-    if (err) { setError('Error al agendar.'); setLoading(false); return }
+    if (err) { console.error('Visita error:', err); setError('Error al agendar: ' + err.message); setLoading(false); return }
 
     // Notify both parties immediately
     const fechaFmt = new Date(form.fecha + 'T12:00:00').toLocaleDateString('es-CR', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
