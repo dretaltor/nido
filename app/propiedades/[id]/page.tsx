@@ -347,6 +347,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
           propiedadRef={propiedad.ref_id}
           propiedadPrecio={propiedad.precio}
           propiedadAsesorEmail={propiedad.asesor_email}
+          propiedadAsesorWhatsapp={propiedad.asesor_whatsapp}
           asesorEmail={userEmail}
           asesorNombre={userNombre}
           onClose={() => setOfertaOpen(false)}

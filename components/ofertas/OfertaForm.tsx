@@ -8,13 +8,15 @@ interface OfertaFormProps {
   propiedadRef?: string
   propiedadPrecio: number
   propiedadAsesorEmail: string
+  propiedadAsesorWhatsapp?: string
   asesorEmail: string
+  asesorWhatsapp?: string
   asesorNombre: string
   onClose: () => void
   onSuccess: () => void
 }
 
-export function OfertaForm({ propiedadId, propiedadTitulo, propiedadRef, propiedadPrecio, propiedadAsesorEmail, asesorEmail, asesorNombre, onClose, onSuccess }: OfertaFormProps) {
+export function OfertaForm({ propiedadId, propiedadTitulo, propiedadRef, propiedadPrecio, propiedadAsesorEmail, propiedadAsesorWhatsapp, asesorEmail, asesorNombre, asesorWhatsapp, onClose, onSuccess }: OfertaFormProps) {sesorEmail, asesorEmail, asesorNombre, onClose, onSuccess }: OfertaFormProps) {
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -70,6 +72,7 @@ export function OfertaForm({ propiedadId, propiedadTitulo, propiedadRef, propied
           valor_oferta: form.valor_oferta,
           tipo_compra: form.tipo_compra,
           condiciones: form.condiciones,
+          asesor_whatsapp: propiedadAsesorWhatsapp || asesorWhatsapp,
         }
       })
     })
