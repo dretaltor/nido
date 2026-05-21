@@ -48,6 +48,10 @@ export default function Dashboard() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const [valeriaPerfil, setValeraPerfilDash] = useState<any>(null)
   const [calificacion, setCalificacion] = useState<any>(null)
+  const [visitas, setVisitas] = useState<any[]>([])
+  const [tareas, setTareas] = useState<any[]>([])
+  const [nuevaTarea, setNuevaTarea] = useState(false)
+  const [formTarea, setFormTarea] = useState({ titulo:'', descripcion:'', prioridad:'media', fecha_vencimiento:'' })
   const [tourActivo, setTourActivo] = useState(false)
   const [tourPaso, setTourPaso] = useState(0)
   const [updatingOferta, setUpdatingOferta] = useState(false)
@@ -89,6 +93,10 @@ export default function Dashboard() {
         setOfertas(ofertasData || [])
         // Check onboarding status
         supabase.from('perfiles').select('valeria_onboarding_completo,cedula_frente_url,foto_url').eq('id', user.id).maybeSingle().then(({data}) => setValeraPerfilDash(data))
+        // Load visitas
+        supabase.from('visitas').select('*').eq('asesor_email', user.email).order('fecha', { ascending: true }).then(({ data }) => setVisitas(data || []))
+        // Load tareas
+        supabase.from('tareas').select('*').eq('asesor_email', user.email).order('fecha_vencimiento', { ascending: true }).then(({ data }) => setTareas(data || []))
         // Load real rating
         supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', user.email).maybeSingle().then(({data}) => { if(data) setCalificacion(data) })
         // Tour primer ingreso
@@ -294,6 +302,149 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+
+
+        {/* VISITAS */}
+        <div style={{ marginBottom:24 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400 }}>Visitas agendadas</h2>
+            <span style={{ fontSize:12, color:'var(--ink-3)' }}>{visitas.filter((v:any)=>v.estado==='pendiente').length} pendientes de confirmar</span>
+          </div>
+          {visitas.length === 0 ? (
+            <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'24px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>
+              No tenés visitas agendadas aún.
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+              {visitas.slice(0,5).map((v:any) => {
+                const isPendiente = v.estado === 'pendiente'
+                const fechaEvento = new Date(v.fecha + 'T' + (v.hora || '10:00') + ':00')
+                const googleCal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Visita propiedad NIDO: '+v.propiedad_titulo)}&dates=${fechaEvento.toISOString().replace(/[-:]/g,'').split('.')[0]}Z/${new Date(fechaEvento.getTime()+3600000).toISOString().replace(/[-:]/g,'').split('.')[0]}Z&details=${encodeURIComponent('Comprador: '+v.comprador_nombre+' | Tel: '+v.comprador_telefono)}&location=${encodeURIComponent(v.propiedad_titulo)}`
+                const appleCal = `data:text/calendar;charset=utf8,BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+SUMMARY:Visita NIDO: ${v.propiedad_titulo}
+DTSTART:${fechaEvento.toISOString().replace(/[-:]/g,'').split('.')[0]}Z
+DTEND:${new Date(fechaEvento.getTime()+3600000).toISOString().replace(/[-:]/g,'').split('.')[0]}Z
+DESCRIPTION:Comprador: ${v.comprador_nombre}
+END:VEVENT
+END:VCALENDAR`
+                return (
+                  <div key={v.id} style={{ background:'white', border:'1px solid '+(isPendiente?'oklch(0.85 0.05 80)':'var(--rule)'), borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14 }}>
+                    <div style={{ width:44, height:44, borderRadius:10, background:isPendiente?'oklch(0.93 0.05 80)':'var(--accent-tint)', display:'grid', placeItems:'center', fontSize:20, flexShrink:0 }}>
+                      📅
+                    </div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:500, marginBottom:2 }}>{v.propiedad_titulo}</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)' }}>
+                        {v.comprador_nombre} · {v.comprador_telefono} · {new Date(v.fecha+'T12:00:00').toLocaleDateString('es-CR',{weekday:'short',month:'short',day:'numeric'})} {v.hora}
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
+                      {isPendiente && (
+                        <button onClick={async () => {
+                          await supabase.from('visitas').update({ estado:'confirmada' }).eq('id', v.id)
+                          setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'confirmada'} : x))
+                          // Notify comprador
+                          if (v.comprador_telefono) {
+                            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `✅ *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${v.propiedad_titulo}\nFecha: ${new Date(v.fecha+'T12:00:00').toLocaleDateString('es-CR',{weekday:'long',month:'long',day:'numeric'})}\nHora: ${v.hora}\nTipo: ${v.tipo === 'virtual' ? 'Virtual' : 'Presencial'}\n\nTe enviaremos un recordatorio el día antes. 🏠` }) }).catch(()=>{})
+                          }
+                        }} style={{ padding:'6px 12px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:11, fontWeight:500, cursor:'pointer' }}>
+                          Confirmar
+                        </button>
+                      )}
+                      {v.estado === 'confirmada' && (
+                        <div style={{ position:'relative' }}>
+                          <details style={{ listStyle:'none' }}>
+                            <summary style={{ padding:'6px 12px', borderRadius:999, background:'var(--bg)', border:'1px solid var(--rule)', fontSize:11, cursor:'pointer', listStyle:'none' }}>
+                              📆 Agregar al calendario
+                            </summary>
+                            <div style={{ position:'absolute', right:0, top:'100%', marginTop:4, background:'white', border:'1px solid var(--rule)', borderRadius:10, padding:'8px', zIndex:10, minWidth:180, boxShadow:'0 4px 16px rgba(0,0,0,0.1)' }}>
+                              <a href={googleCal} target="_blank" style={{ display:'block', padding:'8px 12px', fontSize:12, color:'var(--ink)', textDecoration:'none', borderRadius:6 }}>🗓 Google Calendar</a>
+                              <a href={appleCal} download="visita-nido.ics" style={{ display:'block', padding:'8px 12px', fontSize:12, color:'var(--ink)', textDecoration:'none', borderRadius:6 }}>📱 Apple / iPhone</a>
+                              <a href={appleCal} download="visita-nido.ics" style={{ display:'block', padding:'8px 12px', fontSize:12, color:'var(--ink)', textDecoration:'none', borderRadius:6 }}>🤖 Android</a>
+                            </div>
+                          </details>
+                        </div>
+                      )}
+                      <span style={{ padding:'3px 10px', borderRadius:999, fontSize:10, fontWeight:500, background:v.estado==='confirmada'?'var(--accent-tint)':v.estado==='pendiente'?'oklch(0.93 0.05 80)':'var(--bg)', color:v.estado==='confirmada'?'var(--accent)':v.estado==='pendiente'?'oklch(0.45 0.08 80)':'var(--ink-3)' }}>
+                        {v.estado}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* TAREAS */}
+        <div style={{ marginBottom:24 }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400 }}>Tareas</h2>
+            <button onClick={() => setNuevaTarea(true)} style={{ padding:'6px 14px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:12, fontWeight:500, cursor:'pointer' }}>+ Nueva tarea</button>
+          </div>
+
+          {nuevaTarea && (
+            <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'20px', marginBottom:12 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10 }}>
+                <input placeholder="Título de la tarea *" value={formTarea.titulo} onChange={e => setFormTarea(p=>({...p,titulo:e.target.value}))} style={{ padding:'9px 12px', border:'1px solid var(--rule)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', outline:'none', gridColumn:'1/-1' }}/>
+                <input placeholder="Descripción (opcional)" value={formTarea.descripcion} onChange={e => setFormTarea(p=>({...p,descripcion:e.target.value}))} style={{ padding:'9px 12px', border:'1px solid var(--rule)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', outline:'none', gridColumn:'1/-1' }}/>
+                <select value={formTarea.prioridad} onChange={e => setFormTarea(p=>({...p,prioridad:e.target.value}))} style={{ padding:'9px 12px', border:'1px solid var(--rule)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', outline:'none' }}>
+                  <option value="alta">🔴 Alta</option>
+                  <option value="media">🟡 Media</option>
+                  <option value="baja">🟢 Baja</option>
+                </select>
+                <input type="date" value={formTarea.fecha_vencimiento} onChange={e => setFormTarea(p=>({...p,fecha_vencimiento:e.target.value}))} style={{ padding:'9px 12px', border:'1px solid var(--rule)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', outline:'none' }}/>
+              </div>
+              <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
+                <button onClick={() => setNuevaTarea(false)} style={{ padding:'8px 16px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:12, cursor:'pointer' }}>Cancelar</button>
+                <button onClick={async () => {
+                  if (!formTarea.titulo) return
+                  const { data: u } = await supabase.auth.getUser()
+                  await supabase.from('tareas').insert({ asesor_email: u.user?.email, titulo: formTarea.titulo, descripcion: formTarea.descripcion, prioridad: formTarea.prioridad, fecha_vencimiento: formTarea.fecha_vencimiento || null })
+                  const { data } = await supabase.from('tareas').select('*').eq('asesor_email', u.user?.email).order('fecha_vencimiento', { ascending: true })
+                  setTareas(data || [])
+                  setNuevaTarea(false)
+                  setFormTarea({ titulo:'', descripcion:'', prioridad:'media', fecha_vencimiento:'' })
+                }} style={{ padding:'8px 16px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:12, fontWeight:500, cursor:'pointer' }}>
+                  Guardar tarea
+                </button>
+              </div>
+            </div>
+          )}
+
+          {tareas.length === 0 && !nuevaTarea ? (
+            <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'24px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>
+              No tenés tareas pendientes. ¡Todo al día! ✓
+            </div>
+          ) : (
+            <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+              {tareas.filter((t:any)=>t.estado!=='completada').map((t:any) => {
+                const vencida = t.fecha_vencimiento && new Date(t.fecha_vencimiento) < new Date()
+                const prioColor = t.prioridad==='alta'?'oklch(0.55 0.08 20)':t.prioridad==='media'?'oklch(0.55 0.08 80)':'oklch(0.55 0.06 150)'
+                return (
+                  <div key={t.id} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:10, padding:'12px 16px', display:'flex', alignItems:'center', gap:12 }}>
+                    <button onClick={async () => {
+                      await supabase.from('tareas').update({ estado:'completada' }).eq('id', t.id)
+                      setTareas(prev => prev.filter((x:any) => x.id !== t.id))
+                    }} style={{ width:20, height:20, borderRadius:4, border:'2px solid var(--rule)', background:'transparent', cursor:'pointer', flexShrink:0, display:'grid', placeItems:'center' }}>
+                      <span style={{ fontSize:10 }}></span>
+                    </button>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:13, fontWeight:500, color:vencida?'oklch(0.45 0.08 20)':'var(--ink)' }}>{t.titulo}</div>
+                      {t.descripcion && <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:2 }}>{t.descripcion}</div>}
+                    </div>
+                    <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
+                      <span style={{ fontSize:10, fontWeight:600, color:prioColor }}>{t.prioridad.toUpperCase()}</span>
+                      {t.fecha_vencimiento && <span style={{ fontSize:11, color:vencida?'oklch(0.45 0.08 20)':'var(--ink-3)' }}>{new Date(t.fecha_vencimiento+'T12:00:00').toLocaleDateString('es-CR',{month:'short',day:'numeric'})}</span>}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
         {/* Módulos rápidos */}
         <div style={{ marginBottom:16 }}>
