@@ -56,7 +56,7 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
         </div>
         <div style={{ position: 'absolute', top: 12, left: 12 }}>
           <span style={{ background: p.operacion === 'alquiler' ? 'var(--ink)' : 'var(--accent)', color: 'white', padding: '4px 10px', borderRadius: 999, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-            {p.operacion === 'alquiler' ? 'Alquiler' : 'Venta'}
+            {'Venta'}
           </span>
         </div>
         <button onClick={e => { e.stopPropagation(); onFav() }} style={{ position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: '50%', background: 'white', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', color: fav ? '#e11d48' : 'var(--ink-3)' }}>
@@ -281,7 +281,7 @@ export default function Propiedades() {
         <div className="header-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', maxWidth: 1600, margin: '0 auto' }}>
           <a href="/" style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 500 }}>NIDO<span style={{ color: 'var(--accent)' }}>.</span></a>
           <nav className="header-nav" style={{ display: 'flex', gap: 24, fontSize: 13, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>
-            <a href="/propiedades" style={{ borderBottom: '1px solid var(--ink)', color: 'var(--ink)', paddingBottom: 2 }}>Comprar</a>
+            <a href="/propiedades" style={{ borderBottom: '1px solid var(--ink)', color: 'var(--ink)', paddingBottom: 2 }}>Ver propiedades</a>
             <a href="/propiedades">Alquilar</a>
             <a href="/nosotros">Nosotros</a>
             <a href="/asesores">Asesores</a>
@@ -330,9 +330,8 @@ export default function Propiedades() {
           <div className="search-field" style={{ padding: '10px 20px', borderRight: '1px solid var(--rule-soft)' }}>
             <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 3 }}>Operación</div>
             <select value={query.op} onChange={e => setQuery({ ...query, op: e.target.value })} style={{ background: 'transparent', border: 0, outline: 'none', width: '100%', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', appearance: 'none' }}>
-              <option value="todo">Comprar o alquilar</option>
-              <option value="venta">Comprar</option>
-              <option value="alquiler">Alquilar</option>
+              <option value="todo">Todas las propiedades</option>
+              <option value="venta">En venta</option>
             </select>
           </div>
           <div style={{ padding: '10px 20px' }}>
@@ -365,7 +364,7 @@ export default function Propiedades() {
         ))}
         <span style={{ width: 1, height: 18, background: 'var(--rule)', margin: '0 4px', flexShrink: 0 }} />
         <button className={'chip' + (query.op === 'venta' ? ' active' : '')} onClick={() => setQuery({...query, op: query.op === 'venta' ? 'todo' : 'venta'})}>En venta</button>
-        <button className={'chip' + (query.op === 'alquiler' ? ' active' : '')} onClick={() => setQuery({...query, op: query.op === 'alquiler' ? 'todo' : 'alquiler'})}>En alquiler</button>
+        
         <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
           <span>{filtered.length} resultados</span>
           <select value={sort} onChange={e => setSort(e.target.value)} style={{ background: 'transparent', border: 0, borderBottom: '1px solid var(--ink)', fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink)', outline: 'none', cursor: 'pointer' }}>

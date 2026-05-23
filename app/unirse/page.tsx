@@ -68,7 +68,10 @@ export default function Unirse() {
             <a href="#precios">Precios</a>
             <a href="#testimonios">Testimonios</a>
           </div>
-          <a href="/registro" className="cta-btn" style={{padding:'10px 22px',fontSize:14}}>Empezar gratis →</a>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <a href="/login" style={{padding:'9px 20px',fontSize:14,color:'var(--ink)',border:'1px solid var(--rule)',borderRadius:999,textDecoration:'none',fontWeight:500,transition:'all 0.2s'}}>Ingresar</a>
+            <a href="/registro" className="cta-btn" style={{padding:'10px 22px',fontSize:14}}>Empezar gratis →</a>
+          </div>
         </div>
       </nav>
 

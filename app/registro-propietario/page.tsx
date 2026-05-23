@@ -23,6 +23,20 @@ export default function RegistroPropietario() {
     }
     setError('')
     setLoading(true)
+    // Verificar duplicados por cédula y correo
+    const { data: existente } = await supabase.from('propietarios')
+      .select('id,cedula,correo')
+      .or(`cedula.eq.${form.cedula},correo.eq.${form.correo}`)
+      .maybeSingle()
+    if (existente) {
+      if (existente.cedula === form.cedula) {
+        setError('Esta cédula ya está registrada. Si ya tenés cuenta, ingresá en el portal de propietarios.')
+      } else {
+        setError('Este correo ya está registrado. Intentá iniciar sesión.')
+      }
+      setLoading(false)
+      return
+    }
     try {
       const { data: { user } } = await supabase.auth.getUser()
       // Crear cuenta en Supabase Auth

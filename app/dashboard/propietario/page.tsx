@@ -61,6 +61,11 @@ export default function DashboardPropietario() {
   const initRef = useRef(false)
   const [tab, setTab] = useState('resumen')
   const [ofertasReales, setOfertasReales] = useState<any[]>([])
+  const [propiedadesReales, setPropiedadesReales] = useState<any[]>([])
+  const [leadsReales, setLeadsReales] = useState<any[]>([])
+  const [updatingOferta, setUpdatingOferta] = useState<string|null>(null)
+  const [contraModal, setContraModal] = useState<any>(null)
+  const [contraValor, setContraValor] = useState('')
   const [perfilPropietario, setPerfilPropietario] = useState<any>(null)
   const [uploadingDoc, setUploadingDoc] = useState<string|null>(null)
   const [contrato, setContrato] = useState<any>(null)
@@ -69,6 +74,27 @@ export default function DashboardPropietario() {
   const [tourPaso, setTourPaso] = useState(0)
   const [loading, setLoading] = useState(true)
   const [nombre, setNombre] = useState('')
+
+  const actualizarOferta = async (id: string, estado: string) => {
+    setUpdatingOferta(id)
+    await supabase.from('ofertas').update({ estado, updated_at: new Date().toISOString() }).eq('id', id)
+    setOfertasReales(prev => prev.map((o:any) => o.id === id ? { ...o, estado } : o))
+    setUpdatingOferta(null)
+  }
+
+  const enviarContraOferta = async () => {
+    if (!contraModal || !contraValor) return
+    setUpdatingOferta(contraModal.id)
+    await supabase.from('ofertas').update({
+      estado: 'contraoferta',
+      contraoferta_valor: parseFloat(contraValor.replace(/[^0-9.]/g,'')),
+      updated_at: new Date().toISOString()
+    }).eq('id', contraModal.id)
+    setOfertasReales(prev => prev.map((o:any) => o.id === contraModal.id ? { ...o, estado: 'contraoferta' } : o))
+    setContraModal(null)
+    setContraValor('')
+    setUpdatingOferta(null)
+  }
 
   useEffect(() => {
     if (initRef.current) return
@@ -91,10 +117,24 @@ export default function DashboardPropietario() {
           if (!tourVisto) { setTourActivo(true); localStorage.setItem('nido_tour_propietario', '1') }
         })
       supabase.from('contratos').select('*').eq('propietario_correo', user.email!).in('estado', ['activo','pendiente']).order('created_at', { ascending: false }).limit(1).maybeSingle().then(({ data: c }) => { setContrato(c); setLoadingContrato(false) })
-      supabase.from('ofertas')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .then(({ data }) => setOfertasReales(data || []))
+      // Fetch propiedades del propietario + leads + ofertas filtradas
+      supabase.from('propiedades').select('id,titulo,zona,precio,disponible,tipo,ref_id,fotos,habitaciones,banos,metros,operacion')
+        .eq('propietario_email', user.email!)
+        .then(({ data: props }) => {
+          const propsData = props || []
+          setPropiedadesReales(propsData)
+          if (propsData.length > 0) {
+            const pids = propsData.map((p:any) => p.id)
+            // Leads: solo campos no sensibles (sin email ni telefono)
+            supabase.from('leads').select('id,nombre,zona_interes,tipo_busqueda,estado,created_at,propiedad_id,mensaje')
+              .in('propiedad_id', pids).order('created_at', { ascending: false })
+              .then(({ data: leadsData }) => setLeadsReales(leadsData || []))
+            // Ofertas filtradas por propiedades del propietario
+            supabase.from('ofertas').select('*').in('propiedad_id', pids)
+              .order('created_at', { ascending: false })
+              .then(({ data: ofData }) => setOfertasReales(ofData || []))
+          }
+        })
       setLoading(false)
     })
   }, [])
@@ -119,6 +159,7 @@ export default function DashboardPropietario() {
     { id:'mercado', label:'Valor de Mercado' },
     { id:'contrato', label:'Contrato' },
     { id:'verificacion', label:'Verificación' },
+    { id:'facturacion', label:'Facturación' },
   ]
 
   return (
@@ -172,7 +213,7 @@ export default function DashboardPropietario() {
 
             {/* Resumen propiedades */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-              {PROPIEDADES_MOCK.map(p => (
+              {propiedadesReales.map(p => (
                 <div key={p.id} className="card" style={{ display:'flex', gap:0, overflow:'hidden' }}>
                   <img src={p.foto} style={{ width:100, height:'100%', objectFit:'cover', flexShrink:0 }} alt={p.titulo}/>
                   <div className="card-pad" style={{ flex:1 }}>
@@ -253,22 +294,33 @@ export default function DashboardPropietario() {
         {tab === 'leads' && (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:20 }}>Leads de compradores</h2>
+            <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.88 0.04 150)', borderRadius:10, padding:'12px 16px', marginBottom:16, fontSize:13, color:'var(--accent)' }}>
+              ℹ️ Solo ves el interés y la propiedad. Los datos de contacto son gestionados por tu asesor NIDO para proteger tu privacidad.
+            </div>
             <div className="card">
-              {LEADS_MOCK.map((l,i) => (
-                <div key={l.id} style={{ display:'flex', alignItems:'center', gap:16, padding:'18px 24px', borderBottom:i<LEADS_MOCK.length-1?'1px solid var(--rule-soft)':'none' }}>
-                  <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:18, color:'var(--accent)', flexShrink:0 }}>{l.nombre[0]}</div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>
-                      {l.nombre.split(' ').map((n:string, i:number) => i===0 ? n[0]+'.' : n).join(' ')}
+              {leadsReales.length === 0 ? (
+                <div style={{ padding:'32px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>
+                  Aún no hay consultas en tus propiedades.
+                </div>
+              ) : leadsReales.map((l:any,i:number) => {
+                const prop = propiedadesReales.find((p:any) => p.id === l.propiedad_id)
+                const inicial = (l.nombre || 'C')[0].toUpperCase()
+                const nombreCorto = (l.nombre || 'Comprador').split(' ').map((n:string, idx:number) => idx===0 ? n[0]+'.' : n).join(' ')
+                const hace = new Date(l.created_at)
+                const diff = Math.floor((Date.now()-hace.getTime())/(1000*3600))
+                const cuandoFue = diff < 1 ? 'Hace menos de 1h' : diff < 24 ? `Hace ${diff}h` : `Hace ${Math.floor(diff/24)} día${Math.floor(diff/24)>1?'s':''}`
+                return (
+                  <div key={l.id} style={{ display:'flex', alignItems:'center', gap:16, padding:'18px 24px', borderBottom:i<leadsReales.length-1?'1px solid var(--rule-soft)':'none' }}>
+                    <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:18, color:'var(--accent)', flexShrink:0 }}>{inicial}</div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{nombreCorto}</div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>{prop?.titulo || 'Tu propiedad'} · {l.tipo_busqueda || l.zona_interes || 'Interesado'} · {cuandoFue}</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:4, fontStyle:'italic' }}>Contacto gestionado por tu asesor NIDO</div>
                     </div>
-                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{l.propiedad} · {l.interes} · {l.fecha}</div>
-                    <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:4, fontStyle:'italic' }}>Contacto gestionado por tu asesor NIDO</div>
-                  </div>
-                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
                     <span className="badge" style={{ background:l.estado==='nuevo'?'oklch(0.93 0.03 240)':l.estado==='contactado'?'var(--accent-tint)':'oklch(0.93 0.05 80)', color:l.estado==='nuevo'?'oklch(0.35 0.08 240)':l.estado==='contactado'?'var(--accent)':'oklch(0.45 0.08 80)' }}>{l.estado}</span>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
@@ -379,14 +431,14 @@ export default function DashboardPropietario() {
                   {/* Acciones */}
                   {o.estado === 'pendiente' && (
                     <div style={{ padding:'14px 20px', display:'flex', gap:10, background:'var(--bg-elev)' }}>
-                      <button style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:13, cursor:'pointer', fontWeight:500 }}>
-                        ✓ Aceptar oferta
+                      <button onClick={() => { if(window.confirm('¿Aceptar esta oferta de $'+Number(o.valor_oferta||0).toLocaleString()+'?')) actualizarOferta(o.id,'aceptada') }} disabled={updatingOferta===o.id} style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:13, cursor:'pointer', fontWeight:500, opacity:updatingOferta===o.id?0.6:1 }}>
+                        {updatingOferta===o.id ? '...' : '✓ Aceptar oferta'}
                       </button>
-                      <button style={{ flex:1, padding:'10px', borderRadius:999, background:'transparent', color:'var(--ink-3)', border:'1px solid var(--rule)', fontSize:13, cursor:'pointer' }}>
+                      <button onClick={() => { if(window.confirm('¿Rechazar esta oferta?')) actualizarOferta(o.id,'rechazada') }} disabled={updatingOferta===o.id} style={{ flex:1, padding:'10px', borderRadius:999, background:'transparent', color:'var(--ink-3)', border:'1px solid var(--rule)', fontSize:13, cursor:'pointer', opacity:updatingOferta===o.id?0.6:1 }}>
                         ✗ Rechazar
                       </button>
-                      <button style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, cursor:'pointer' }}>
-                        ↩ Contra oferta
+                      <button onClick={() => { setContraModal(o); setContraValor('') }} disabled={updatingOferta===o.id} style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, cursor:'pointer', opacity:updatingOferta===o.id?0.6:1 }}>
+                        ↩ Contraoferta
                       </button>
                     </div>
                   )}
@@ -708,6 +760,114 @@ export default function DashboardPropietario() {
         )}
 
       </div>
-    </main>
+    
+        {/* FACTURACIÓN */}
+        {tab === 'facturacion' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>Facturación</h2>
+            <p style={{ fontSize:13, color:'var(--ink-3)', marginBottom:24 }}>Tu plan y contrato activo con NIDO.</p>
+            {loadingContrato ? (
+              <p style={{ color:'var(--ink-3)', fontSize:14 }}>Cargando...</p>
+            ) : !contrato ? (
+              <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.88 0.04 150)', borderRadius:14, padding:'28px', textAlign:'center' }}>
+                <div style={{ fontFamily:'var(--serif)', fontSize:22, fontWeight:400, marginBottom:8 }}>Sin contrato activo</div>
+                <p style={{ fontSize:14, color:'var(--ink-3)', marginBottom:20 }}>Firmá un contrato para activar tu facturación.</p>
+                <a href="/dashboard/propietario/contrato" style={{ display:'inline-block', padding:'12px 28px', borderRadius:999, background:'var(--accent)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>Firmar contrato →</a>
+              </div>
+            ) : (() => {
+              const inicio = contrato.fecha_inicio ? new Date(contrato.fecha_inicio+'T12:00:00') : null
+              const venc = contrato.fecha_vencimiento ? new Date(contrato.fecha_vencimiento+'T12:00:00') : null
+              const hoy = new Date()
+              const diasRestantes = venc ? Math.max(0, Math.ceil((venc.getTime()-hoy.getTime())/(1000*3600*24))) : null
+              const totalDias = contrato.periodo_dias || (contrato.tipo==='exclusividad' ? 90 : 30)
+              const progreso = diasRestantes !== null ? Math.round(((totalDias-diasRestantes)/totalDias)*100) : 0
+              return (
+                <div>
+                  <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:14, padding:'24px 28px', marginBottom:16 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20, flexWrap:'wrap', gap:12 }}>
+                      <div>
+                        <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--ink-3)', marginBottom:4 }}>Tipo de contrato</div>
+                        <div style={{ fontFamily:'var(--serif)', fontSize:22, fontWeight:400, color:'var(--ink)' }}>
+                          {contrato.tipo === 'exclusividad' ? 'Exclusividad 90 días' : 'Mensual'}
+                        </div>
+                      </div>
+                      <span style={{ padding:'6px 16px', borderRadius:999, fontSize:12, fontWeight:500, background:contrato.estado==='activo'?'var(--accent-tint)':'oklch(0.93 0.05 80)', color:contrato.estado==='activo'?'var(--accent)':'oklch(0.45 0.08 80)' }}>
+                        {contrato.estado === 'activo' ? '✓ Activo' : '⏳ En revisión'}
+                      </span>
+                    </div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:20 }}>
+                      {[
+                        { label:'Comisión acordada', val: (contrato.comision_porcentaje||4)+'% al cerrar' },
+                        { label:'Inicio', val: inicio ? inicio.toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'}) : '—' },
+                        { label:'Vencimiento', val: venc ? venc.toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'}) : '—' },
+                      ].map(m => (
+                        <div key={m.label} style={{ background:'var(--bg)', borderRadius:10, padding:'14px 16px' }}>
+                          <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--ink-3)', marginBottom:6 }}>{m.label}</div>
+                          <div style={{ fontSize:15, fontWeight:500 }}>{m.val}</div>
+                        </div>
+                      ))}
+                    </div>
+                    {diasRestantes !== null && (
+                      <div>
+                        <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
+                          <span style={{ fontSize:12, color:'var(--ink-3)' }}>Tiempo transcurrido</span>
+                          <span style={{ fontSize:12, fontWeight:500, color: diasRestantes < 15 ? 'oklch(0.52 0.12 30)' : 'var(--accent)' }}>
+                            {diasRestantes} días restantes
+                          </span>
+                        </div>
+                        <div style={{ height:6, background:'var(--rule)', borderRadius:999, overflow:'hidden' }}>
+                          <div style={{ height:'100%', width:progreso+'%', background: diasRestantes < 15 ? 'oklch(0.52 0.12 30)' : 'var(--accent)', borderRadius:999, transition:'width 0.6s ease' }}/>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  {contrato.firma_url && (
+                    <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'18px 24px', display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap' }}>
+                      <div>
+                        <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--ink-3)', marginBottom:4 }}>Documento firmado</div>
+                        <div style={{ fontSize:14, fontWeight:500 }}>Contrato de corretaje · {contrato.firma_tipo === 'digital' ? 'Firma digital GAUDI' : 'Firma física'}</div>
+                      </div>
+                      <a href={contrato.firma_url} target="_blank" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>
+                        📄 Ver documento
+                      </a>
+                    </div>
+                  )}
+                  {contrato.tipo === 'mensual' && contrato.precio_mensual && (
+                    <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.88 0.04 150)', borderRadius:12, padding:'18px 24px', marginTop:12 }}>
+                      <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--accent)', marginBottom:4 }}>Suscripción mensual</div>
+                      <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--accent)' }}>${contrato.precio_mensual}<span style={{ fontSize:14, fontWeight:400 }}>/mes</span></div>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+        )}
+
+
+      {/* Modal contraoferta */}
+      {contraModal && (
+        <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+          <div style={{ background:'white', borderRadius:16, padding:32, maxWidth:420, width:'100%' }}>
+            <h3 style={{ fontFamily:'var(--serif)', fontSize:22, fontWeight:400, marginBottom:8 }}>Enviar contraoferta</h3>
+            <p style={{ fontSize:13, color:'var(--ink-3)', marginBottom:20 }}>Oferta original: <strong>${Number(contraModal.valor_oferta||0).toLocaleString()}</strong></p>
+            <label style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Tu contraoferta (USD)</label>
+            <input
+              type="number"
+              value={contraValor}
+              onChange={e => setContraValor(e.target.value)}
+              placeholder="Ej: 350000"
+              style={{ width:'100%', padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, fontSize:15, marginBottom:20, fontFamily:'var(--sans)', outline:'none' }}
+            />
+            <div style={{ display:'flex', gap:10 }}>
+              <button onClick={() => { setContraModal(null); setContraValor('') }} style={{ flex:1, padding:'12px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:14, cursor:'pointer' }}>Cancelar</button>
+              <button onClick={enviarContraOferta} disabled={!contraValor || updatingOferta===contraModal.id} style={{ flex:1, padding:'12px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:14, fontWeight:500, cursor:'pointer', opacity:(!contraValor||updatingOferta===contraModal.id)?0.6:1 }}>
+                {updatingOferta===contraModal.id ? 'Enviando...' : 'Enviar contraoferta →'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+</main>
   )
 }

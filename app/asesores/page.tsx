@@ -1,25 +1,46 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../../lib/supabase'
 
-const AGENTS = [
-  { id:1, name:'María Quesada', role:'Asesora Senior · Valle Central', initial:'M', hue:80, region:'Valle Central', bio:'12 años acompañando familias en Escazú y Santa Ana. Especialista en condominios cerrados y propiedades sobre $500K.', listings:28, sold:142, langs:['ES','EN'], specs:['Condominios','Lujo','Familias'] },
-  { id:2, name:'Daniel Sánchez', role:'Asesor Costero · Pacífico', initial:'D', hue:50, region:'Pacífico', bio:'Surfer convertido en agente. Conoce cada calle de Santa Teresa, Mal País y Nosara.', listings:22, sold:89, langs:['ES','EN','FR'], specs:['Beachfront','Inversión','Vacacional'] },
-  { id:3, name:'Lucía Vargas', role:'Asesora Urbana · Centro', initial:'L', hue:200, region:'Valle Central', bio:'Experta en alquileres urbanos y la escena gastronómica de Escalante. Trabajó en arquitectura antes de NIDO.', listings:34, sold:76, langs:['ES','EN'], specs:['Lofts','Alquiler','Diseño'] },
-  { id:4, name:'Roberto Mata', role:'Asesor Rural · Occidente', initial:'R', hue:130, region:'Valle Occidente', bio:'Crecido en Atenas. Domina fincas, lotes y propiedades de campo.', listings:19, sold:64, langs:['ES'], specs:['Fincas','Lotes','Cafetal'] },
-  { id:5, name:'Andrés Picado', role:'Asesor de Montaña', initial:'A', hue:160, region:'Montaña', bio:'Vive en Monteverde. Especializado en propiedades sustentables y off-grid.', listings:14, sold:41, langs:['ES','EN'], specs:['Eco','Off-grid','Bosque'] },
-  { id:6, name:'Camila Rojas', role:'Asesora · Sabana', initial:'C', hue:240, region:'Valle Central', bio:'Especialista en torres residenciales nuevas de la Sabana y Rohrmoser.', listings:31, sold:118, langs:['ES','EN'], specs:['Nuevos','Torres','Inversión'] },
-  { id:7, name:'Jorge Méndez', role:'Asesor Guanacaste', initial:'J', hue:30, region:'Guanacaste', bio:'Tamarindo y Papagayo. 8 años con desarrolladores de resorts antes de cambiarse a residencial.', listings:26, sold:93, langs:['ES','EN'], specs:['Resort','Lujo','Beachfront'] },
-  { id:8, name:'Valeria Hidalgo', role:'Asesora · Pre-aprobación', initial:'V', hue:280, region:'Valle Central', bio:'Ex-banquera. Acompaña a compradores en su pre-aprobación hipotecaria.', listings:12, sold:67, langs:['ES','EN'], specs:['Hipoteca','Asesoría','Primera'] },
-  { id:9, name:'Felipe Araya', role:'Asesor Comercial', initial:'F', hue:100, region:'Valle Central', bio:'Locales comerciales, oficinas y bodegas. 15 años en el mercado corporativo costarricense.', listings:23, sold:51, langs:['ES','EN'], specs:['Comercial','Oficina','Bodega'] },
-]
+// AGENTS data loaded from Supabase
 
 const REGIONS = ['Todas','Valle Central','Valle Occidente','Pacífico','Guanacaste','Montaña']
 const SPECS = ['Todas','Condominios','Lujo','Beachfront','Inversión','Lofts','Alquiler','Fincas','Eco','Hipoteca','Comercial']
 
 export default function Asesores() {
+  const [asesores, setAsesores] = useState<any[]>([])
+  const [loadingAsesores, setLoadingAsesores] = useState(true)
   const [region, setRegion] = useState('Todas')
   const [spec, setSpec] = useState('Todas')
+  useEffect(() => {
+    supabase.from('perfiles')
+      .select('id,nombre,correo,foto_url,zona,bio,especialidades,idiomas,propiedades_activas,ventas_cerradas,valeria_onboarding_completo')
+      .eq('valeria_onboarding_completo', true)
+      .order('nombre')
+      .then(({ data }) => {
+        if (data) setAsesores(data.map((a:any) => ({
+          ...a,
+          initial: (a.nombre || 'A')[0].toUpperCase(),
+          hue: 80,
+          region: a.zona || 'Valle Central',
+          bio: a.bio || 'Asesor certificado NIDO con experiencia en el mercado costarricense.',
+          listings: a.propiedades_activas || 0,
+          sold: a.ventas_cerradas || 0,
+          langs: a.idiomas || ['ES'],
+          specs: a.especialidades || ['Residencial'],
+        })))
+        setLoadingAsesores(false)
+      })
+  }, [])
+
+  const AGENTS = asesores
   const filtered = AGENTS.filter(a => (region==='Todas'||a.region===region) && (spec==='Todas'||a.specs.includes(spec)))
+
+  if (loadingAsesores) return (
+    <main style={{ fontFamily:'sans-serif', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', color:'#999' }}>
+      <p>Cargando asesores...</p>
+    </main>
+  )
 
   return (
     <main style={{fontFamily:"'DM Sans',sans-serif",background:'var(--bg)',minHeight:'100vh',color:'var(--ink)'}}>
