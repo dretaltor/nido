@@ -115,21 +115,9 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-            
-              href={`https://wa.me/?text=${encodeURIComponent('🏠 Te comparto esta propiedad en NIDO:\n' + p.titulo + '\n' + (p.zona || '') + ' · $' + fmt(p.precio) + '\n\nhttps://www.nido-cr.com/propiedades/' + p.id)}`}
-              target="_blank"
-              style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', borderRadius:999, background:'#22c55e', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}
-            >
-              💬 Compartir en WhatsApp
-            </a>
-            
-              href={`https://www.nido-cr.com/propiedades/${p.id}`}
-              target="_blank"
-              style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', borderRadius:999, border:'1px solid var(--rule)', fontSize:13, color:'var(--ink)', textDecoration:'none' }}
-            >
-              🔗 Ver ficha completa
-            </a>
+          <div style={{ display:'flex', gap:10, marginBottom:24 }}>
+            <a href={'https://wa.me/?text='+encodeURIComponent('🏠 NIDO: '+p.titulo+' - '+p.zona+' $'+fmt(p.precio)+' https://www.nido-cr.com/propiedades/'+p.id)} target="_blank" style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', borderRadius:999, background:'#22c55e', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>💬 Compartir en WhatsApp</a>
+            <a href={'/propiedades/'+p.id} target="_blank" style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', borderRadius:999, border:'1px solid var(--rule)', fontSize:13, color:'var(--ink)', textDecoration:'none' }}>🔗 Ver ficha completa</a>
           </div>
           <div style={{ marginBottom: 28 }}>
             <h4 style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', margin: '0 0 12px', fontWeight: 500 }}>Descripción</h4>
