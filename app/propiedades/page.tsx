@@ -332,7 +332,6 @@ export default function Propiedades() {
           <div className="search-field" style={{ padding: '10px 20px', borderRight: '1px solid var(--rule-soft)' }}>
             <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 3 }}>Operación</div>
             <select value={query.op} onChange={e => setQuery({ ...query, op: e.target.value })} style={{ background: 'transparent', border: 0, outline: 'none', width: '100%', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', appearance: 'none' }}>
-              <option value="todo">Todas las propiedades</option>
               <option value="venta">En venta</option>
             </select>
           </div>
