@@ -195,17 +195,17 @@ export default function Dashboard() {
         {/* Métricas */}
         <div className="dash-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12, marginBottom:32 }}>
           {[
-            { label:'Propiedades activas', valor:propActivas, sub:propiedades.length+' en total', color:'var(--accent)' },
-            { label:'Leads totales', valor:leads.length, sub:leadsNuevos+' nuevos sin atender', color:'var(--accent)' },
-            { label:'Leads cerrados', valor:leadsCerrados, sub:'este mes', color:'var(--ink)' },
-            { label:'Ofertas recibidas', valor:ofertas.length, sub:ofertas.filter((o:any)=>o.estado==='pendiente').length+' pendientes', color:'oklch(0.52 0.08 50)' },
-            { label:'Tasa de cierre', valor:leads.length>0?Math.round((leadsCerrados/leads.length)*100)+'%':'—', sub:'promedio cartera', color:'var(--accent)' },
+            { label:'Propiedades activas', valor:propActivas, sub:propiedades.length+' en total', color:'var(--accent)', href:'/dashboard#propiedades' },
+            { label:'Leads totales', valor:leads.length, sub:leadsNuevos+' nuevos sin atender', color:'var(--accent)', href:'/dashboard/crm' },
+            { label:'Leads cerrados', valor:leadsCerrados, sub:'este mes', color:'var(--ink)', href:'/dashboard/crm' },
+            { label:'Ofertas recibidas', valor:ofertasRecibidas.length, sub:ofertasRecibidas.filter((o:any)=>o.estado==='pendiente').length+' pendientes', color:'oklch(0.52 0.08 50)', href:'#ofertas-recibidas' },
+            { label:'Tasa de cierre', valor:leads.length>0?Math.round((leadsCerrados/leads.length)*100)+'%':'—', sub:'promedio cartera', color:'var(--accent)', href:'/dashboard/crm' },
           ].map((m,i) => (
-            <div key={i} className="dash-card" style={{ animation:'fadeUp 0.4s ease '+(i*0.08)+'s both' }}>
+            <a key={i} href={(m as any).href||'#'} className="dash-card" style={{ animation:'fadeUp 0.4s ease '+(i*0.08)+'s both', display:'block', textDecoration:'none', cursor:'pointer' }}>
               <p style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--ink-3)', marginBottom:8 }}>{m.label}</p>
               <p style={{ fontFamily:'var(--serif)', fontSize:36, color:m.color, lineHeight:1, marginBottom:4 }}>{m.valor}</p>
               <p style={{ fontSize:12, color:'var(--ink-3)' }}>{m.sub}</p>
-            </div>
+            </a>
           ))}
         </div>
 
@@ -294,7 +294,8 @@ export default function Dashboard() {
           )}
 
           {/* Ofertas en mis propiedades */}
-          {ofertasRecibidas.length > 0 && (
+          <div id="ofertas-recibidas"></div>
+        {ofertasRecibidas.length > 0 && (
             <div style={{ marginBottom:24 }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
                 <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400 }}>Ofertas en mis propiedades</h2>

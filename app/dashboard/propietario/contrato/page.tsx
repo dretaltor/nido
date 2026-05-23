@@ -78,12 +78,20 @@ export default function Contrato() {
     const file = e.target.files?.[0]
     if (!file || !user) return
     setUploadingFirma(true)
-    const ext = file.name.split('.').pop()
-    const path = 'contratos/' + user.id + '_firma.' + ext
-    await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
-    const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
-    setFirmaFisicaUrl(publicUrl)
-    setUploadingFirma(false)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('userId', user.id)
+      fd.append('tipo', 'fisica')
+      const res = await fetch('/api/upload-firma', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Error al subir archivo')
+      setFirmaFisicaUrl(json.publicUrl)
+    } catch (err: any) {
+      alert('Error al subir firma: ' + err.message)
+    } finally {
+      setUploadingFirma(false)
+    }
   }
 
   const firmarContrato = async () => {
@@ -416,9 +424,14 @@ export default function Contrato() {
                     if (!file || !user) return
                     setUploadingFirma(true)
                     const ext = file.name.split('.').pop()
-                    const path = 'contratos/' + user.id + '_gaudi_' + Date.now() + '.' + ext
-                    await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
-                    const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
+                    const fd = new FormData()
+                    fd.append('file', file)
+                    fd.append('userId', user.id)
+                    fd.append('tipo', 'gaudi')
+                    const res = await fetch('/api/upload-firma', { method: 'POST', body: fd })
+                    const json = await res.json()
+                    if (!res.ok) { alert('Error al subir: ' + (json.error || 'intenta de nuevo')); setUploadingFirma(false); return }
+                    const publicUrl = json.publicUrl
                     setFirmaDigital(publicUrl)
                     setUploadingFirma(false)
                   }}/>
