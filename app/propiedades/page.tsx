@@ -44,8 +44,7 @@ interface Propiedad {
 
 function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: number, fav: boolean, onFav: () => void, onOpen: () => void }) {
   const hue = HUES[index % HUES.length]
-  const priceLabel = p.operacion === 'alquiler' ? `$${fmt(p.precio)}/mes` : `$${fmt(p.precio)}`
-  const waLink = `https://wa.me/?text=${encodeURIComponent('🏠 Te comparto esta propiedad en NIDO:\n' + p.titulo + '\n' + (p.zona || '') + ' · ' + priceLabel + '\n\nhttps://www.nido-cr.com/propiedades/' + p.id)}`
+  const priceLabel = `$${fmt(p.precio)}`
   return (
     <article onClick={onOpen} style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
@@ -79,11 +78,7 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
           <b style={{ color: 'var(--accent)', marginRight: 6 }}>↳ Valeria IA</b>
           Propiedad verificada · Disponible para visita virtual
         </div>
-        <div style={{ display:'flex', gap:8, marginTop:10 }}>
-          <a href={waLink} target="_blank" onClick={e => e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:999, background:'#22c55e', color:'white', fontSize:12, fontWeight:500, textDecoration:'none', flexShrink:0 }}>
-            💬 Compartir
-          </a>
-        </div>
+
       </div>
     </article>
   )
@@ -108,17 +103,33 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
               <h2 style={{ fontFamily: 'var(--serif)', fontSize: 36, fontWeight: 400, lineHeight: 1.05, margin: 0 }}>{p.titulo}</h2>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontFamily: 'var(--mono)', fontSize: 18 }}>{'$'}{fmt(p.precio)}</div>
-                <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginTop: 4 }}>{p.operacion === 'alquiler' ? 'por mes' : 'precio venta'}</div>
+                <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginTop: 4 }}>{'precio venta'}</div>
               </div>
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)', marginBottom: 28 }}>
-            {[{ num: p.habitaciones, label: 'Habitaciones' }, { num: p.banos, label: 'Baños' }, { num: String(p.metros) + ' m²', label: 'Área' }, { num: p.operacion === 'venta' ? 'Venta' : 'Alquiler', label: 'Operación' }].map((s, i) => (
+            {[{ num: p.habitaciones, label: 'Habitaciones' }, { num: p.banos, label: 'Baños' }, { num: String(p.metros) + ' m²', label: 'Área' }, { num: 'Venta', label: 'Operación' }].map((s, i) => (
               <div key={i} style={{ padding: '16px 0', paddingLeft: i > 0 ? 16 : 0, borderRight: i < 3 ? '1px solid var(--rule-soft)' : 'none' }}>
                 <div style={{ fontFamily: 'var(--serif)', fontSize: 24 }}>{s.num}</div>
                 <div style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginTop: 2 }}>{s.label}</div>
               </div>
             ))}
+          </div>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+            
+              href={`https://wa.me/?text=${encodeURIComponent('🏠 Te comparto esta propiedad en NIDO:\n' + p.titulo + '\n' + (p.zona || '') + ' · $' + fmt(p.precio) + '\n\nhttps://www.nido-cr.com/propiedades/' + p.id)}`}
+              target="_blank"
+              style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', borderRadius:999, background:'#22c55e', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}
+            >
+              💬 Compartir en WhatsApp
+            </a>
+            
+              href={`https://www.nido-cr.com/propiedades/${p.id}`}
+              target="_blank"
+              style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', borderRadius:999, border:'1px solid var(--rule)', fontSize:13, color:'var(--ink)', textDecoration:'none' }}
+            >
+              🔗 Ver ficha completa
+            </a>
           </div>
           <div style={{ marginBottom: 28 }}>
             <h4 style={{ fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', margin: '0 0 12px', fontWeight: 500 }}>Descripción</h4>

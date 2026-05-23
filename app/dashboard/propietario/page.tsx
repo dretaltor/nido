@@ -63,6 +63,7 @@ export default function DashboardPropietario() {
   const [ofertasReales, setOfertasReales] = useState<any[]>([])
   const [propiedadesReales, setPropiedadesReales] = useState<any[]>([])
   const [leadsReales, setLeadsReales] = useState<any[]>([])
+  const [visitasPorLead, setVisitasPorLead] = useState<Record<string,boolean>>({})
   const [updatingOferta, setUpdatingOferta] = useState<string|null>(null)
   const [contraModal, setContraModal] = useState<any>(null)
   const [contraValor, setContraValor] = useState('')
@@ -126,9 +127,18 @@ export default function DashboardPropietario() {
           if (propsData.length > 0) {
             const pids = propsData.map((p:any) => p.id)
             // Leads: solo campos no sensibles (sin email ni telefono)
-            supabase.from('leads').select('id,nombre,zona_interes,tipo_busqueda,estado,created_at,propiedad_id,mensaje')
+            supabase.from('leads').select('id,nombre,zona_interes,tipo_busqueda,estado,created_at,propiedad_id')
               .in('propiedad_id', pids).order('created_at', { ascending: false })
-              .then(({ data: leadsData }) => setLeadsReales(leadsData || []))
+              .then(({ data: leadsData }) => {
+                setLeadsReales(leadsData || [])
+                // Cruzar con visitas para saber si agendó
+                supabase.from('visitas').select('lead_id').in('propiedad_id', pids)
+                  .then(({ data: vis }) => {
+                    const mapa: Record<string,boolean> = {}
+                    ;(vis || []).forEach((v:any) => { if(v.lead_id) mapa[v.lead_id] = true })
+                    setVisitasPorLead(mapa)
+                  })
+              })
             // Ofertas filtradas por propiedades del propietario
             supabase.from('ofertas').select('*').in('propiedad_id', pids)
               .order('created_at', { ascending: false })
@@ -235,19 +245,23 @@ export default function DashboardPropietario() {
                 <span style={{ fontSize:14, fontWeight:500 }}>Leads recientes</span>
                 <button onClick={() => setTab('leads')} style={{ fontSize:12, color:'var(--accent)', background:'none', border:'none', cursor:'pointer' }}>Ver todos →</button>
               </div>
-              {LEADS_MOCK.slice(0,2).map(l => (
+              {leadsReales.length === 0 ? (
+                <div style={{ padding:'16px 24px', fontSize:13, color:'var(--ink-3)' }}>Sin consultas aún.</div>
+              ) : leadsReales.slice(0,2).map((l:any) => {
+                const prop = propiedadesReales.find((p:any) => p.id === l.propiedad_id)
+                const inicial = (l.nombre||'C')[0].toUpperCase()
+                const agendó = !!visitasPorLead[l.id]
+                return (
                 <div key={l.id} style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 24px', borderBottom:'1px solid var(--rule-soft)' }}>
-                  <div style={{ width:36, height:36, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{l.nombre[0]}</div>
+                  <div style={{ width:36, height:36, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{inicial}</div>
                   <div style={{ flex:1 }}>
-                    <div style={{ fontSize:14, fontWeight:500 }}>{l.nombre}</div>
-                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{l.propiedad} · {l.interes}</div>
+                    <div style={{ fontSize:14, fontWeight:500 }}>{(l.nombre||'Interesado').split(' ')[0]}</div>
+                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{prop?.titulo||'Tu propiedad'} · {agendó ? '✓ Visita agendada' : 'Sin visita aún'}</div>
                   </div>
-                  <div style={{ textAlign:'right' }}>
-                    <div style={{ fontSize:11, color:'var(--ink-3)', marginBottom:4 }}>{l.fecha}</div>
-                    <span className="badge" style={{ background:l.estado==='nuevo'?'oklch(0.93 0.03 240)':'var(--accent-tint)', color:l.estado==='nuevo'?'oklch(0.35 0.08 240)':'var(--accent)' }}>{l.estado}</span>
-                  </div>
+                  <span className="badge" style={{ background:l.estado==='nuevo'?'oklch(0.93 0.03 240)':'var(--accent-tint)', color:l.estado==='nuevo'?'oklch(0.35 0.08 240)':'var(--accent)' }}>{l.estado}</span>
                 </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
@@ -258,21 +272,35 @@ export default function DashboardPropietario() {
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
               <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400 }}>Mis propiedades</h2>
             </div>
+            {propiedadesReales.length === 0 ? (
+              <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>
+                Aún no tenés propiedades registradas en NIDO.
+              </div>
+            ) : (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:16 }}>
-              {PROPIEDADES_MOCK.map(p => (
+              {propiedadesReales.map((p:any) => {
+                const foto = p.fotos?.[0] || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=60'
+                const leadsDeEsta = leadsReales.filter((l:any) => l.propiedad_id === p.id)
+                const ofertasDeEsta = ofertasReales.filter((o:any) => o.propiedad_id === p.id)
+                return (
                 <div key={p.id} className="card">
-                  <img src={p.foto} style={{ width:'100%', height:200, objectFit:'cover' }} alt={p.titulo}/>
+                  <img src={foto} style={{ width:'100%', height:200, objectFit:'cover' }} alt={p.titulo}/>
                   <div className="card-pad">
                     <div style={{ display:'flex', justifyContent:'space-between', alignItems:'start', marginBottom:12 }}>
                       <div>
                         <div style={{ fontFamily:'var(--serif)', fontSize:20, marginBottom:4 }}>{p.titulo}</div>
                         <div style={{ fontSize:13, color:'var(--ink-3)' }}>{p.zona}</div>
                       </div>
-                      <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>{p.estado}</span>
+                      <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>{p.disponible ? 'Activa' : 'Inactiva'}</span>
                     </div>
-                    <div style={{ fontFamily:'var(--mono)', fontSize:18, color:'var(--accent)', marginBottom:16 }}>${p.precio.toLocaleString()} USD</div>
+                    <div style={{ fontFamily:'var(--mono)', fontSize:18, color:'var(--accent)', marginBottom:16 }}>${Number(p.precio||0).toLocaleString()} USD</div>
                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
-                      {[{l:'Vistas totales',v:p.vistas},{l:'Consultas',v:p.consultas},{l:'Visitas agendadas',v:1},{l:'Ofertas recibidas',v:1}].map(s => (
+                      {[
+                        {l:'Consultas',v:leadsDeEsta.length},
+                        {l:'Ofertas recibidas',v:ofertasDeEsta.length},
+                        {l:'Habitaciones',v:p.habitaciones||'—'},
+                        {l:'Área',v:p.metros ? p.metros+'m²' : '—'}
+                      ].map((s:any) => (
                         <div key={s.l} style={{ background:'var(--bg)', borderRadius:8, padding:'10px 12px' }}>
                           <div style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)', marginBottom:2 }}>{s.v}</div>
                           <div style={{ fontSize:11, color:'var(--ink-3)' }}>{s.l}</div>
@@ -280,13 +308,15 @@ export default function DashboardPropietario() {
                       ))}
                     </div>
                     <div style={{ display:'flex', gap:8 }}>
-                      <a href={'/propiedades/'+p.id} style={{ flex:1, padding:'10px', borderRadius:999, border:'1px solid var(--rule)', fontSize:13, textAlign:'center', fontWeight:500 }}>Ver ficha →</a>
+                      <a href={'/propiedades/'+p.id} target="_blank" style={{ flex:1, padding:'10px', borderRadius:999, border:'1px solid var(--rule)', fontSize:13, textAlign:'center', fontWeight:500, textDecoration:'none', color:'var(--ink)' }}>Ver ficha →</a>
                       <button onClick={() => { navigator.clipboard.writeText(window.location.origin+'/propiedades/'+p.id); alert('¡Enlace copiado!') }} style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, cursor:'pointer', fontWeight:500 }}>🔗 Compartir</button>
                     </div>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
+            )}
           </div>
         )}
 
@@ -313,11 +343,14 @@ export default function DashboardPropietario() {
                   <div key={l.id} style={{ display:'flex', alignItems:'center', gap:16, padding:'18px 24px', borderBottom:i<leadsReales.length-1?'1px solid var(--rule-soft)':'none' }}>
                     <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:18, color:'var(--accent)', flexShrink:0 }}>{inicial}</div>
                     <div style={{ flex:1 }}>
-                      <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{nombreCorto}</div>
-                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>{prop?.titulo || 'Tu propiedad'} · {l.tipo_busqueda || l.zona_interes || 'Interesado'} · {cuandoFue}</div>
-                      <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:4, fontStyle:'italic' }}>Contacto gestionado por tu asesor NIDO</div>
+                      <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{(l.nombre||'Interesado').split(' ')[0]}</div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>{prop?.titulo || 'Tu propiedad'} · {cuandoFue}</div>
                     </div>
-                    <span className="badge" style={{ background:l.estado==='nuevo'?'oklch(0.93 0.03 240)':l.estado==='contactado'?'var(--accent-tint)':'oklch(0.93 0.05 80)', color:l.estado==='nuevo'?'oklch(0.35 0.08 240)':l.estado==='contactado'?'var(--accent)':'oklch(0.45 0.08 80)' }}>{l.estado}</span>
+                    <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
+                      <span style={{ fontSize:11, padding:'3px 10px', borderRadius:999, background: visitasPorLead[l.id] ? 'var(--accent-tint)' : 'oklch(0.93 0.005 80)', color: visitasPorLead[l.id] ? 'var(--accent)' : 'var(--ink-3)', fontWeight:500 }}>
+                        {visitasPorLead[l.id] ? '✓ Visita agendada' : 'Sin visita'}
+                      </span>
+                    </div>
                   </div>
                 )
               })}
