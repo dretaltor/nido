@@ -211,7 +211,7 @@ export default function Propiedades() {
   }, [])
   const [propiedades, setPropiedades] = useState<Propiedad[]>([])
   const [loading, setLoading] = useState(true)
-  const [query, setQuery] = useState({ location: '', op: 'todo', budget: 'any' })
+  const [query, setQuery] = useState({ location: '', op: 'venta', budget: 'any' })
   const [sort, setSort] = useState('featured')
   const [favs, setFavs] = useState(new Set<string>())
   const [openId, setOpenId] = useState<string | null>(null)
@@ -388,7 +388,7 @@ export default function Propiedades() {
             <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--ink-3)' }}>
               <div style={{ fontSize: '2rem', marginBottom: 12 }}>🔍</div>
               <p>No hay propiedades con ese filtro</p>
-              <button onClick={() => { setTipoFiltro(''); setQuery({ location: '', op: 'todo', budget: 'any' }) }} style={{ marginTop: 12, background: 'var(--ink)', color: 'var(--bg)', border: 'none', padding: '8px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--sans)', fontSize: 13 }}>Ver todas</button>
+              <button onClick={() => { setTipoFiltro(''); setQuery({ location: '', op: 'venta', budget: 'any' }) }} style={{ marginTop: 12, background: 'var(--ink)', color: 'var(--bg)', border: 'none', padding: '8px 16px', borderRadius: 999, cursor: 'pointer', fontFamily: 'var(--sans)', fontSize: 13 }}>Ver todas</button>
             </div>
           ) : (
             <div className="cards">

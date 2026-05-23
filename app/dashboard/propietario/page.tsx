@@ -64,6 +64,7 @@ export default function DashboardPropietario() {
   const [propiedadesReales, setPropiedadesReales] = useState<any[]>([])
   const [leadsReales, setLeadsReales] = useState<any[]>([])
   const [visitasPorLead, setVisitasPorLead] = useState<Record<string,boolean>>({})
+  const [visitasReales, setVisitasReales] = useState<any[]>([])
   const [updatingOferta, setUpdatingOferta] = useState<string|null>(null)
   const [contraModal, setContraModal] = useState<any>(null)
   const [contraValor, setContraValor] = useState('')
@@ -144,6 +145,10 @@ export default function DashboardPropietario() {
               .order('created_at', { ascending: false })
               .then(({ data: ofData }) => setOfertasReales(ofData || []))
           }
+            // Fetch visitas del propietario
+            supabase.from('visitas').select('id,propiedad_id,propiedad_titulo,comprador_nombre,fecha,hora,estado')
+              .in('propiedad_id', pids).order('fecha', { ascending: true })
+              .then(({ data: vis }) => setVisitasReales(vis || []))
         })
       setLoading(false)
     })
@@ -363,15 +368,17 @@ export default function DashboardPropietario() {
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:20 }}>Visitas agendadas</h2>
             <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
-              {VISITAS_MOCK.map(v => (
+              {visitasReales.length === 0 ? (
+                <div style={{ padding:'32px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>Sin visitas agendadas aún.</div>
+              ) : visitasReales.map((v:any) => (
                 <div key={v.id} className="card card-pad" style={{ display:'flex', alignItems:'center', gap:20 }}>
                   <div style={{ width:60, height:60, borderRadius:10, background:v.estado==='confirmada'?'var(--accent-tint)':'oklch(0.93 0.05 80)', display:'grid', placeItems:'center', flexShrink:0 }}>
                     <span style={{ fontSize:24 }}>{v.estado==='confirmada'?'✓':'⏳'}</span>
                   </div>
                   <div style={{ flex:1 }}>
-                    <div style={{ fontSize:15, fontWeight:500, marginBottom:4 }}>{v.nombre}</div>
-                    <div style={{ fontSize:13, color:'var(--ink-3)', marginBottom:4 }}>{v.propiedad}</div>
-                    <div style={{ fontSize:13, color:'var(--ink-2)' }}>{v.fecha} · {v.hora}</div>
+                    <div style={{ fontSize:15, fontWeight:500, marginBottom:4 }}>{v.comprador_nombre || 'Interesado'}</div>
+                    <div style={{ fontSize:13, color:'var(--ink-3)', marginBottom:4 }}>{v.propiedad_titulo || 'Tu propiedad'}</div>
+                    <div style={{ fontSize:13, color:'var(--ink-2)' }}>{v.fecha} {v.hora ? '· '+v.hora : ''}</div>
                   </div>
                   <span className="badge" style={{ background:v.estado==='confirmada'?'var(--accent-tint)':'oklch(0.93 0.05 80)', color:v.estado==='confirmada'?'var(--accent)':'oklch(0.45 0.08 80)' }}>{v.estado}</span>
                 </div>
