@@ -105,8 +105,8 @@ export default function Asesores() {
                 <div style={{fontSize:12,color:'var(--ink-3)',marginBottom:10,letterSpacing:'0.04em'}}>{a.role}</div>
                 <p style={{fontSize:14,color:'var(--ink-2)',lineHeight:1.55,marginBottom:10}}>{a.bio}</p>
                 <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
-                  {a.specs.map(s => <span key={s} style={{padding:'3px 10px',borderRadius:999,border:'1px solid var(--rule)',fontSize:11,color:'var(--ink-3)'}}>{s}</span>)}
-                  {a.langs.map(l => <span key={l} style={{padding:'3px 10px',borderRadius:999,background:'var(--bg-elev)',fontSize:11,fontFamily:'var(--mono)',color:'var(--ink-3)'}}>{l}</span>)}
+                  {a.specs.map((s:string) => <span key={s} style={{padding:'3px 10px',borderRadius:999,border:'1px solid var(--rule)',fontSize:11,color:'var(--ink-3)'}}>{s}</span>)}
+                  {a.langs.map((l:string) => <span key={l} style={{padding:'3px 10px',borderRadius:999,background:'var(--bg-elev)',fontSize:11,fontFamily:'var(--mono)',color:'var(--ink-3)'}}>{l}</span>)}
                 </div>
                 <div style={{display:'flex',gap:24,fontSize:13}}>
                   <div><b style={{fontFamily:'var(--serif)',fontSize:18}}>{a.listings}</b> <span style={{color:'var(--ink-3)',fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase'}}>Activas</span></div>
