@@ -45,6 +45,7 @@ interface Propiedad {
 function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: number, fav: boolean, onFav: () => void, onOpen: () => void }) {
   const hue = HUES[index % HUES.length]
   const priceLabel = p.operacion === 'alquiler' ? `$${fmt(p.precio)}/mes` : `$${fmt(p.precio)}`
+  const waLink = `https://wa.me/?text=${encodeURIComponent('🏠 Te comparto esta propiedad en NIDO:\n' + p.titulo + '\n' + (p.zona || '') + ' · ' + priceLabel + '\n\nhttps://www.nido-cr.com/propiedades/' + p.id)}`
   return (
     <article onClick={onOpen} style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
@@ -77,6 +78,11 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
         <div style={{ background: 'var(--accent-tint)', border: '1px solid oklch(0.85 0.04 150)', borderRadius: 6, padding: '8px 12px', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
           <b style={{ color: 'var(--accent)', marginRight: 6 }}>↳ Valeria IA</b>
           Propiedad verificada · Disponible para visita virtual
+        </div>
+        <div style={{ display:'flex', gap:8, marginTop:10 }}>
+          <a href={waLink} target="_blank" onClick={e => e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:999, background:'#22c55e', color:'white', fontSize:12, fontWeight:500, textDecoration:'none', flexShrink:0 }}>
+            💬 Compartir
+          </a>
         </div>
       </div>
     </article>
@@ -231,6 +237,7 @@ export default function Propiedades() {
     if (query.op !== 'todo') out = out.filter(p => p.operacion === query.op)
     if (query.location) out = out.filter(p => p.zona.toLowerCase().includes(query.location.toLowerCase()) || p.titulo.toLowerCase().includes(query.location.toLowerCase()))
     if (tipoFiltro) out = out.filter(p => p.tipo.toLowerCase() === tipoFiltro.toLowerCase())
+    if (query.budget && query.budget !== 'any') out = out.filter(p => p.precio <= parseInt(query.budget) * 1000)
     if (sort === 'price-asc') out = [...out].sort((a, b) => a.precio - b.precio)
     if (sort === 'price-desc') out = [...out].sort((a, b) => b.precio - a.precio)
     return out
@@ -332,8 +339,18 @@ export default function Propiedades() {
             <div style={{ fontSize: 9, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 3 }}>Presupuesto</div>
             <select value={query.budget} onChange={e => setQuery({ ...query, budget: e.target.value })} style={{ background: 'transparent', border: 0, outline: 'none', width: '100%', fontFamily: 'var(--sans)', fontSize: 14, color: 'var(--ink)', appearance: 'none' }}>
               <option value="any">Sin límite</option>
+              <option value="100">Hasta $100K</option>
+              <option value="200">Hasta $200K</option>
+              <option value="300">Hasta $300K</option>
+              <option value="400">Hasta $400K</option>
               <option value="500">Hasta $500K</option>
+              <option value="600">Hasta $600K</option>
+              <option value="700">Hasta $700K</option>
+              <option value="800">Hasta $800K</option>
               <option value="1000">Hasta $1M</option>
+              <option value="1500">Hasta $1.5M</option>
+              <option value="2000">Hasta $2M</option>
+              <option value="9999">Más de $2M</option>
             </select>
           </div>
           <button style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--ink)', color: 'var(--bg)', border: 0, display: 'grid', placeItems: 'center', margin: '0 4px' }}>

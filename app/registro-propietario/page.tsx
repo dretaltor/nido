@@ -31,7 +31,7 @@ export default function RegistroPropietario() {
         password: form.contrasena,
         options: { data: { nombre: form.nombre, tipo: 'propietario' } }
       })
-      if (authError) { setError(authError.message); setLoading(false); return }
+      if (authError) { setError(authError.message.includes('already') || authError.message.includes('registered') ? 'Este correo ya está registrado. Intentá iniciar sesión.' : authError.message); setLoading(false); return }
       
       // Forzar login inmediato para que el metadata quede activo
       await supabase.auth.signInWithPassword({ email: form.correo, password: form.contrasena })

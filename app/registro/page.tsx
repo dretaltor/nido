@@ -29,7 +29,7 @@ function RegistroInner() {
       email, password,
       options: { data: { nombre, plan: plan || 'gratis' } }
     })
-    if (error) { setError('Error al registrarse. Intenta de nuevo.') }
+    if (error) { setError(error.message.includes('already') || error.message.includes('registered') ? 'Este correo ya está registrado. Intentá iniciar sesión.' : 'Error al registrarse: ' + error.message) }
     else {
       // Auto login after registration
       await supabase.auth.signInWithPassword({ email, password })

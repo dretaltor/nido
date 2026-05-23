@@ -178,26 +178,7 @@ export default function Nosotros() {
             ))}
           </div>
 
-          {/* Stack tecnológico */}
-          <div style={{ background:'rgba(255,255,255,0.03)', border:'1px solid rgba(255,255,255,0.07)', borderRadius:14, padding:'28px 32px' }}>
-            <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:20 }}>Stack tecnológico</div>
-            <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-              {[
-                { nombre:'Next.js 16', desc:'Frontend' },
-                { nombre:'Supabase', desc:'Base de datos + Auth' },
-                { nombre:'Claude AI', desc:'Motor de Valeria IA' },
-                { nombre:'Stripe', desc:'Pagos y suscripciones' },
-                { nombre:'Mapbox', desc:'Mapa interactivo' },
-                { nombre:'Resend', desc:'Emails transaccionales' },
-                { nombre:'Vercel', desc:'Infraestructura' },
-              ].map(t => (
-                <div key={t.nombre} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.06)', borderRadius:8, padding:'8px 14px' }}>
-                  <div style={{ fontSize:13, fontWeight:500, color:'white' }}>{t.nombre}</div>
-                  <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)' }}>{t.desc}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          
         </div>
       </section>
 
