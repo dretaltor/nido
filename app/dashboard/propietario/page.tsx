@@ -144,11 +144,11 @@ export default function DashboardPropietario() {
             supabase.from('ofertas').select('*').in('propiedad_id', pids)
               .order('created_at', { ascending: false })
               .then(({ data: ofData }) => setOfertasReales(ofData || []))
-          }
             // Fetch visitas del propietario
             supabase.from('visitas').select('id,propiedad_id,propiedad_titulo,comprador_nombre,fecha,hora,estado')
               .in('propiedad_id', pids).order('fecha', { ascending: true })
               .then(({ data: vis }) => setVisitasReales(vis || []))
+          }
         })
       setLoading(false)
     })
