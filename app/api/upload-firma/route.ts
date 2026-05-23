@@ -21,6 +21,8 @@ export async function POST(req: NextRequest) {
     const ext = file.name.split('.').pop()
     const path = tipo === 'gaudi'
       ? `contratos/${userId}_gaudi_${Date.now()}.${ext}`
+      : tipo === 'perfil'
+      ? `perfiles/${userId}.${ext}`
       : `contratos/${userId}_firma.${ext}`
 
     const arrayBuffer = await file.arrayBuffer()

@@ -54,7 +54,7 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
           {p.titulo.toUpperCase()} · FOTO
         </div>
         <div style={{ position: 'absolute', top: 12, left: 12 }}>
-          <span style={{ background: p.operacion === 'alquiler' ? 'var(--ink)' : 'var(--accent)', color: 'white', padding: '4px 10px', borderRadius: 999, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          <span style={{ background: 'var(--accent)', color: 'white', padding: '4px 10px', borderRadius: 999, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             {'Venta'}
           </span>
         </div>

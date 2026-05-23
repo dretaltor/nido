@@ -499,7 +499,7 @@ export default function DashboardPropietario() {
               <div className="card card-pad">
                 <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Promedio de zona</div>
                 <div style={{ fontFamily:'var(--serif)', fontSize:48, color:'var(--ink)', marginBottom:4 }}>${MERCADO_DATA.precio_mercado.toLocaleString()}</div>
-                <div style={{ fontSize:13, color:'var(--ink-3)' }}>Propiedades similares en {PROPIEDADES_MOCK[0].zona}</div>
+                <div style={{ fontSize:13, color:'var(--ink-3)' }}>Propiedades similares en {propiedadesReales[0]?.zona || 'tu zona'}</div>
               </div>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:20 }}>

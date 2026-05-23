@@ -225,14 +225,24 @@ export default function Perfil() {
     const file = e.target.files?.[0]
     if (!file || !user) return
     setUploading(true)
-    const ext = file.name.split('.').pop()
-    const path = 'perfiles/' + user.id + '.' + ext
-    const { error } = await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
-    if (!error) {
-      const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('userId', user.id)
+      fd.append('tipo', 'perfil')
+      const res = await fetch('/api/upload-firma', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Error al subir')
+      const publicUrl = json.publicUrl
+      // Guardar en estado local
       set('foto_url', publicUrl)
+      // Guardar en tabla perfiles
+      await supabase.from('perfiles').update({ foto_url: publicUrl }).eq('id', user.id)
+    } catch (err: any) {
+      alert('Error al subir foto: ' + err.message)
+    } finally {
+      setUploading(false)
     }
-    setUploading(false)
   }
 
   if (loading) return <div style={{padding:40,fontFamily:'sans-serif',color:'#999'}}>Cargando perfil...</div>
