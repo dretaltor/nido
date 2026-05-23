@@ -77,6 +77,9 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
         <div style={{ background: 'var(--accent-tint)', border: '1px solid oklch(0.85 0.04 150)', borderRadius: 6, padding: '8px 12px', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
           <b style={{ color: 'var(--accent)', marginRight: 6 }}>↳ Valeria IA</b>
           Propiedad verificada · Disponible para visita virtual
+        <div style={{ display:'flex', gap:8, marginTop:10 }}>
+          <a href={'https://wa.me/?text='+encodeURIComponent('🏠 '+p.titulo+' - '+p.zona+' $'+fmt(p.precio)+' https://www.nido-cr.com/propiedades/'+p.id)} target='_blank' onClick={e => e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:999, background:'#22c55e', color:'white', fontSize:12, fontWeight:500, textDecoration:'none' }}>💬 Compartir</a>
+        </div>
         </div>
 
       </div>
