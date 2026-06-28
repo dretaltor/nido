@@ -13,10 +13,8 @@ export default function Asesores() {
   const [region, setRegion] = useState('Todas')
   const [spec, setSpec] = useState('Todas')
   useEffect(() => {
-    supabase.from('perfiles')
-      .select('id,nombre,correo,foto_url,valeria_perfil,valeria_onboarding_completo')
-      .eq('valeria_onboarding_completo', true)
-      .eq('verificado', true)
+    supabase.from('asesores_publicos')
+      .select('id,nombre,correo,foto_url,valeria_perfil')
       .order('nombre')
       .then(async ({ data }) => {
         if (data) {
