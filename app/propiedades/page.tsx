@@ -40,6 +40,7 @@ interface Propiedad {
   disponible: boolean
   asesor_nombre: string
   asesor_email: string
+  fotos?: string[]
 }
 
 function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: number, fav: boolean, onFav: () => void, onOpen: () => void }) {
