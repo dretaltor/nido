@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { supabase } from '../../lib/supabase'
 
 interface ContactoFormProps {
   propiedadId: string
@@ -24,7 +25,19 @@ export function ContactoForm({ propiedadId, propiedadTitulo, asesorEmail, asesor
       return
     }
     setEnviando(true); setError('')
-    
+
+    // Guardar como lead en el CRM del asesor — antes solo se mandaba notificacion sin quedar registro
+    await supabase.from('leads').insert({
+      nombre: form.nombre,
+      email: form.email,
+      telefono: form.telefono,
+      mensaje: form.mensaje,
+      propiedad_id: propiedadId,
+      propiedad_titulo: propiedadTitulo,
+      asesor_email: asesorEmail,
+      estado: 'nuevo',
+    })
+
     const res = await fetch('/api/email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
