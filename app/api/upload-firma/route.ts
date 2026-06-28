@@ -9,13 +9,24 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: NextRequest) {
   try {
+    // Verificar sesion real — nunca confiar en un userId que manda el cliente sin validar
+    const authHeader = req.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    if (!token) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    }
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Sesion invalida' }, { status: 401 })
+    }
+    const userId = user.id // SIEMPRE el id real de la sesion, nunca el del body
+
     const formData = await req.formData()
     const file = formData.get('file') as File
-    const userId = formData.get('userId') as string
-    const tipo = formData.get('tipo') as string // 'gaudi' | 'fisica'
+    const tipo = formData.get('tipo') as string // 'gaudi' | 'fisica' | 'perfil'
 
-    if (!file || !userId) {
-      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
+    if (!file) {
+      return NextResponse.json({ error: 'Falta archivo' }, { status: 400 })
     }
 
     const ext = file.name.split('.').pop()

@@ -228,11 +228,11 @@ export default function Perfil() {
     if (!file || !user) return
     setUploading(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('userId', user.id)
       fd.append('tipo', 'perfil')
-      const res = await fetch('/api/upload-firma', { method: 'POST', body: fd })
+      const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Error al subir')
       const publicUrl = json.publicUrl

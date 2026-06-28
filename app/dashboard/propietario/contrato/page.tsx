@@ -79,11 +79,11 @@ export default function Contrato() {
     if (!file || !user) return
     setUploadingFirma(true)
     try {
+      const { data: { session } } = await supabase.auth.getSession()
       const fd = new FormData()
       fd.append('file', file)
-      fd.append('userId', user.id)
       fd.append('tipo', 'fisica')
-      const res = await fetch('/api/upload-firma', { method: 'POST', body: fd })
+      const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Error al subir archivo')
       setFirmaFisicaUrl(json.publicUrl)
@@ -424,11 +424,11 @@ export default function Contrato() {
                     if (!file || !user) return
                     setUploadingFirma(true)
                     const ext = file.name.split('.').pop()
+                    const { data: { session } } = await supabase.auth.getSession()
                     const fd = new FormData()
                     fd.append('file', file)
-                    fd.append('userId', user.id)
                     fd.append('tipo', 'gaudi')
-                    const res = await fetch('/api/upload-firma', { method: 'POST', body: fd })
+                    const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
                     const json = await res.json()
                     if (!res.ok) { alert('Error al subir: ' + (json.error || 'intenta de nuevo')); setUploadingFirma(false); return }
                     const publicUrl = json.publicUrl
