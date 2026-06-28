@@ -66,6 +66,10 @@ export default function Dashboard() {
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
   const [valeriaPerfil, setValeraPerfilDash] = useState<any>(null)
   const [calificacion, setCalificacion] = useState<any>(null)
+  const [visitaDetalle, setVisitaDetalle] = useState<any>(null)
+  const [reprogramando, setReprogramando] = useState(false)
+  const [nuevaFecha, setNuevaFecha] = useState('')
+  const [nuevaHora, setNuevaHora] = useState('10:00')
   const [visitas, setVisitas] = useState<any[]>([])
   const [tareas, setTareas] = useState<any[]>([])
   const [nuevaTarea, setNuevaTarea] = useState(false)
@@ -352,7 +356,7 @@ DESCRIPTION:Comprador: ${v.comprador_nombre}
 END:VEVENT
 END:VCALENDAR`
                 return (
-                  <div key={v.id} style={{ background:'white', border:'1px solid '+(isPendiente?'oklch(0.85 0.05 80)':'var(--rule)'), borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14 }}>
+                  <div key={v.id} onClick={() => setVisitaDetalle(v)} style={{ background:'white', border:'1px solid '+(isPendiente?'oklch(0.85 0.05 80)':'var(--rule)'), borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14, cursor:'pointer' }}>
                     <div style={{ width:44, height:44, borderRadius:10, background:isPendiente?'oklch(0.93 0.05 80)':'var(--accent-tint)', display:'grid', placeItems:'center', fontSize:20, flexShrink:0 }}>
                       📅
                     </div>
@@ -364,7 +368,7 @@ END:VCALENDAR`
                     </div>
                     <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
                       {isPendiente && (
-                        <button onClick={async () => {
+                        <button onClick={async (e) => { e.stopPropagation();
                           await supabase.from('visitas').update({ estado:'confirmada' }).eq('id', v.id)
                           setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'confirmada'} : x))
                           // Notify comprador
@@ -377,7 +381,7 @@ END:VCALENDAR`
                       )}
                       {v.estado === 'confirmada' && (
                         <div style={{ position:'relative' }}>
-                          <details style={{ listStyle:'none' }}>
+                          <details onClick={(e) => e.stopPropagation()} style={{ listStyle:'none' }}>
                             <summary style={{ padding:'6px 12px', borderRadius:999, background:'var(--bg)', border:'1px solid var(--rule)', fontSize:11, cursor:'pointer', listStyle:'none' }}>
                               📆 Agregar al calendario
                             </summary>
@@ -673,6 +677,100 @@ END:VCALENDAR`
               <button onClick={() => setTourActivo(false)} style={{ display:'block', width:'100%', textAlign:'center', marginTop:12, fontSize:12, color:'var(--ink-3)', background:'none', border:'none', cursor:'pointer' }}>
                 Saltar tutorial
               </button>
+            </div>
+          </>
+        )
+      })()}
+
+      {/* MODAL DETALLE VISITA */}
+      {visitaDetalle && (() => {
+        const v = visitaDetalle
+        const isPendiente = v.estado === 'pendiente'
+        const waLink = v.comprador_telefono ? 'https://wa.me/' + v.comprador_telefono.replace(/[^0-9]/g,'') + '?text=' + encodeURIComponent('Hola ' + (v.comprador_nombre||'') + ', te escribo de NIDO sobre tu visita a ' + v.propiedad_titulo) : null
+
+        const rechazar = async () => {
+          await supabase.from('visitas').update({ estado:'rechazada' }).eq('id', v.id)
+          setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'rechazada'} : x))
+          if (v.comprador_telefono) {
+            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `Hola ${v.comprador_nombre||''}, lamentablemente no podemos confirmar la visita a *${v.propiedad_titulo}* para la fecha solicitada. Contactanos para coordinar otra fecha. 🏠 NIDO` }) }).catch(()=>{})
+          }
+          setVisitaDetalle(null)
+        }
+
+        const enviarNuevaFecha = async () => {
+          if (!nuevaFecha) return
+          await supabase.from('visitas').update({ fecha: nuevaFecha, hora: nuevaHora, estado:'pendiente' }).eq('id', v.id)
+          setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, fecha:nuevaFecha, hora:nuevaHora, estado:'pendiente'} : x))
+          if (v.comprador_telefono) {
+            const fechaFmt = new Date(nuevaFecha+'T12:00:00').toLocaleDateString('es-CR',{weekday:'long',month:'long',day:'numeric'})
+            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `Hola ${v.comprador_nombre||''}, te propongo una nueva fecha para tu visita a *${v.propiedad_titulo}*:\n\n📅 ${fechaFmt}\n🕐 ${nuevaHora}\n\n¿Te funciona? Respondeme para confirmar. 🏠 NIDO` }) }).catch(()=>{})
+          }
+          setReprogramando(false)
+          setNuevaFecha('')
+          setVisitaDetalle(null)
+        }
+
+        return (
+          <>
+            <div onClick={() => { setVisitaDetalle(null); setReprogramando(false) }} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:200, backdropFilter:'blur(4px)' }}/>
+            <div style={{ position:'fixed', top:'50%', left:'50%', transform:'translate(-50%,-50%)', zIndex:201, background:'white', borderRadius:16, padding:'28px', width:'90%', maxWidth:440, boxShadow:'0 24px 80px rgba(0,0,0,0.2)' }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+                <h3 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, fontWeight:400 }}>Detalle de visita</h3>
+                <button onClick={() => { setVisitaDetalle(null); setReprogramando(false) }} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, cursor:'pointer' }}>×</button>
+              </div>
+
+              <div style={{ background:'var(--bg)', borderRadius:10, padding:'14px 16px', marginBottom:16 }}>
+                <div style={{ fontSize:14, fontWeight:500, marginBottom:8 }}>{v.propiedad_titulo}</div>
+                <div style={{ fontSize:13, color:'var(--ink-2)', marginBottom:4 }}>👤 {v.comprador_nombre}</div>
+                <div style={{ fontSize:13, color:'var(--ink-2)', marginBottom:4 }}>📱 {v.comprador_telefono}</div>
+                {v.comprador_email && <div style={{ fontSize:13, color:'var(--ink-2)', marginBottom:4 }}>✉ {v.comprador_email}</div>}
+                <div style={{ fontSize:13, color:'var(--ink-2)', marginBottom:4 }}>📅 {safeFmt(v.fecha, {weekday:'long',month:'long',day:'numeric'})} · {v.hora}</div>
+                <div style={{ fontSize:13, color:'var(--ink-2)' }}>🏠 {v.tipo === 'virtual' ? 'Virtual' : 'Presencial'}</div>
+                {v.notas && <div style={{ fontSize:13, color:'var(--ink-3)', marginTop:8, fontStyle:'italic' }}>"{v.notas}"</div>}
+                <span style={{ display:'inline-block', marginTop:10, padding:'3px 10px', borderRadius:999, fontSize:10, fontWeight:500, background:v.estado==='confirmada'?'var(--accent-tint)':v.estado==='rechazada'?'oklch(0.95 0.04 20)':'oklch(0.93 0.05 80)', color:v.estado==='confirmada'?'var(--accent)':v.estado==='rechazada'?'oklch(0.5 0.1 20)':'oklch(0.45 0.08 80)' }}>{v.estado}</span>
+              </div>
+
+              {reprogramando ? (
+                <div>
+                  <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Nueva fecha propuesta</label>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
+                    <input type="date" value={nuevaFecha} onChange={e => setNuevaFecha(e.target.value)} style={{ padding:'10px 12px', border:'1px solid var(--rule)', borderRadius:8, fontSize:14 }}/>
+                    <input type="time" value={nuevaHora} onChange={e => setNuevaHora(e.target.value)} style={{ padding:'10px 12px', border:'1px solid var(--rule)', borderRadius:8, fontSize:14 }}/>
+                  </div>
+                  <div style={{ display:'flex', gap:10 }}>
+                    <button onClick={() => setReprogramando(false)} style={{ flex:1, padding:'11px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:13, cursor:'pointer' }}>Cancelar</button>
+                    <button onClick={enviarNuevaFecha} disabled={!nuevaFecha} style={{ flex:1, padding:'11px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, fontWeight:500, cursor:'pointer', opacity:nuevaFecha?1:0.5 }}>Enviar propuesta →</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                  {isPendiente && (
+                    <button onClick={async () => {
+                      await supabase.from('visitas').update({ estado:'confirmada' }).eq('id', v.id)
+                      setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'confirmada'} : x))
+                      if (v.comprador_telefono) {
+                        fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `✅ *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${v.propiedad_titulo}\nFecha: ${safeFmt(v.fecha, {weekday:'long',month:'long',day:'numeric'})}\nHora: ${v.hora}\n\nTe enviaremos un recordatorio el día antes. 🏠` }) }).catch(()=>{})
+                      }
+                      setVisitaDetalle(null)
+                    }} style={{ padding:'12px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:14, fontWeight:500, cursor:'pointer' }}>
+                      ✓ Confirmar visita
+                    </button>
+                  )}
+                  {waLink && (
+                    <a href={waLink} target="_blank" style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:8, padding:'12px', borderRadius:999, background:'#22c55e', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>
+                      💬 Contactar por WhatsApp
+                    </a>
+                  )}
+                  <button onClick={() => { setReprogramando(true); setNuevaFecha(v.fecha) }} style={{ padding:'12px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:14, cursor:'pointer' }}>
+                    📅 Proponer nueva fecha
+                  </button>
+                  {v.estado !== 'rechazada' && (
+                    <button onClick={rechazar} style={{ padding:'12px', borderRadius:999, border:'1px solid oklch(0.85 0.06 20)', background:'transparent', color:'oklch(0.5 0.1 20)', fontSize:14, cursor:'pointer' }}>
+                      ✗ Rechazar visita
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </>
         )
