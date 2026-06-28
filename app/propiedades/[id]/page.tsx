@@ -48,6 +48,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
   const [imgError, setImgError] = useState(false)
   const [activeFoto, setActiveFoto] = useState(0)
   const [perfilAsesor, setPerfilAsesor] = useState<any>(null)
+  const [lightboxOpen, setLightboxOpen] = useState(false)
 
   useEffect(() => {
 // Auth handled by AuthContext
@@ -55,7 +56,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
       setPropiedad(data)
       setLoading(false)
       if (data && data.asesor_email) {
-        supabase.from('perfiles').select('correo,telefono,nombre').eq('correo', data.asesor_email).maybeSingle()
+        supabase.from('perfiles').select('correo,telefono,nombre,foto_url').eq('correo', data.asesor_email).maybeSingle()
           .then(({ data: pf }) => setPerfilAsesor(pf))
       }
       if (data) {
@@ -146,7 +147,8 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
             src={fotosArr[idx]}
             alt={propiedad.titulo}
             className="ficha-foto-fade"
-            style={{width:'100%',height:'100%',objectFit:'cover'}}
+            onClick={() => setLightboxOpen(true)}
+            style={{width:'100%',height:'100%',objectFit:'cover',cursor:'zoom-in'}}
           />
           <div style={{position:'absolute',inset:0,background:'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)'}}/>
           <div style={{position:'absolute',bottom:24,left:32}}>
@@ -276,8 +278,10 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                 {/* Header asesor */}
                 <div style={{background:'var(--ink)',padding:'20px'}}>
                   <div style={{display:'flex',alignItems:'center',gap:14}}>
-                    <div style={{width:52,height:52,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),oklch(0.30 0.08 150))',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:'oklch(0.85 0.06 80)',flexShrink:0}}>
-                      {propiedad.asesor_nombre[0]}
+                    <div style={{width:52,height:52,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),oklch(0.30 0.08 150))',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:'oklch(0.85 0.06 80)',flexShrink:0,overflow:'hidden'}}>
+                      {perfilAsesor?.foto_url
+                        ? <img src={perfilAsesor.foto_url} alt={propiedad.asesor_nombre} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+                        : propiedad.asesor_nombre[0]}
                     </div>
                     <div>
                       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'white',marginBottom:2}}>{propiedad.asesor_nombre}</div>
@@ -389,6 +393,26 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
           onSuccess={() => { setOfertaOpen(false); setOfertaExito(true) }}
         />
       )}
+
+      {lightboxOpen && propiedad && (() => {
+        const fotosArr = (propiedad.fotos && propiedad.fotos.length > 0) ? propiedad.fotos : ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80']
+        const idx = Math.min(activeFoto, fotosArr.length - 1)
+        return (
+          <div onClick={() => setLightboxOpen(false)} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.92)',zIndex:300,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <button onClick={() => setLightboxOpen(false)} style={{position:'absolute',top:20,right:24,width:40,height:40,borderRadius:'50%',background:'rgba(255,255,255,0.1)',border:'none',color:'white',fontSize:20,cursor:'pointer',zIndex:301}}>×</button>
+            {fotosArr.length > 1 && (
+              <button onClick={(e) => { e.stopPropagation(); setActiveFoto((idx - 1 + fotosArr.length) % fotosArr.length) }} style={{position:'absolute',left:20,top:'50%',transform:'translateY(-50%)',width:48,height:48,borderRadius:'50%',background:'rgba(255,255,255,0.1)',border:'none',color:'white',fontSize:22,cursor:'pointer',zIndex:301}}>‹</button>
+            )}
+            <img src={fotosArr[idx]} onClick={(e) => e.stopPropagation()} alt={propiedad.titulo} style={{maxWidth:'90vw',maxHeight:'88vh',objectFit:'contain',borderRadius:8}}/>
+            {fotosArr.length > 1 && (
+              <button onClick={(e) => { e.stopPropagation(); setActiveFoto((idx + 1) % fotosArr.length) }} style={{position:'absolute',right:20,top:'50%',transform:'translateY(-50%)',width:48,height:48,borderRadius:'50%',background:'rgba(255,255,255,0.1)',border:'none',color:'white',fontSize:22,cursor:'pointer',zIndex:301}}>›</button>
+            )}
+            {fotosArr.length > 1 && (
+              <div style={{position:'absolute',bottom:24,left:'50%',transform:'translateX(-50%)',color:'rgba(255,255,255,0.7)',fontSize:13}}>{idx+1} / {fotosArr.length}</div>
+            )}
+          </div>
+        )
+      })()}
 
       {visitaOpen && propiedad && (
         <>
