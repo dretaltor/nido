@@ -33,7 +33,6 @@ export function ContactoForm({ propiedadId, propiedadTitulo, asesorEmail, asesor
       telefono: form.telefono,
       mensaje: form.mensaje,
       propiedad_id: propiedadId,
-      propiedad_titulo: propiedadTitulo,
       asesor_email: asesorEmail,
       estado: 'nuevo',
     })
