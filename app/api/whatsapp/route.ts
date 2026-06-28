@@ -57,9 +57,16 @@ export async function POST(req: NextRequest) {
     const sistemaPrompt = `Sos Valeria, la asistente IA de NIDO — plataforma inmobiliaria premium de Costa Rica.
 Respondés por WhatsApp — mensajes cortos, claros y directos. Máximo 3 párrafos.
 ${userName ? 'Estás hablando con ' + userName + ', ' + userType + ' de NIDO.' : 'Es un usuario nuevo — podría ser comprador, vendedor o asesor.'}
+${userType === 'asesor' ? `
+Este es un ASESOR registrado en NIDO. Además de lo de comprador, podés ayudarlo con:
+- Ver SUS propias propiedades publicadas (si pregunta "mis propiedades", "lo que tengo publicado", etc): respondé con {"action":"mis_propiedades"}
+- Información general del mercado inmobiliario costarricense (zonas en crecimiento, precios promedio por m², tendencias) — respondé con datos generales basados en tu conocimiento del mercado CR.
+- Capacitación: si pregunta cómo mejorar sus ventas, usar la plataforma, o "capacitarme", mencioná la Academia NIDO en nido-cr.com/academia con cursos y certificaciones.
+- Dudas sobre comisiones, KYC, contratos o el funcionamiento de NIDO.
+` : ''}
 Ayudás con: consultas sobre propiedades, proceso de compra/venta, información sobre NIDO, agendar visitas.
 Siempre terminá con una pregunta o siguiente paso concreto.
-Si el usuario pregunta por propiedades, DEBES responder con el JSON especial: {"action":"buscar_propiedades","zona":"zona mencionada o null","tipo":"casa/apartamento/lote/local o null","precio_max":numero_o_null}
+Si el usuario pregunta por propiedades (que NO sean las suyas si es asesor), DEBES responder con el JSON especial: {"action":"buscar_propiedades","zona":"zona mencionada o null","tipo":"casa/apartamento/lote/local o null","precio_max":numero_o_null}
 Si el usuario quiere agendar una visita: {"action":"agendar_visita","propiedad":"nombre si mencionó alguna"}
 Para cualquier otra consulta, responde normalmente en texto.`
 
@@ -101,6 +108,17 @@ Para cualquier otra consulta, responde normalmente en texto.`
           }
         } else if (action.action === 'agendar_visita') {
           finalReply = '📅 Para agendar una visita, ingresá a la ficha de la propiedad en:\n🌐 www.nido-cr.com/propiedades\n\nO decime tu nombre y teléfono y un asesor NIDO te contactará para coordinarla. 🏠'
+        } else if (action.action === 'mis_propiedades' && asesor?.correo) {
+          const { data: misProps } = await supabaseAdmin.from('propiedades').select('id, titulo, zona, precio, disponible, verificacion_estado').eq('asesor_email', asesor.correo).order('created_at', { ascending: false }).limit(8)
+
+          if (misProps && misProps.length > 0) {
+            finalReply = '🏠 *Tus propiedades en NIDO:*\n\n' + misProps.map((p: any, i: number) => {
+              const estado = p.verificacion_estado === 'pendiente_verificacion' ? '⏳ Pendiente de aprobación' : p.disponible ? '✅ Activa' : '⏸️ Pausada'
+              return `${i+1}. *${p.titulo}*\n📍 ${p.zona} | $${Number(p.precio).toLocaleString()}\n${estado}\n🔗 nido-cr.com/propiedades/${p.id}`
+            }).join('\n\n') + '\n\n¿Querés que te ayude con alguna de ellas?'
+          } else {
+            finalReply = '📋 Todavía no tenés propiedades publicadas.\n\nPodés publicar la primera acá:\n🌐 nido-cr.com/dashboard/nueva-propiedad'
+          }
         }
       }
     } catch {}
