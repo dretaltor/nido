@@ -5,13 +5,25 @@ import { Suspense } from 'react'
 import { supabase } from '../../lib/supabase'
 
 const PLANES_INFO: Record<string, { nombre: string, precio: string, color: string }> = {
-  pro: { nombre: 'Pro', precio: '$49/mes', color: 'var(--accent)' },
-  enterprise: { nombre: 'Enterprise', precio: '$129/mes', color: 'oklch(0.52 0.08 230)' },
+  gratis: { nombre: 'Despega', precio: '$0 · 7 días de Black gratis', color: 'var(--ink)' },
+  pro: { nombre: 'Elite', precio: '$59/mes', color: 'var(--accent)' },
+  enterprise: { nombre: 'Black', precio: '$149/mes', color: 'oklch(0.20 0.005 80)' },
 }
+
+const PLANES_CARDS = [
+  { id: 'gratis', nombre: 'Despega', precio: '$0', sub: '7 días de Black gratis, luego se bloquea hasta suscribirte', color: 'var(--ink-2)' },
+  { id: 'pro', nombre: 'Elite', precio: '$59/mes', sub: 'Valeria IA, CRM completo, Academia', color: 'var(--accent)' },
+  { id: 'enterprise', nombre: 'Black', precio: '$149/mes', sub: 'Todo ilimitado + soporte prioritario', color: 'oklch(0.20 0.005 80)' },
+]
 
 function RegistroInner() {
   const params = useSearchParams()
-  const plan = params.get('plan') || ''
+  const planInicial = params.get('plan') || 'gratis'
+
+  const [plan, setPlan] = useState(planInicial)
+  const [tipoTrabajo, setTipoTrabajo] = useState<'independiente' | 'compania' | 'equipo_nido'>('independiente')
+  const [companiaNombre, setCompaniaNombre] = useState('')
+
   const planInfo = PLANES_INFO[plan]
 
   const [nombre, setNombre] = useState('')
@@ -24,25 +36,53 @@ function RegistroInner() {
   const handleRegistro = async () => {
     if (!nombre || !email || !password) { setError('Por favor completa todos los campos.'); return }
     if (password.length < 6) { setError('La contrasena debe tener al menos 6 caracteres.'); return }
+    if (tipoTrabajo === 'compania' && !companiaNombre.trim()) { setError('Ingresá el nombre de tu compañía.'); return }
     setLoading(true); setError('')
     const { error } = await supabase.auth.signUp({
       email, password,
-      options: { data: { nombre, plan: plan || 'gratis' } }
+      options: { data: { nombre, plan } }
     })
     if (error) { setError(error.message.includes('already') || error.message.includes('registered') ? 'Este correo ya está registrado. Intentá iniciar sesión.' : 'Error al registrarse: ' + error.message) }
     else {
       // Auto login after registration
       const { data: loginData } = await supabase.auth.signInWithPassword({ email, password })
-      // Crear fila en perfiles INMEDIATAMENTE — no esperar al onboarding
       if (loginData?.user) {
+        // Crear fila en perfiles INMEDIATAMENTE — no esperar al onboarding
         await supabase.from('perfiles').upsert({
           id: loginData.user.id,
           nombre,
           correo: email,
-          plan: plan || 'gratis',
+          plan,
+          compania: tipoTrabajo === 'compania' ? companiaNombre.trim() : null,
+          solicita_equipo_nido: tipoTrabajo === 'equipo_nido',
+          equipo_nido_estado: tipoTrabajo === 'equipo_nido' ? 'pendiente' : null,
           valeria_onboarding_completo: false,
           created_at: new Date().toISOString(),
         })
+
+        // Crear suscripcion inicial
+        if (plan === 'gratis') {
+          // Trial de 7 dias con TODO el plan Black activo
+          const trialFin = new Date()
+          trialFin.setDate(trialFin.getDate() + 7)
+          await supabase.from('suscripciones').upsert({
+            correo: email,
+            plan: 'enterprise',
+            activo: true,
+            es_trial: true,
+            trial_fin: trialFin.toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'correo' })
+        } else {
+          // Plan pago elegido — queda pendiente de activacion por NIDO (pago manual via SINPE)
+          await supabase.from('suscripciones').upsert({
+            correo: email,
+            plan,
+            activo: false,
+            es_trial: false,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'correo' })
+        }
       }
       if (typeof window !== 'undefined') localStorage.setItem('nido_user_tipo', 'asesor')
       window.location.href = '/dashboard/valeria-onboarding'
@@ -71,39 +111,78 @@ function RegistroInner() {
       <style>{CSS}</style>
 
       {/* Panel izquierdo */}
-      <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', padding:'48px 64px', maxWidth:560, animation:'fadeUp 0.5s ease' }}>
+      <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', padding:'48px 64px', maxWidth:600, animation:'fadeUp 0.5s ease', overflowY:'auto' }}>
 
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:26, color:'var(--ink)', textDecoration:'none', marginBottom:48, display:'block' }}>
+        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:26, color:'var(--ink)', textDecoration:'none', marginBottom:32, display:'block' }}>
           NIDO<span style={{ color:'var(--accent)' }}>.</span>
         </a>
 
-        <div style={{ marginBottom:28 }}>
+        <div style={{ marginBottom:24 }}>
           <div style={{ fontSize:11, letterSpacing:'0.18em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>
-            {planInfo ? 'Crear cuenta · Plan ' + planInfo.nombre : 'Crear cuenta · Asesor'}
+            Crear cuenta · Asesor
           </div>
-          <h1 style={{ fontFamily:'var(--serif)', fontSize:'clamp(28px,4vw,42px)', fontWeight:400, lineHeight:1.1, marginBottom:8 }}>
+          <h1 style={{ fontFamily:'var(--serif)', fontSize:'clamp(26px,4vw,38px)', fontWeight:400, lineHeight:1.1, marginBottom:8 }}>
             Tu carrera empieza <em style={{ fontStyle:'italic', color:'var(--accent)' }}>hoy.</em>
           </h1>
           <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6 }}>
-            Crea tu cuenta gratis y empieza a publicar propiedades con Valeria IA de tu lado.
+            Elegí tu plan, contanos cómo trabajás, y empezá a publicar con Valeria IA de tu lado.
           </p>
         </div>
-
-        {planInfo && (
-          <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:10, padding:'12px 16px', marginBottom:20, display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-            <div>
-              <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--accent)', marginBottom:2 }}>Plan seleccionado</div>
-              <div style={{ fontSize:14, fontWeight:500, color:'var(--ink)' }}>NIDO {planInfo.nombre} · {planInfo.precio}</div>
-            </div>
-            <a href="/precios" style={{ fontSize:12, color:'var(--ink-3)' }}>Cambiar</a>
-          </div>
-        )}
 
         {error && (
           <div style={{ background:'oklch(0.97 0.03 20)', border:'1px solid oklch(0.85 0.06 20)', borderRadius:10, padding:'12px 16px', marginBottom:16, color:'oklch(0.45 0.08 20)', fontSize:13 }}>
             {error}
           </div>
         )}
+
+        {/* SELECTOR DE PLAN */}
+        <div style={{ marginBottom:20 }}>
+          <label style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:10 }}>Elegí tu plan</label>
+          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+            {PLANES_CARDS.map(p => (
+              <button key={p.id} onClick={() => setPlan(p.id)} style={{ textAlign:'left', padding:'12px 12px', borderRadius:10, border:'2px solid '+(plan===p.id?p.color:'var(--rule)'), background:plan===p.id?'var(--accent-tint)':'white', cursor:'pointer', fontFamily:'inherit' }}>
+                <div style={{ fontSize:13, fontWeight:600, color:plan===p.id?p.color:'var(--ink)', marginBottom:2 }}>NIDO {p.nombre}</div>
+                <div style={{ fontSize:14, fontWeight:500, color:'var(--ink)', marginBottom:4 }}>{p.precio}</div>
+                <div style={{ fontSize:10, color:'var(--ink-3)', lineHeight:1.4 }}>{p.sub}</div>
+              </button>
+            ))}
+          </div>
+          {plan === 'gratis' && (
+            <div style={{ marginTop:8, fontSize:12, color:'var(--accent)', background:'var(--accent-tint)', padding:'8px 12px', borderRadius:8 }}>
+              ✦ Empezás con el plan Black completo gratis por 7 días. Después necesitás elegir un plan pago para seguir publicando.
+            </div>
+          )}
+        </div>
+
+        {/* TIPO DE TRABAJO */}
+        <div style={{ marginBottom:20 }}>
+          <label style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:10 }}>¿Cómo trabajás?</label>
+          <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+            {[
+              { id:'independiente', label:'Asesor independiente', desc:'Trabajo por mi cuenta' },
+              { id:'compania', label:'Trabajo para una compañía', desc:'Indicá el nombre de tu agencia o empresa' },
+              { id:'equipo_nido', label:'Quiero aplicar al Equipo NIDO', desc:'Solicitar incorporación — sujeto a aprobación' },
+            ].map(o => (
+              <button key={o.id} onClick={() => setTipoTrabajo(o.id as any)} style={{ display:'flex', alignItems:'center', gap:10, textAlign:'left', padding:'10px 14px', borderRadius:10, border:'1px solid '+(tipoTrabajo===o.id?'var(--accent)':'var(--rule)'), background:tipoTrabajo===o.id?'var(--accent-tint)':'white', cursor:'pointer', fontFamily:'inherit' }}>
+                <div style={{ width:16, height:16, borderRadius:'50%', border:'2px solid '+(tipoTrabajo===o.id?'var(--accent)':'var(--rule)'), display:'grid', placeItems:'center', flexShrink:0 }}>
+                  {tipoTrabajo===o.id && <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--accent)' }}/>}
+                </div>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:500, color:'var(--ink)' }}>{o.label}</div>
+                  <div style={{ fontSize:11, color:'var(--ink-3)' }}>{o.desc}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+          {tipoTrabajo === 'compania' && (
+            <input className="field-input" style={{ marginTop:10 }} type="text" placeholder="Nombre de tu compañía" value={companiaNombre} onChange={e => setCompaniaNombre(e.target.value)}/>
+          )}
+          {tipoTrabajo === 'equipo_nido' && (
+            <div style={{ marginTop:10, fontSize:12, color:'var(--ink-2)', background:'var(--bg-elev)', padding:'10px 14px', borderRadius:8 }}>
+              Tu solicitud queda pendiente de revisión por el equipo NIDO. Te contactaremos para coordinar la incorporación.
+            </div>
+          )}
+        </div>
 
         <div style={{ display:'flex', flexDirection:'column', gap:14, marginBottom:20 }}>
           <div>
@@ -121,7 +200,7 @@ function RegistroInner() {
         </div>
 
         <button className="login-btn" onClick={handleRegistro} disabled={loading}>
-          {loading ? 'Creando cuenta...' : 'Crear cuenta gratis →'}
+          {loading ? 'Creando cuenta...' : 'Crear cuenta →'}
         </button>
 
         <p style={{ textAlign:'center', marginTop:16, fontSize:13, color:'var(--ink-3)' }}>
@@ -132,7 +211,7 @@ function RegistroInner() {
           Al crear una cuenta aceptás los <a href="/terminos" style={{ color:'var(--accent)' }}>Términos de uso</a> y la <a href="/privacidad" style={{ color:'var(--accent)' }}>Política de privacidad</a> de NIDO.
         </p>
 
-        <div style={{ marginTop:40, paddingTop:24, borderTop:'1px solid var(--rule)', display:'flex', gap:20 }}>
+        <div style={{ marginTop:32, paddingTop:24, borderTop:'1px solid var(--rule)', display:'flex', gap:20, flexWrap:'wrap' }}>
           {[{icon:'✦', label:'Valeria IA incluida'},{icon:'◎', label:'CRM de leads'},{icon:'🏠', label:'Portal premium'}].map(l => (
             <div key={l.label} style={{ fontSize:12, color:'var(--ink-3)', display:'flex', alignItems:'center', gap:6 }}>
               <span style={{ color:'var(--accent)' }}>{l.icon}</span> {l.label}
@@ -142,7 +221,7 @@ function RegistroInner() {
       </div>
 
       {/* Panel derecho */}
-      <div style={{ flex:1, position:'relative', overflow:'hidden', background:'#060D08', display:'flex', flexDirection:'column', justifyContent:'flex-end', padding:48 }}>
+      <div style={{ flex:1, position:'relative', overflow:'hidden', background:'#060D08', display:'flex', flexDirection:'column', justifyContent:'flex-end', padding:48 }} className="panel-derecho">
         <div style={{ position:'absolute', inset:'-5%', backgroundImage:'url(https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80)', backgroundSize:'cover', backgroundPosition:'center', opacity:0.2, animation:'slow-zoom 20s ease-in-out infinite alternate' }}/>
         <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom, rgba(6,13,8,0.3) 0%, rgba(6,13,8,0.8) 100%)' }}/>
         <div style={{ position:'absolute', top:'25%', left:'50%', transform:'translate(-50%,-50%)', width:400, height:400, borderRadius:'50%', background:'radial-gradient(circle, oklch(0.42 0.06 150/0.1) 0%, transparent 70%)' }}/>
@@ -152,7 +231,7 @@ function RegistroInner() {
             {[
               { val:'87', label:'asesores activos en NIDO', suffix:'%' },
               { val:'412', label:'propiedades publicadas', suffix:'+' },
-              { val:'2.4', label:'veces mas cierres con Pro', suffix:'×' },
+              { val:'2.4', label:'veces mas cierres con Elite', suffix:'×' },
               { val:'4.9', label:'calificacion promedio asesores', suffix:'★' },
             ].map(s => (
               <div key={s.val} style={{ background:'rgba(255,255,255,0.05)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:10, padding:'14px 16px', backdropFilter:'blur(12px)' }}>
@@ -203,5 +282,5 @@ const CSS = `
   .login-btn{width:100%;padding:13px;border-radius:999px;border:none;background:var(--ink);color:white;font-size:15px;font-weight:500;cursor:pointer;font-family:var(--sans);transition:all 0.2s}
   .login-btn:hover:not(:disabled){background:oklch(0.28 0.006 80);transform:translateY(-1px)}
   .login-btn:disabled{opacity:0.6;cursor:not-allowed}
-  @media(max-width:768px){main>div:last-child{display:none!important}main>div:first-child{padding:32px 24px!important;max-width:100%!important}}
+  @media(max-width:768px){.panel-derecho{display:none!important}main>div:first-child{padding:32px 24px!important;max-width:100%!important}}
 `

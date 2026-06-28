@@ -4,7 +4,7 @@ import { useState } from 'react'
 const PLANES = [
   {
     id: 'gratis',
-    nombre: 'Gratis',
+    nombre: 'Despega',
     desc: 'Para empezar a explorar NIDO sin compromiso.',
     precio_mes: 0,
     precio_ano: 0,
@@ -26,12 +26,12 @@ const PLANES = [
   },
   {
     id: 'pro',
-    nombre: 'Pro',
+    nombre: 'Elite',
     desc: 'Para asesores que quieren crecer con IA y automatización.',
-    precio_mes: 49,
-    precio_ano: 39,
+    precio_mes: 59,
+    precio_ano: 45,
     badge: 'Más popular',
-    cta: 'Empezar Pro',
+    cta: 'Empezar Elite',
     href: '/registro?plan=pro',
     featured: false,
     features: [
@@ -48,12 +48,12 @@ const PLANES = [
   },
   {
     id: 'enterprise',
-    nombre: 'Enterprise',
+    nombre: 'Black',
     desc: 'Para asesores top y equipos que quieren dominar el mercado.',
-    precio_mes: 129,
-    precio_ano: 99,
+    precio_mes: 149,
+    precio_ano: 115,
     badge: 'Mayor valor',
-    cta: 'Empezar Enterprise',
+    cta: 'Empezar Black',
     href: '/registro?plan=enterprise',
     featured: true,
     features: [
@@ -128,8 +128,8 @@ export default function Precios() {
   const CUENTA_NOMBRE = 'NIDO Plataforma Inmobiliaria'
 
   const PLANES_INFO: Record<string, {nombre:string, precio:string, precioAnual:string}> = {
-    pro: { nombre:'NIDO Pro', precio:'$49/mes', precioAnual:'$39/mes (facturado anual)' },
-    enterprise: { nombre:'NIDO Enterprise', precio:'$129/mes', precioAnual:'$99/mes (facturado anual)' },
+    pro: { nombre:'NIDO Elite', precio:'$59/mes', precioAnual:'$45/mes (facturado anual)' },
+    enterprise: { nombre:'NIDO Black', precio:'$149/mes', precioAnual:'$115/mes (facturado anual)' },
   }
 
   const handleSuscribirse = async (planId: string) => {
@@ -168,7 +168,7 @@ export default function Precios() {
             Invertí en tu <em style={{ fontStyle:'italic', color:'var(--accent)' }}>carrera.</em>
           </h1>
           <p style={{ fontSize:16, color:'var(--ink-2)', lineHeight:1.65, marginBottom:28 }}>
-            Los asesores NIDO Pro cierran 2.4× más rápido. Los Enterprise dominan su zona.
+            Los asesores NIDO Elite cierran 2.4× más rápido. Los Black dominan su zona.
           </p>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:14 }}>
             <div className="toggle-group">
@@ -238,7 +238,7 @@ export default function Precios() {
           <div style={{ border:'1px solid var(--rule)', borderRadius:12, overflow:'hidden' }}>
             <div className="table-row table-header">
               <div className="table-cell" style={{ fontWeight:500, fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase' }}>Funcionalidad</div>
-              {['Gratis','Pro','Enterprise'].map(n => (
+              {['Despega','Elite','Black'].map(n => (
                 <div key={n} className="table-cell center" style={{ fontWeight:500, fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase' }}>{n}</div>
               ))}
             </div>
@@ -258,10 +258,10 @@ export default function Precios() {
           <h2 style={{ fontFamily:'var(--serif)', fontSize:28, fontWeight:400, textAlign:'center', marginBottom:28 }}>Preguntas <em style={{ fontStyle:'italic', color:'var(--accent)' }}>frecuentes.</em></h2>
           {[
             { q:'¿Puedo cambiar de plan en cualquier momento?', a:'Sí. Podés hacer upgrade o downgrade en cualquier momento. Si hacés upgrade, el cambio aplica inmediatamente. Si hacés downgrade, aplica al siguiente ciclo.' },
-            { q:'¿Qué pasa con mis propiedades si hago downgrade?', a:'Si bajás al plan Gratis, tus propiedades se pausan (no se eliminan) hasta que volvás a un plan pago.' },
+            { q:'¿Qué pasa con mis propiedades si hago downgrade?', a:'Si bajás al plan Despega, tus propiedades se pausan (no se eliminan) hasta que volvás a un plan pago.' },
             { q:'¿Aceptan tarjetas costarricenses?', a:'Sí. Aceptamos Visa y Mastercard locales e internacionales, y próximamente SINPE Móvil.' },
             { q:'¿Hay contrato de permanencia?', a:'No. En el plan mensual podés cancelar cuando quieras. El plan anual no tiene reembolsos parciales.' },
-            { q:'¿Qué incluye exactamente Valeria IA?', a:'En Pro, Valeria puede redactar descripciones, analizar leads y responder consultas. En Enterprise, además recuerda el historial de tus propiedades y compradores para un asesoramiento más profundo.' },
+            { q:'¿Qué incluye exactamente Valeria IA?', a:'En Elite, Valeria puede redactar descripciones, analizar leads y responder consultas. En Black, además recuerda el historial de tus propiedades y compradores para un asesoramiento más profundo.' },
           ].map((f, i) => (
             <div key={i} style={{ borderTop:'1px solid var(--rule)', padding:'18px 0' }}>
               <div style={{ fontSize:15, fontWeight:500, marginBottom:8, color:'var(--ink)' }}>{f.q}</div>
@@ -277,11 +277,11 @@ export default function Precios() {
             Empezá gratis.<br/>Crecé cuando estés listo.
           </h2>
           <p style={{ fontSize:14, color:'rgba(255,255,255,0.5)', lineHeight:1.65, marginBottom:28, maxWidth:420, margin:'0 auto 28px' }}>
-            No necesitás tarjeta de crédito para empezar. El plan Gratis no tiene fecha de vencimiento.
+            No necesitás tarjeta de crédito para empezar. El plan Despega incluye 7 días de Black gratis para probar todo.
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
             <a href="/registro" style={{ background:'var(--accent)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, fontWeight:500, textDecoration:'none', display:'inline-block' }}>Crear cuenta gratis →</a>
-            <button onClick={() => handleSuscribirse('enterprise')} disabled={loadingPlan==='enterprise'} style={{ border:'1px solid rgba(255,255,255,0.2)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, background:'transparent', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", opacity:loadingPlan==='enterprise'?0.7:1 }}>{loadingPlan==='enterprise'?'Redirigiendo...':'Ver Enterprise'}</button>
+            <button onClick={() => handleSuscribirse('enterprise')} disabled={loadingPlan==='enterprise'} style={{ border:'1px solid rgba(255,255,255,0.2)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, background:'transparent', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", opacity:loadingPlan==='enterprise'?0.7:1 }}>{loadingPlan==='enterprise'?'Redirigiendo...':'Ver Black'}</button>
           </div>
         </div>
 
