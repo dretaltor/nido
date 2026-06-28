@@ -106,8 +106,12 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'oklch(0.10 0.005 80 / 0.5)', zIndex: 60, backdropFilter: 'blur(4px)' }} />
       <div style={{ position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(680px, 96vw)', background: 'var(--bg)', zIndex: 70, overflowY: 'auto', boxShadow: 'var(--shadow-lg)' }}>
-        <div style={{ position: 'relative', height: 300, background: `oklch(0.85 0.04 ${hue})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'relative', height: 300, background: `oklch(0.85 0.04 ${hue})`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+          {p.fotos && p.fotos.length > 0 ? (
+            <img src={p.fotos[0]} alt={p.titulo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
           <span style={{ fontFamily: 'var(--mono)', fontSize: 11, letterSpacing: '0.14em', color: `oklch(0.5 0.06 ${hue})`, textTransform: 'uppercase' }}>FOTO PRINCIPAL</span>
+          )}
           <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, width: 36, height: 36, borderRadius: '50%', background: 'oklch(0.10 0.005 80 / 0.6)', border: '1px solid rgba(255,255,255,0.2)', color: 'white', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
             <Icon name="x" />
           </button>

@@ -114,7 +114,7 @@ export default function Dashboard() {
         setLeads(leadsData || [])
         setOfertas(ofertasData || [])
         // Check onboarding status
-        supabase.from('perfiles').select('valeria_onboarding_completo,cedula_frente_url,foto_url').eq('id', user.id).maybeSingle().then(({data}) => setValeraPerfilDash(data))
+        supabase.from('perfiles').select('valeria_onboarding_completo,cedula_frente_url,foto_url,nombre').eq('id', user.id).maybeSingle().then(({data}) => setValeraPerfilDash(data))
         // Load visitas
         supabase.from('visitas').select('*').eq('asesor_email', user.email).order('fecha', { ascending: true }).then(({ data }) => setVisitas(data || []))
         // Load tareas
@@ -137,7 +137,8 @@ export default function Dashboard() {
   const leadsNuevos = leads.filter(l => l.estado === 'nuevo').length
   const leadsCerrados = leads.filter(l => l.estado === 'cerrado').length
   const propActivas = propiedades.filter(p => p.disponible).length
-  const nombre = user?.email?.split('@')[0] || 'ahí'
+  const primerNombre = (valeraPerfilDash?.nombre || '').split(' ')[0]
+  const nombre = primerNombre || user?.email?.split('@')[0] || 'ahí'
   const hora = new Date().getHours()
   const saludo = hora < 12 ? 'Buen día' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'
 

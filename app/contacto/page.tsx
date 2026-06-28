@@ -2,6 +2,18 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');
+  *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+  :root { --bg:oklch(0.97 0.005 80);--bg-card:oklch(0.99 0.003 80);--ink:oklch(0.20 0.005 80);--ink-2:oklch(0.42 0.005 80);--ink-3:oklch(0.60 0.005 80);--rule:oklch(0.88 0.006 80);--rule-soft:oklch(0.93 0.005 80);--accent:oklch(0.42 0.06 150);--accent-tint:oklch(0.95 0.02 150); }
+  a{color:inherit;text-decoration:none} button{font:inherit;color:inherit;cursor:pointer}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  .c-input{width:100%;padding:12px 16px;border:1px solid var(--rule);border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;color:var(--ink);background:white;outline:none;transition:border-color 0.2s;box-sizing:border-box}
+  .c-input:focus{border-color:var(--accent)}
+  .c-input::placeholder{color:var(--ink-3)}
+  @media(max-width:640px){.c-grid{grid-template-columns:1fr!important}}
+`
+
 export default function Contacto() {
   const [form, setForm] = useState({ nombre: '', email: '', telefono: '', mensaje: '', presupuesto: '', zona_interes: '' })
   const [loading, setLoading] = useState(false)
@@ -9,7 +21,7 @@ export default function Contacto() {
 
   const handleSubmit = async () => {
     if (!form.nombre || !form.email) {
-      alert('Por favor ingresa tu nombre y email')
+      alert('Por favor ingresá tu nombre y email')
       return
     }
     setLoading(true)
@@ -27,47 +39,74 @@ export default function Contacto() {
   }
 
   if (exito) return (
-    <main style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '2.5rem', maxWidth: '420px', textAlign: 'center', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
-        <p style={{ fontSize: '3rem', margin: '0 0 1rem' }}>🎉</p>
-        <h2 style={{ color: '#14532d', marginBottom: '0.5rem' }}>Mensaje enviado</h2>
-        <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>Un asesor de NIDO te contactará pronto.</p>
-        <a href="/propiedades" style={{ padding: '0.7rem 1.5rem', borderRadius: '8px', backgroundColor: '#15803d', color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>Ver más propiedades</a>
+    <main style={{ fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+      <style>{CSS}</style>
+      <div style={{ maxWidth:460, textAlign:'center', animation:'fadeUp 0.5s ease' }}>
+        <div style={{ width:72, height:72, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', margin:'0 auto 24px', fontSize:30 }}>✓</div>
+        <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:36, fontWeight:400, marginBottom:12 }}>Mensaje <em style={{ fontStyle:'italic', color:'var(--accent)' }}>enviado.</em></h1>
+        <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.65, marginBottom:28 }}>
+          Un asesor NIDO va a contactarte en las próximas horas para ayudarte a encontrar tu propiedad.
+        </p>
+        <a href="/propiedades" style={{ display:'inline-block', background:'var(--ink)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, fontWeight:500 }}>Ver propiedades →</a>
       </div>
     </main>
   )
 
   return (
-    <main style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
-        <a href="/" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#15803d', textDecoration: 'none' }}>NIDO</a>
-        <a href="/propiedades" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.9rem' }}>← Ver propiedades</a>
+    <main style={{ fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }}>
+      <style>{CSS}</style>
+
+      <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1200, margin:'0 auto' }}>
+          <a href="/" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <a href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>← Ver propiedades</a>
+        </div>
       </nav>
-      <div style={{ maxWidth: '560px', margin: '2rem auto', padding: '0 1rem' }}>
-        <div style={{ backgroundColor: 'white', borderRadius: '16px', padding: '2rem', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#14532d', margin: '0 0 0.3rem' }}>Hablar con un asesor</h2>
-          <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: '0 0 2rem' }}>Déjanos tus datos y te contactamos hoy mismo</p>
 
-          {[
-            { label: 'Nombre completo *', key: 'nombre', placeholder: 'Tu nombre' },
-            { label: 'Email *', key: 'email', placeholder: 'tu@email.com' },
-            { label: 'Teléfono', key: 'telefono', placeholder: '+506 8888-8888' },
-            { label: 'Zona de interés', key: 'zona_interes', placeholder: 'Ej: Escazú, San José' },
-            { label: 'Presupuesto aproximado', key: 'presupuesto', placeholder: 'Ej: $150,000 o $1,500/mes' },
-          ].map(f => (
-            <div key={f.key} style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#374151', marginBottom: '0.4rem' }}>{f.label}</label>
-              <input value={form[f.key as keyof typeof form]} onChange={e => setForm({...form, [f.key]: e.target.value})} placeholder={f.placeholder} style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box', color: '#111827' }} />
+      <div style={{ maxWidth:640, margin:'0 auto', padding:'56px 24px 80px', animation:'fadeUp 0.4s ease' }}>
+        <div style={{ marginBottom:32, textAlign:'center' }}>
+          <div style={{ fontSize:11, letterSpacing:'0.18em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Hablemos</div>
+          <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'clamp(30px,4vw,44px)', fontWeight:400, lineHeight:1.1, marginBottom:10 }}>
+            Hablá con un <em style={{ fontStyle:'italic', color:'var(--accent)' }}>asesor.</em>
+          </h1>
+          <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6 }}>Dejanos tus datos y te contactamos hoy mismo.</p>
+        </div>
+
+        <div style={{ background:'var(--bg-card)', border:'1px solid var(--rule)', borderRadius:16, padding:'32px' }}>
+          <div className="c-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+            <div>
+              <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Nombre completo *</label>
+              <input className="c-input" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} placeholder="Tu nombre"/>
             </div>
-          ))}
-
-          <div style={{ marginBottom: '1.5rem' }}>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 'bold', color: '#374151', marginBottom: '0.4rem' }}>¿Qué buscas?</label>
-            <textarea value={form.mensaje} onChange={e => setForm({...form, mensaje: e.target.value})} placeholder="Cuéntanos qué tipo de propiedad buscas..." rows={3} style={{ width: '100%', padding: '0.7rem 1rem', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.95rem', outline: 'none', boxSizing: 'border-box', color: '#111827', resize: 'vertical' }} />
+            <div>
+              <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Email *</label>
+              <input className="c-input" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="tu@email.com"/>
+            </div>
           </div>
 
-          <button onClick={handleSubmit} disabled={loading} style={{ width: '100%', padding: '0.9rem', borderRadius: '10px', border: 'none', backgroundColor: '#15803d', color: 'white', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer' }}>
-            {loading ? 'Enviando...' : 'Enviar mensaje'}
+          <div className="c-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+            <div>
+              <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Teléfono</label>
+              <input className="c-input" value={form.telefono} onChange={e => setForm({...form, telefono: e.target.value})} placeholder="+506 8888-8888"/>
+            </div>
+            <div>
+              <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Zona de interés</label>
+              <input className="c-input" value={form.zona_interes} onChange={e => setForm({...form, zona_interes: e.target.value})} placeholder="Ej: Escazú, Tamarindo"/>
+            </div>
+          </div>
+
+          <div style={{ marginBottom:20 }}>
+            <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Presupuesto aproximado</label>
+            <input className="c-input" value={form.presupuesto} onChange={e => setForm({...form, presupuesto: e.target.value})} placeholder="Ej: $150,000 o $1,500/mes"/>
+          </div>
+
+          <div style={{ marginBottom:24 }}>
+            <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>¿Qué buscás?</label>
+            <textarea className="c-input" value={form.mensaje} onChange={e => setForm({...form, mensaje: e.target.value})} placeholder="Contanos qué tipo de propiedad buscás..." rows={4} style={{ resize:'vertical' }}/>
+          </div>
+
+          <button onClick={handleSubmit} disabled={loading} style={{ width:'100%', padding:'14px', borderRadius:999, border:'none', background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, cursor:'pointer', opacity:loading?0.6:1 }}>
+            {loading ? 'Enviando...' : 'Enviar mensaje →'}
           </button>
         </div>
       </div>
