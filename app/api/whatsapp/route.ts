@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import crypto from 'crypto'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -25,7 +26,25 @@ export async function GET(req: NextRequest) {
 
 // Recibir mensajes
 export async function POST(req: NextRequest) {
-  const body = await req.json()
+  const rawBody = await req.text()
+
+  // Verificar que el mensaje viene realmente de Meta (HMAC-SHA256), no de cualquiera
+  const appSecret = process.env.WHATSAPP_APP_SECRET
+  if (appSecret) {
+    const signature = req.headers.get('x-hub-signature-256') || ''
+    const expectedSig = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex')
+    const sigBuffer = Buffer.from(signature)
+    const expectedBuffer = Buffer.from(expectedSig)
+    const valido = sigBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(sigBuffer, expectedBuffer)
+    if (!valido) {
+      console.error('Firma de webhook WhatsApp invalida — posible solicitud falsa')
+      return NextResponse.json({ error: 'Firma invalida' }, { status: 401 })
+    }
+  } else {
+    console.warn('WHATSAPP_APP_SECRET no configurado — el webhook no esta verificando el origen de los mensajes')
+  }
+
+  const body = JSON.parse(rawBody)
 
   try {
     const entry = body.entry?.[0]
