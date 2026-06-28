@@ -41,10 +41,15 @@ export default function EditarPropiedad() {
   const uploadFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
+    const actuales = (p.fotos || []).length
+    const disponibles = 15 - actuales
+    if (disponibles <= 0) { alert('Ya tenés el máximo de 15 fotos. Eliminá alguna para subir nuevas.'); e.target.value=''; return }
+    const filesToUpload = Array.from(files).slice(0, disponibles)
+    if (files.length > disponibles) alert('Solo se subirán ' + disponibles + ' fotos (límite de 15 por propiedad).')
     setUploadingPhoto(true)
     const nuevas: string[] = []
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const file = filesToUpload[i]
       const ext = file.name.split('.').pop()
       const path = 'propiedades/' + id + '_' + Date.now() + '_' + i + '.' + ext
       const { error } = await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
@@ -59,6 +64,27 @@ export default function EditarPropiedad() {
 
   const quitarFoto = (url: string) => {
     patch({ fotos: (p.fotos || []).filter((f: string) => f !== url) })
+  }
+
+  const [dragIdx, setDragIdx] = useState<number|null>(null)
+
+  const moverFoto = (from: number, to: number) => {
+    const arr = [...(p.fotos || [])]
+    if (to < 0 || to >= arr.length) return
+    const [item] = arr.splice(from, 1)
+    arr.splice(to, 0, item)
+    patch({ fotos: arr })
+  }
+
+  const onDragStart = (i: number) => setDragIdx(i)
+  const onDragOver = (e: React.DragEvent, i: number) => {
+    e.preventDefault()
+    if (dragIdx === null || dragIdx === i) return
+  }
+  const onDrop = (i: number) => {
+    if (dragIdx === null || dragIdx === i) return
+    moverFoto(dragIdx, i)
+    setDragIdx(null)
   }
 
   const guardar = async () => {
@@ -124,17 +150,34 @@ export default function EditarPropiedad() {
         {/* FOTOS */}
         <div className="sec">
           <label className="lbl">Fotos ({(p.fotos||[]).length})</label>
+          <p style={{ fontSize:12, color:'oklch(0.55 0.005 80)', marginBottom:10 }}>La primera foto es la portada. Arrastrá para reordenar. Máx. 15 fotos · {(p.fotos||[]).length}/15</p>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:14 }}>
-            {(p.fotos||[]).map((url: string) => (
-              <div key={url} style={{ position:'relative', aspectRatio:'1', borderRadius:8, overflow:'hidden', border:'1px solid oklch(0.88 0.006 80)' }}>
-                <img src={url} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt=""/>
+            {(p.fotos||[]).map((url: string, i: number) => (
+              <div
+                key={url}
+                draggable
+                onDragStart={() => onDragStart(i)}
+                onDragOver={(e) => onDragOver(e, i)}
+                onDrop={() => onDrop(i)}
+                style={{ position:'relative', aspectRatio:'1', borderRadius:8, overflow:'hidden', border: i===0 ? '2px solid var(--accent, oklch(0.42 0.06 150))' : '1px solid oklch(0.88 0.006 80)', cursor:'grab', opacity: dragIdx===i ? 0.4 : 1 }}
+              >
+                <img src={url} style={{ width:'100%', height:'100%', objectFit:'cover', pointerEvents:'none' }} alt=""/>
+                {i === 0 && (
+                  <span style={{ position:'absolute', top:4, left:4, background:'oklch(0.42 0.06 150)', color:'white', fontSize:10, fontWeight:500, padding:'2px 8px', borderRadius:999 }}>Portada</span>
+                )}
                 <button onClick={() => quitarFoto(url)} style={{ position:'absolute', top:4, right:4, width:22, height:22, borderRadius:'50%', background:'rgba(0,0,0,0.7)', color:'white', border:'none', fontSize:13, cursor:'pointer' }}>×</button>
+                <div style={{ position:'absolute', bottom:4, left:4, right:4, display:'flex', justifyContent:'space-between' }}>
+                  <button onClick={() => moverFoto(i, i-1)} disabled={i===0} style={{ width:22, height:22, borderRadius:6, background:'rgba(0,0,0,0.7)', color:'white', border:'none', fontSize:12, cursor:i===0?'default':'pointer', opacity:i===0?0.3:1 }}>◀</button>
+                  <button onClick={() => moverFoto(i, i+1)} disabled={i===(p.fotos||[]).length-1} style={{ width:22, height:22, borderRadius:6, background:'rgba(0,0,0,0.7)', color:'white', border:'none', fontSize:12, cursor:'pointer', opacity:i===(p.fotos||[]).length-1?0.3:1 }}>▶</button>
+                </div>
               </div>
             ))}
-            <label style={{ aspectRatio:'1', borderRadius:8, border:'2px dashed oklch(0.85 0.006 80)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:24, color:'oklch(0.65 0.005 80)' }}>
-              {uploadingPhoto ? '...' : '+'}
-              <input type="file" accept="image/*" multiple style={{ display:'none' }} onChange={uploadFoto} disabled={uploadingPhoto}/>
-            </label>
+            {(p.fotos||[]).length < 15 && (
+              <label style={{ aspectRatio:'1', borderRadius:8, border:'2px dashed oklch(0.85 0.006 80)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', fontSize:24, color:'oklch(0.65 0.005 80)' }}>
+                {uploadingPhoto ? '...' : '+'}
+                <input type="file" accept="image/*" multiple style={{ display:'none' }} onChange={uploadFoto} disabled={uploadingPhoto}/>
+              </label>
+            )}
           </div>
         </div>
 

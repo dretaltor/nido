@@ -1,6 +1,8 @@
 'use client'
 // @ts-nocheck
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
+const MapaUbicacion = dynamic(() => import('../../../components/MapaUbicacion'), { ssr: false })
 import { VisitaForm } from '@/components/visitas/VisitaForm'
 import { supabase } from '../../../lib/supabase'
 import { useAuth } from '@/lib/context/AuthContext'
@@ -43,12 +45,18 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
   const [sending, setSending] = useState(false)
   const [fav, setFav] = useState(false)
   const [imgError, setImgError] = useState(false)
+  const [activeFoto, setActiveFoto] = useState(0)
+  const [perfilAsesor, setPerfilAsesor] = useState<any>(null)
 
   useEffect(() => {
 // Auth handled by AuthContext
     supabase.from('propiedades').select('*').eq('id', id).single().then(({ data }) => {
       setPropiedad(data)
       setLoading(false)
+      if (data && data.asesor_email) {
+        supabase.from('perfiles').select('correo,telefono,nombre').eq('correo', data.asesor_email).maybeSingle()
+          .then(({ data: pf }) => setPerfilAsesor(pf))
+      }
       if (data) {
         setMessages([{ role:'assistant', content: 'Hola, soy Valeria. Veo que estás viendo ' + (data.titulo||'esta propiedad') + ' en ' + (data.zona||'Costa Rica') + '. ¿Tienes alguna pregunta? Puedo coordinar una visita, resolver dudas sobre la zona o ayudarte con la pre-aprobación bancaria.' }])
       }
@@ -126,26 +134,43 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
       <div style={{maxWidth:1200,margin:'0 auto',padding:'0 40px 80px'}}>
 
-        <div style={{position:'relative',height:480,borderRadius:'0 0 16px 16px',overflow:'hidden',marginBottom:32,background:`oklch(0.88 0.03 ${hue})`}}>
-          {!imgError ? (
-            <img
-              src={propiedad.fotos && propiedad.fotos.length > 0 ? propiedad.fotos[0] : 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80'}
-              alt={propiedad.titulo}
-              style={{width:'100%',height:'100%',objectFit:'cover'}}
-              onError={() => setImgError(true)}
-            />
-          ) : (
-            <div style={{width:'100%',height:'100%',display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,letterSpacing:'0.1em',color:`oklch(0.55 0.05 ${hue})`}}>{propiedad.titulo.toUpperCase()} · FOTO</span>
-            </div>
-          )}
+        {(() => {
+          const fotosArr = (propiedad.fotos && propiedad.fotos.length > 0) ? propiedad.fotos : ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80']
+          const idx = Math.min(activeFoto, fotosArr.length - 1)
+          return (
+        <>
+        <div style={{position:'relative',height:480,borderRadius:'0 0 16px 16px',overflow:'hidden',marginBottom:fotosArr.length>1?12:32,background:`oklch(0.88 0.03 ${hue})`}}>
+          <img
+            src={fotosArr[idx]}
+            alt={propiedad.titulo}
+            style={{width:'100%',height:'100%',objectFit:'cover'}}
+          />
           <div style={{position:'absolute',inset:0,background:'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)'}}/>
           <div style={{position:'absolute',bottom:24,left:32}}>
             <span style={{background:propiedad.operacion==='alquiler'?'rgba(0,0,0,0.7)':'var(--accent)',color:'white',padding:'4px 12px',borderRadius:999,fontSize:12,letterSpacing:'0.06em',textTransform:'uppercase'}}>
               {propiedad.operacion==='alquiler'?'Alquiler':'Venta'}
             </span>
           </div>
+          {fotosArr.length > 1 && (
+            <>
+              <button onClick={() => setActiveFoto((idx - 1 + fotosArr.length) % fotosArr.length)} style={{position:'absolute',left:16,top:'50%',transform:'translateY(-50%)',width:40,height:40,borderRadius:'50%',background:'rgba(0,0,0,0.5)',border:'none',color:'white',cursor:'pointer',display:'grid',placeItems:'center',fontSize:18}}>‹</button>
+              <button onClick={() => setActiveFoto((idx + 1) % fotosArr.length)} style={{position:'absolute',right:16,top:'50%',transform:'translateY(-50%)',width:40,height:40,borderRadius:'50%',background:'rgba(0,0,0,0.5)',border:'none',color:'white',cursor:'pointer',display:'grid',placeItems:'center',fontSize:18}}>›</button>
+              <div style={{position:'absolute',bottom:24,right:32,background:'rgba(0,0,0,0.55)',color:'white',fontSize:12,padding:'4px 10px',borderRadius:999}}>{idx+1} / {fotosArr.length}</div>
+            </>
+          )}
         </div>
+        {fotosArr.length > 1 && (
+          <div style={{display:'flex',gap:8,overflowX:'auto',marginBottom:32,paddingBottom:4}}>
+            {fotosArr.map((url: string, i: number) => (
+              <button key={i} onClick={() => setActiveFoto(i)} style={{flexShrink:0,width:72,height:54,borderRadius:8,overflow:'hidden',border:i===idx?'2px solid var(--accent)':'2px solid transparent',padding:0,cursor:'pointer',opacity:i===idx?1:0.7}}>
+                <img src={url} style={{width:'100%',height:'100%',objectFit:'cover'}} alt=""/>
+              </button>
+            ))}
+          </div>
+        )}
+          </>
+          )
+        })()}
 
         <div style={{display:'grid',gridTemplateColumns:'1fr 380px',gap:48,alignItems:'start'}}>
 
@@ -161,12 +186,17 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
             </div>
 
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',borderTop:'1px solid var(--rule)',borderBottom:'1px solid var(--rule)',marginBottom:32}}>
-              {[
-                {icon:'bed',val:propiedad.habitaciones,label:'Habitaciones'},
-                {icon:'bath',val:propiedad.banos,label:'Baños'},
-                {icon:'ruler',val:propiedad.metros+'m²',label:'Área'},
+              {(propiedad.tipo === 'lote' ? [
+                {icon:'ruler',val:(propiedad.metros||0)+'m²',label:'Área terreno'},
+                {icon:'ruler',val:({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as any)[propiedad.topografia]||'—',label:'Topografía'},
+                {icon:'ruler',val:({residencial:'Residencial',comercial:'Comercial',agricola:'Agrícola',mixto:'Mixto',forestal:'Forestal'} as any)[propiedad.uso_suelo]||'—',label:'Uso de suelo'},
+                {icon:'ruler',val:propiedad.terreno_tipo==='condominio'?('Condominio'+(propiedad.cuota_condominal?' · $'+propiedad.cuota_condominal+'/mes':'')):'Residencial libre',label:'Tipo'},
+              ] : [
+                {icon:'bed',val:propiedad.habitaciones||0,label:'Habitaciones'},
+                {icon:'bath',val:propiedad.banos||0,label:'Baños'},
+                {icon:'ruler',val:(propiedad.metros||0)+'m²',label:'Área'},
                 {icon:'ruler',val:propiedad.tipo,label:'Tipo'},
-              ].map((s,i) => (
+              ]).map((s,i) => (
                 <div key={i} style={{padding:'18px 0',paddingLeft:i>0?16:0,borderRight:i<3?'1px solid var(--rule-soft)':'none'}}>
                   <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:28,marginBottom:2}}>{s.val}</div>
                   <div style={{fontSize:11,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)'}}>{s.label}</div>
@@ -181,14 +211,10 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
             <div style={{marginBottom:32}}>
               <h3 style={{fontSize:11,letterSpacing:'0.16em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:16}}>Ubicación</h3>
-              <div style={{height:220,borderRadius:12,background:'oklch(0.93 0.01 150)',border:'1px solid var(--rule)',display:'flex',alignItems:'center',justifyContent:'center',position:'relative',overflow:'hidden'}}>
-                <div style={{position:'absolute',inset:0,background:'linear-gradient(135deg,oklch(0.90 0.02 150),oklch(0.95 0.01 80))'}}/>
-                <div style={{position:'relative',textAlign:'center'}}>
-                  <div style={{width:16,height:16,borderRadius:'50%',background:'var(--accent)',boxShadow:'0 0 0 6px oklch(0.42 0.06 150/0.2)',margin:'0 auto 10px'}}/>
-                  <p style={{fontSize:13,color:'var(--ink-2)',fontWeight:500}}>{propiedad.zona}</p>
-                  <p style={{fontSize:12,color:'var(--ink-3)',marginTop:4}}>{propiedad.direccion||'Costa Rica'}</p>
-                </div>
+              <div style={{height:280,borderRadius:12,border:'1px solid var(--rule)',overflow:'hidden'}}>
+                <MapaUbicacion zona={propiedad.distrito ? propiedad.distrito+', '+propiedad.zona : propiedad.zona} titulo={propiedad.titulo}/>
               </div>
+              <p style={{fontSize:12,color:'var(--ink-3)',marginTop:8}}>{[propiedad.distrito, propiedad.zona].filter(Boolean).join(', ')} · {propiedad.direccion||'Costa Rica'}</p>
             </div>
           </div>
 
@@ -278,8 +304,8 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                 <div style={{padding:'16px 20px'}}>
                   <div style={{fontSize:10,letterSpacing:'0.12em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:12}}>Datos de contacto</div>
                   {[
-                    {icon:'✉',label:'Correo',val:propiedad.asesor_email,href:'mailto:'+propiedad.asesor_email},
-                    {icon:'📱',label:'WhatsApp',val:'+506 8822-6436',href:propiedad.asesor_whatsapp?'https://wa.me/'+propiedad.asesor_whatsapp.replace(/[^0-9]/g,''):null},
+                    {icon:'✉',label:'Correo',val:perfilAsesor?.correo||propiedad.asesor_email,href:'mailto:'+(perfilAsesor?.correo||propiedad.asesor_email)},
+                    {icon:'📱',label:'WhatsApp',val:perfilAsesor?.telefono||propiedad.asesor_whatsapp||'No disponible',href:(perfilAsesor?.telefono||propiedad.asesor_whatsapp)?'https://wa.me/'+(perfilAsesor?.telefono||propiedad.asesor_whatsapp).replace(/[^0-9]/g,''):null},
                     {icon:'📍',label:'Zona',val:propiedad.zona||'Costa Rica',href:null},
                   ].map(c => (
                     <div key={c.label} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:'1px solid var(--rule-soft)'}}>
@@ -312,7 +338,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                   <button onClick={() => setVisitaOpen(true)} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'var(--accent)',color:'white',border:'none',fontSize:13,fontWeight:500,cursor:'pointer',width:'100%',marginBottom:6}}>
                     <span>📅</span> Agendar visita
                   </button>
-                  <a href={'https://wa.me/50688226436?text=Hola, me interesa la propiedad '+propiedad.titulo} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'#22c55e',color:'white',fontSize:13,fontWeight:500,textDecoration:'none'}}>
+                  <a href={'https://wa.me/'+((perfilAsesor?.telefono||propiedad.asesor_whatsapp||'50688226436').replace(/[^0-9]/g,''))+'?text=Hola, me interesa la propiedad '+propiedad.titulo} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'#22c55e',color:'white',fontSize:13,fontWeight:500,textDecoration:'none'}}>
                     <span>💬</span> Contactar por WhatsApp
                   </a>
                   <a href={'mailto:'+propiedad.asesor_email+'?subject=Consulta sobre '+propiedad.titulo} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,border:'1px solid var(--rule)',color:'var(--ink)',fontSize:13,fontWeight:500,textDecoration:'none'}}>
