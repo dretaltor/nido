@@ -224,17 +224,20 @@ export default function Dashboard() {
               </div>
             )}
             {propiedades.slice(0,5).map(p => (
-              <a key={p.id} href={'/propiedades/'+p.id} target="_blank" className="prop-row" style={{ textDecoration:'none', color:'inherit', cursor:'pointer' }}>
-                <div style={{ width:40, height:40, borderRadius:8, background:'var(--accent-tint)', display:'grid', placeItems:'center', flexShrink:0, fontSize:18 }}>🏠</div>
-                <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:14, fontWeight:500, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.titulo||'Sin título'}</div>
-                  <div style={{ fontSize:12, color:'var(--ink-3)' }}>{p.zona||'—'}</div>
-                </div>
-                <div style={{ textAlign:'right', flexShrink:0 }}>
-                  <div style={{ fontFamily:'var(--mono)', fontSize:13, marginBottom:4 }}>{p.precio?'$'+p.precio.toLocaleString('en-US'):'—'}</div>
-                  <span className={'badge '+(p.disponible?'badge-active':'badge-paused')}>{p.disponible?'Activa':'Pausada'}</span>
-                </div>
-              </a>
+              <div key={p.id} className="prop-row" style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <a href={'/propiedades/'+p.id} target="_blank" style={{ display:'flex', alignItems:'center', gap:14, flex:1, minWidth:0, textDecoration:'none', color:'inherit', cursor:'pointer' }}>
+                  <div style={{ width:40, height:40, borderRadius:8, background:'var(--accent-tint)', display:'grid', placeItems:'center', flexShrink:0, fontSize:18 }}>🏠</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:500, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.titulo||'Sin título'}</div>
+                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{p.zona||'—'}</div>
+                  </div>
+                  <div style={{ textAlign:'right', flexShrink:0 }}>
+                    <div style={{ fontFamily:'var(--mono)', fontSize:13, marginBottom:4 }}>{p.precio?'$'+p.precio.toLocaleString('en-US'):'—'}</div>
+                    <span className={'badge '+(p.disponible?'badge-active':'badge-paused')}>{p.disponible?'Activa':'Pausada'}</span>
+                  </div>
+                </a>
+                <a href={'/dashboard/propiedad/'+p.id} style={{ flexShrink:0, width:32, height:32, borderRadius:8, display:'grid', placeItems:'center', border:'1px solid var(--rule)', color:'var(--ink-3)', textDecoration:'none', fontSize:14 }} title="Editar">✏️</a>
+              </div>
             ))}
             {propiedades.length > 5 && <p style={{ fontSize:12, color:'var(--ink-3)', textAlign:'center', paddingTop:12 }}>{propiedades.length-5} más →</p>}
           </div>
