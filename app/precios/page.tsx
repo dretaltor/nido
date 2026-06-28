@@ -13,7 +13,7 @@ const PLANES = [
     href: '/registro',
     featured: false,
     features: [
-      { texto: '2 propiedades publicadas', ok: true },
+      { texto: '5 propiedades publicadas', ok: true },
       { texto: 'Ficha básica sin fotos premium', ok: true },
       { texto: 'Acceso de lectura al portal', ok: true },
       { texto: 'Perfil de asesor público', ok: true },
