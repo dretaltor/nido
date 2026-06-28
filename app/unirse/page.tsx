@@ -97,7 +97,7 @@ export default function Unirse() {
                 NIDO es la plataforma inmobiliaria costarricense con Valeria IA integrada — tu mentora, tu CRM y tu portal en un solo lugar. Los asesores NIDO cierran 2.4× más rápido.
               </p>
               <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:40}}>
-                <a href="/registro" className="cta-btn">Empezar 30 días gratis →</a>
+                <a href="/registro" className="cta-btn">Empezar gratis →</a>
                 <a href="#como-funciona" className="cta-btn outline">Ver cómo funciona</a>
               </div>
               <p style={{fontSize:12,color:'rgba(255,255,255,0.3)',letterSpacing:'0.06em'}}>Sin tarjeta de crédito · Cancela cuando quieras · Soporte en español</p>
@@ -235,14 +235,14 @@ export default function Unirse() {
               <em style={{fontStyle:'italic',color:'var(--accent)'}}>todo el año.</em>
             </h2>
             <p style={{fontSize:16,color:'var(--ink-2)',maxWidth:'52ch',margin:'0 auto',lineHeight:1.65}}>
-              NIDO Pro cuesta $49/mes. Con una sola comisión cubrís 24 meses. El ROI es inmediato.
+              NIDO Elite cuesta $59/mes. Con una sola comisión cubrís 24 meses. El ROI es inmediato.
             </p>
           </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,maxWidth:900,margin:'0 auto'}}>
             {[
-              { plan:'Gratis', precio:'$0', periodo:'siempre', desc:'Para explorar NIDO', features:['2 propiedades','Valeria IA básica','Portal público','Perfil de asesor'], cta:'Crear cuenta', href:'/registro', featured:false },
-              { plan:'Pro', precio:'$49', periodo:'/mes', desc:'Para asesores activos', features:['15 propiedades','Valeria IA 24/7','CRM de leads','Academia completa','Tour 360° (1/mes)','Soporte en 24h'], cta:'Empezar Pro', href:'/registro?plan=pro', featured:true },
-              { plan:'Enterprise', precio:'$129', periodo:'/mes', desc:'Para asesores top', features:['Propiedades ilimitadas','Valeria IA con memoria','CRM con score de leads','Tours 360° ilimitados','Soporte en 2 horas','Panel propietario'], cta:'Empezar Enterprise', href:'/registro?plan=enterprise', featured:false },
+              { plan:'Despega', precio:'$0', periodo:'siempre', desc:'7 días de Black gratis, luego 5 propiedades', features:['5 propiedades','Portal público','Perfil de asesor','Sin Valeria IA ni CRM'], cta:'Crear cuenta', href:'/registro', featured:false },
+              { plan:'Elite', precio:'$59', periodo:'/mes', desc:'Para asesores activos', features:['15 propiedades','Valeria IA 24/7','CRM de leads completo','Academia completa','Soporte en 24h'], cta:'Empezar Elite', href:'/registro?plan=pro', featured:true },
+              { plan:'Black', precio:'$149', periodo:'/mes', desc:'Para asesores top', features:['Propiedades ilimitadas','Valeria IA con memoria','CRM con score de leads','Tours 360° ilimitados','Soporte en 2 horas','Panel propietario'], cta:'Empezar Black', href:'/registro?plan=enterprise', featured:false },
             ].map((p,i) => (
               <div key={i} style={{background:p.featured?'var(--ink)':'white',border:'1px solid '+(p.featured?'var(--ink)':'var(--rule)'),borderRadius:16,padding:28,position:'relative',transform:p.featured?'scale(1.04)':'none'}}>
                 {p.featured && <div style={{position:'absolute',top:-12,left:'50%',transform:'translateX(-50%)',background:'var(--accent)',color:'white',fontSize:10,padding:'4px 14px',borderRadius:999,letterSpacing:'0.1em',fontWeight:500,textTransform:'uppercase',whiteSpace:'nowrap'}}>Más popular</div>}
@@ -282,7 +282,7 @@ export default function Unirse() {
             Más de 400 propiedades publicadas. Asesores que cierran 2.4× más rápido. Costa Rica merece una plataforma que esté a su nivel.
           </p>
           <div style={{display:'flex',gap:12,justifyContent:'center',flexWrap:'wrap'}}>
-            <a href="/registro" className="cta-btn" style={{fontSize:16}}>Empezar 30 días gratis →</a>
+            <a href="/registro" className="cta-btn" style={{fontSize:16}}>Empezar gratis →</a>
             <a href="/precios" className="cta-btn outline">Ver todos los planes</a>
           </div>
           <p style={{fontSize:12,color:'rgba(255,255,255,0.25)',marginTop:20,letterSpacing:'0.06em'}}>Sin tarjeta · Sin compromiso · Soporte en español</p>
