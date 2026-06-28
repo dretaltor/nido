@@ -118,7 +118,7 @@ export default function Dashboard() {
         setLeads(leadsData || [])
         setOfertas(ofertasData || [])
         // Check onboarding status
-        supabase.from('perfiles').select('valeria_onboarding_completo,cedula_frente_url,foto_url,nombre').eq('id', user.id).maybeSingle().then(({data}) => setValeraPerfilDash(data))
+        supabase.from('perfiles').select('valeria_onboarding_completo,cedula_frente_url,foto_url,nombre,equipo_nido_estado,contrato_equipo_nido_aceptado').eq('id', user.id).maybeSingle().then(({data}) => setValeraPerfilDash(data))
         // Load visitas
         supabase.from('visitas').select('*').eq('asesor_email', user.email).order('fecha', { ascending: true }).then(({ data }) => setVisitas(data || []))
         // Load tareas
@@ -215,6 +215,19 @@ export default function Dashboard() {
         <div style={{ marginBottom:32, animation:'fadeUp 0.4s ease' }}>
           <div style={{ fontSize:12, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Panel de asesor</div>
           <h1 style={{ fontFamily:'var(--serif)', fontSize:'clamp(28px,4vw,42px)', fontWeight:400, lineHeight:1.1, marginBottom:6 }}>{saludo}, <em style={{ fontStyle:'italic', color:'var(--accent)' }}>{nombre}.</em></h1>
+
+          {valeriaPerfil?.equipo_nido_estado === 'aprobado' && !valeriaPerfil?.contrato_equipo_nido_aceptado && (
+            <a href="/dashboard/contrato-equipo-nido" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, background:'oklch(0.95 0.02 150)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:12, padding:'14px 20px', marginTop:16, textDecoration:'none', color:'inherit' }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <span style={{ fontSize:22 }}>⭐</span>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:500, color:'var(--accent)' }}>Tu solicitud al Equipo NIDO fue aprobada</div>
+                  <div style={{ fontSize:12, color:'var(--ink-3)' }}>Falta firmar el addendum para activar tus beneficios</div>
+                </div>
+              </div>
+              <span style={{ fontSize:13, fontWeight:500, color:'var(--accent)', flexShrink:0 }}>Firmar →</span>
+            </a>
+          )}
           <p style={{ fontSize:14, color:'var(--ink-2)' }}>Esto es lo que está pasando con tu cartera hoy.</p>
         </div>
 

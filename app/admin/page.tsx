@@ -154,7 +154,7 @@ export default function AdminPanel() {
     setAsesores(prev => prev.map((a:any) => a.id===asesor.id ? {...a, equipo_nido_estado: aprobar?'aprobado':'rechazado'} : a))
     fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
       to: asesor.correo,
-      tipo: aprobar ? 'kyc_aprobado' : 'mensaje_admin',
+      tipo: aprobar ? 'equipo_nido_aprobado' : 'mensaje_admin',
       data: aprobar
         ? { nombre: asesor.nombre, asesor_telefono: asesor.telefono }
         : { nombre: asesor.nombre, asunto: 'Solicitud Equipo NIDO', mensaje: 'Gracias por tu interés en el Equipo NIDO. Por ahora no podemos avanzar con tu solicitud, pero podés seguir trabajando como asesor independiente en la plataforma.' }
