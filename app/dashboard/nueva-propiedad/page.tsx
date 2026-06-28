@@ -55,9 +55,9 @@ export default function NuevaPropiedad() {
       try {
         const ext = file.name.split('.').pop()
         const path = 'propiedades/' + id + '.' + ext
-        const { error } = await supabase.storage.from('propiedades').upload(path, file, { upsert: true })
+        const { error } = await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
         if (!error) {
-          const { data: urlData } = supabase.storage.from('propiedades').getPublicUrl(path)
+          const { data: urlData } = supabase.storage.from('Propiedades').getPublicUrl(path)
           setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => prev.map(p => p.id === id ? { id, url: urlData.publicUrl, uploading: false } : p))
         } else {
           setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => prev.map(p => p.id === id ? { ...p, uploading: false } : p))
