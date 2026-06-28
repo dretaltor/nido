@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import { getPlanConfig } from '../../lib/planes'
 
 const CURSOS = [
   { id:1, cat:'Ventas', nivel:'Básico', dur:'2 horas', titulo:'Fundamentos de ventas inmobiliarias', desc:'Aprende las bases para cerrar tu primera venta. Técnicas de prospección, presentación y cierre.', temas:['¿Qué busca un comprador?','Cómo hacer una presentación efectiva','Manejo de objeciones','Técnicas de cierre'], icon:'🏠', gratis:true, hue:150 },
@@ -45,7 +46,7 @@ export default function Academia() {
     })
   }, [])
 
-  const todoDesbloqueado = planActivo === 'enterprise'
+  const todoDesbloqueado = getPlanConfig(planActivo).academiaCompleta
 
   const filtrados = CURSOS.filter(c =>
     (cat==='Todos'||c.cat===cat) && (nivel==='Todos'||c.nivel===nivel)
