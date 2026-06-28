@@ -49,10 +49,14 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
     <article onClick={onOpen} style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
       onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
-      <div style={{ position: 'relative', aspectRatio: '4/3', background: `oklch(0.88 0.03 ${hue})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ position: 'relative', aspectRatio: '4/3', background: `oklch(0.88 0.03 ${hue})`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+        {p.fotos && p.fotos.length > 0 ? (
+          <img src={p.fotos[0]} alt={p.titulo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        ) : (
         <div style={{ fontFamily: 'var(--mono)', fontSize: 10, letterSpacing: '0.12em', color: `oklch(0.55 0.05 ${hue})`, textTransform: 'uppercase', textAlign: 'center', padding: '0 1rem' }}>
           {p.titulo.toUpperCase()} · FOTO
         </div>
+        )}
         <div style={{ position: 'absolute', top: 12, left: 12 }}>
           <span style={{ background: 'var(--accent)', color: 'white', padding: '4px 10px', borderRadius: 999, fontSize: 11, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             {'Venta'}
