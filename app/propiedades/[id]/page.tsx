@@ -348,6 +348,9 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                   <a href={'https://wa.me/'+((perfilAsesor?.telefono||propiedad.asesor_whatsapp||'50688226436').replace(/[^0-9]/g,''))+'?text=Hola, me interesa la propiedad '+propiedad.titulo} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'#22c55e',color:'white',fontSize:13,fontWeight:500,textDecoration:'none'}}>
                     <span>💬</span> Contactar por WhatsApp
                   </a>
+                  <a href={'https://wa.me/?text='+encodeURIComponent('🏠 Te comparto esta propiedad en NIDO: '+propiedad.titulo+' - '+propiedad.zona+' - $'+propiedad.precio.toLocaleString()+' - https://www.nido-cr.com/propiedades/'+propiedad.id)} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,border:'1px solid var(--rule)',color:'var(--ink)',fontSize:13,fontWeight:500,textDecoration:'none'}}>
+                    <span>🔗</span> Compartir ficha por WhatsApp
+                  </a>
                   <a href={'mailto:'+propiedad.asesor_email+'?subject=Consulta sobre '+propiedad.titulo} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,border:'1px solid var(--rule)',color:'var(--ink)',fontSize:13,fontWeight:500,textDecoration:'none'}}>
                     <span>✉</span> Enviar correo
                   </a>

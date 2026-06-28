@@ -14,22 +14,31 @@ export default function Asesores() {
   const [spec, setSpec] = useState('Todas')
   useEffect(() => {
     supabase.from('perfiles')
-      .select('id,nombre,correo,foto_url,zona,bio,especialidades,idiomas,propiedades_activas,ventas_cerradas,valeria_onboarding_completo')
+      .select('id,nombre,correo,foto_url,valeria_perfil,valeria_onboarding_completo')
       .eq('valeria_onboarding_completo', true)
       .eq('verificado', true)
       .order('nombre')
-      .then(({ data }) => {
-        if (data) setAsesores(data.map((a:any) => ({
-          ...a,
-          initial: (a.nombre || 'A')[0].toUpperCase(),
-          hue: 80,
-          region: a.zona || 'Valle Central',
-          bio: a.bio || 'Asesor certificado NIDO con experiencia en el mercado costarricense.',
-          listings: a.propiedades_activas || 0,
-          sold: a.ventas_cerradas || 0,
-          langs: a.idiomas || ['ES'],
-          specs: a.especialidades || ['Residencial'],
-        })))
+      .then(async ({ data }) => {
+        if (data) {
+          const conteos = await Promise.all(data.map((a:any) =>
+            supabase.from('propiedades').select('id', { count: 'exact', head: true }).eq('asesor_email', a.correo).eq('disponible', true)
+          ))
+          setAsesores(data.map((a:any, i:number) => {
+            const vp = a.valeria_perfil || {}
+            const zonas = (vp.zonas || 'Valle Central').split(',').map((z:string) => z.trim())
+            return {
+              ...a,
+              initial: (a.nombre || 'A')[0].toUpperCase(),
+              hue: 80,
+              region: zonas[0] || 'Valle Central',
+              bio: vp.diferenciador || 'Asesor certificado NIDO con experiencia en el mercado costarricense.',
+              listings: conteos[i]?.count || 0,
+              sold: 0,
+              langs: ['ES'],
+              specs: vp.tipo_propiedades ? vp.tipo_propiedades.split(',').map((s:string)=>s.trim()) : ['Residencial'],
+            }
+          }))
+        }
         setLoadingAsesores(false)
       })
   }, [])
