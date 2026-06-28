@@ -44,6 +44,7 @@ const MODULES = [
   { id:'kyc_propietarios', icon:'🏠', label:'KYC Propietarios' },
   { id:'contratos', icon:'📋', label:'Contratos' },
   { id:'comisiones', icon:'💰', label:'Comisiones' },
+  { id:'equipo_nido', icon:'⭐', label:'Equipo NIDO' },
 ]
 
 export default function AdminPanel() {
@@ -144,6 +145,20 @@ export default function AdminPanel() {
     }
     loadAll()
     setSel((p:any) => p ? {...p, verificado: aprobar, verificacion_estado: aprobar ? 'aprobado' : 'rechazado'} : null)
+  }
+
+  const responderEquipoNido = async (asesor: any, aprobar: boolean) => {
+    await supabase.from('perfiles').update({
+      equipo_nido_estado: aprobar ? 'aprobado' : 'rechazado',
+    }).eq('id', asesor.id)
+    setAsesores(prev => prev.map((a:any) => a.id===asesor.id ? {...a, equipo_nido_estado: aprobar?'aprobado':'rechazado'} : a))
+    fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      to: asesor.correo,
+      tipo: aprobar ? 'kyc_aprobado' : 'mensaje_admin',
+      data: aprobar
+        ? { nombre: asesor.nombre, asesor_telefono: asesor.telefono }
+        : { nombre: asesor.nombre, asunto: 'Solicitud Equipo NIDO', mensaje: 'Gracias por tu interés en el Equipo NIDO. Por ahora no podemos avanzar con tu solicitud, pero podés seguir trabajando como asesor independiente en la plataforma.' }
+    }) }).catch(() => {})
   }
 
   const enviarMensaje = async (correo: string, asunto: string, mensaje: string) => {
@@ -664,6 +679,44 @@ export default function AdminPanel() {
                   )
                 })}
               {propietarios.length === 0 && <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay propietarios registrados.</div>}
+            </div>
+          </div>
+        )}
+
+        {/* ── EQUIPO NIDO ── */}
+        {modulo === 'equipo_nido' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Incorporaciones</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Solicitudes <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Equipo NIDO.</em></h1>
+              <p style={{ fontSize:14, color:'var(--ink-3)', marginTop:6 }}>Asesores que aplicaron a unirse al equipo interno de NIDO al registrarse.</p>
+            </div>
+            <div className="card">
+              {asesores.filter((a:any) => a.solicita_equipo_nido).length === 0 ? (
+                <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>
+                  No hay solicitudes de Equipo NIDO por el momento.
+                </div>
+              ) : asesores.filter((a:any) => a.solicita_equipo_nido).map((a:any) => (
+                <div key={a.id} className="row" style={{ alignItems:'center' }}>
+                  <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0, overflow:'hidden' }}>
+                    {a.foto_url ? <img src={a.foto_url} alt={a.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (a.nombre||'?')[0]}
+                  </div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{a.nombre||'Sin nombre'}</div>
+                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{a.correo} · {a.telefono||'sin teléfono'}</div>
+                  </div>
+                  {a.equipo_nido_estado === 'aprobado' ? (
+                    <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>✓ Aprobado</span>
+                  ) : a.equipo_nido_estado === 'rechazado' ? (
+                    <span className="badge" style={{ background:'oklch(0.93 0.005 80)', color:'var(--ink-3)' }}>Rechazado</span>
+                  ) : (
+                    <div style={{ display:'flex', gap:8 }}>
+                      <button onClick={() => responderEquipoNido(a, true)} className="btn-dark" style={{ padding:'7px 16px', borderRadius:999, fontSize:12, border:'none', cursor:'pointer' }}>Aprobar</button>
+                      <button onClick={() => responderEquipoNido(a, false)} className="btn-outline" style={{ padding:'7px 16px', borderRadius:999, fontSize:12, cursor:'pointer' }}>Rechazar</button>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         )}
