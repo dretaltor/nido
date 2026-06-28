@@ -41,6 +41,8 @@ interface Propiedad {
   asesor_nombre: string
   asesor_email: string
   fotos?: string[]
+  topografia?: string
+  uso_suelo?: string
 }
 
 function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: number, fav: boolean, onFav: () => void, onOpen: () => void }) {
@@ -75,9 +77,15 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
         {p.ref_id && <div style={{ fontFamily:'var(--mono)', fontSize:10, color:'var(--accent)', letterSpacing:'0.1em', marginBottom:4 }}>{p.ref_id}</div>}
         <h3 style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 400, margin: '0 0 10px', lineHeight: 1.1 }}>{p.titulo}</h3>
         <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--ink-3)', marginBottom: 12 }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="bed" /> {p.habitaciones} hab</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="bath" /> {p.banos} baños</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="ruler" /> {p.metros} m²</span>
+          {p.tipo === 'lote' ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="ruler" /> {p.metros} m² terreno</span>
+          ) : (
+            <>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="bed" /> {p.habitaciones} hab</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="bath" /> {p.banos} baños</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="ruler" /> {p.metros} m²</span>
+            </>
+          )}
         </div>
         <div style={{ background: 'var(--accent-tint)', border: '1px solid oklch(0.85 0.04 150)', borderRadius: 6, padding: '8px 12px', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>
           <b style={{ color: 'var(--accent)', marginRight: 6 }}>↳ Valeria IA</b>
@@ -116,7 +124,17 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
             </div>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)', marginBottom: 28 }}>
-            {[{ num: p.habitaciones, label: 'Habitaciones' }, { num: p.banos, label: 'Baños' }, { num: String(p.metros) + ' m²', label: 'Área' }, { num: 'Venta', label: 'Operación' }].map((s, i) => (
+            {(p.tipo === 'lote' ? [
+              { num: String(p.metros||0) + ' m²', label: 'Área terreno' },
+              { num: ({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as any)[(p as any).topografia] || '—', label: 'Topografía' },
+              { num: ({residencial:'Residencial',comercial:'Comercial',agricola:'Agrícola',mixto:'Mixto',forestal:'Forestal'} as any)[(p as any).uso_suelo] || '—', label: 'Uso de suelo' },
+              { num: 'Venta', label: 'Operación' },
+            ] : [
+              { num: p.habitaciones, label: 'Habitaciones' },
+              { num: p.banos, label: 'Baños' },
+              { num: String(p.metros) + ' m²', label: 'Área' },
+              { num: 'Venta', label: 'Operación' },
+            ]).map((s, i) => (
               <div key={i} style={{ padding: '16px 0', paddingLeft: i > 0 ? 16 : 0, borderRight: i < 3 ? '1px solid var(--rule-soft)' : 'none' }}>
                 <div style={{ fontFamily: 'var(--serif)', fontSize: 24 }}>{s.num}</div>
                 <div style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-3)', marginTop: 2 }}>{s.label}</div>
