@@ -16,6 +16,7 @@ export default function Asesores() {
     supabase.from('perfiles')
       .select('id,nombre,correo,foto_url,zona,bio,especialidades,idiomas,propiedades_activas,ventas_cerradas,valeria_onboarding_completo')
       .eq('valeria_onboarding_completo', true)
+      .eq('verificado', true)
       .order('nombre')
       .then(({ data }) => {
         if (data) setAsesores(data.map((a:any) => ({
@@ -63,11 +64,10 @@ export default function Asesores() {
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 40px',maxWidth:1600,margin:'0 auto'}}>
           <a href="/" style={{fontFamily:'var(--serif)',fontSize:26,color:'var(--ink)'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></a>
           <nav style={{display:'flex',gap:28,fontSize:13,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--ink-2)'}}>
-            <a href="/propiedades">Comprar</a>
-            <a href="/alquiler">Alquilar</a>
+            <a href="/propiedades">Propiedades</a>
             <a href="/nosotros" style={{color:'var(--ink-3)',textDecoration:'none',fontSize:13}}>Nosotros</a>
             <a href="/asesores" style={{color:'var(--ink)',borderBottom:'1px solid var(--ink)',paddingBottom:2}}>Asesores</a>
-            <a href="/ideas">Ideas</a>
+            <a href="/noticias">Noticias</a>
           </nav>
           <div style={{display:'flex',gap:10}}>
             <a href="/login" style={{border:'1px solid var(--rule)',padding:'8px 16px',borderRadius:999,fontSize:13}}>Ingresar</a>
