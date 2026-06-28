@@ -1,7 +1,7 @@
 // @ts-nocheck
 'use client'
 // @ts-nocheck
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 
 const STEPS = [
@@ -24,7 +24,15 @@ export default function NuevaPropiedad() {
   const [completed, setCompleted] = useState(new Set())
   const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', direccion:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'', numero_finca:'', numero_plano:'', naturaleza:'', area_registral:'', colindancias:'', gravamenes:'', anotaciones:'', libre_gravamenes:false })
   const [published, setPublished] = useState(false)
-  const [propietarioVerificado, setPropietarioVerificado] = useState<boolean|null>(null)
+  const [contratoAceptado, setContratoAceptado] = useState<boolean|null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) return
+      const { data } = await supabase.from('perfiles').select('contrato_asesor_aceptado').eq('id', user.id).maybeSingle()
+      setContratoAceptado(!!data?.contrato_asesor_aceptado)
+    })
+  }, [])
   const [publishing, setPublishing] = useState(false)
   const [aiWriting, setAiWriting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
@@ -129,29 +137,29 @@ export default function NuevaPropiedad() {
 
   const s = { fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }
 
-  // Block unverified propietarios
-  if (propietarioVerificado === false || propietarioVerificado === null) return (
+  // Bloquear hasta aceptar contrato de afiliación de asesor
+  if (contratoAceptado === false || contratoAceptado === null) return (
     <main style={{ fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');:root{--bg:oklch(0.97 0.005 80);--accent:oklch(0.42 0.06 150);--accent-tint:oklch(0.95 0.02 150);--ink:oklch(0.20 0.005 80);--ink-3:oklch(0.60 0.005 80);--rule:oklch(0.88 0.006 80);}`}</style>
       <div style={{ maxWidth:480, textAlign:'center' }}>
         <div style={{ width:72, height:72, borderRadius:'50%', background:'oklch(0.93 0.05 80)', display:'grid', placeItems:'center', margin:'0 auto 24px', fontSize:32 }}>⏳</div>
-        <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:400, marginBottom:12 }}>Perfil pendiente de verificación</h1>
+        <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:32, fontWeight:400, marginBottom:12 }}>Falta aceptar tu contrato</h1>
         <p style={{ fontSize:15, color:'var(--ink-3)', lineHeight:1.7, marginBottom:28 }}>
-          Antes de publicar tu propiedad, un asesor NIDO necesita verificar tu identidad. Este proceso tarda menos de 24 horas hábiles.
+          Antes de publicar tu primera propiedad, necesitás aceptar el Contrato de Afiliación de Asesor NIDO.
         </p>
         <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:12, padding:'16px 20px', marginBottom:24, textAlign:'left' }}>
-          <div style={{ fontSize:13, fontWeight:500, color:'var(--accent)', marginBottom:8 }}>¿Qué falta?</div>
+          <div style={{ fontSize:13, fontWeight:500, color:'var(--accent)', marginBottom:8 }}>Es rápido</div>
           <ol style={{ paddingLeft:18, fontSize:13, color:'oklch(0.42 0.005 80)', lineHeight:1.8 }}>
-            <li>Subir cédula (frente y reverso) y selfie en tu perfil</li>
-            <li>Esperar la llamada o visita del asesor NIDO</li>
-            <li>Una vez aprobado, podés publicar tu propiedad</li>
+            <li>Leé los términos de afiliación</li>
+            <li>Aceptá con un clic</li>
+            <li>Volvés directo a publicar tu propiedad</li>
           </ol>
         </div>
         <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-          <a href="/dashboard/propietario?tab=verificacion" style={{ padding:'12px 24px', borderRadius:999, background:'var(--accent)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>
-            Subir documentos →
+          <a href="/dashboard/contrato-asesor" style={{ padding:'12px 24px', borderRadius:999, background:'var(--accent)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>
+            Ver y aceptar contrato →
           </a>
-          <a href="/dashboard/propietario" style={{ padding:'12px 24px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', fontSize:14, textDecoration:'none' }}>
+          <a href="/dashboard" style={{ padding:'12px 24px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', fontSize:14, textDecoration:'none' }}>
             Volver al panel
           </a>
         </div>
