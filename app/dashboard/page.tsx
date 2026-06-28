@@ -137,7 +137,7 @@ export default function Dashboard() {
   const leadsNuevos = leads.filter(l => l.estado === 'nuevo').length
   const leadsCerrados = leads.filter(l => l.estado === 'cerrado').length
   const propActivas = propiedades.filter(p => p.disponible).length
-  const primerNombre = (valeraPerfilDash?.nombre || '').split(' ')[0]
+  const primerNombre = (valeriaPerfil?.nombre || '').split(' ')[0]
   const nombre = primerNombre || user?.email?.split('@')[0] || 'ahí'
   const hora = new Date().getHours()
   const saludo = hora < 12 ? 'Buen día' : hora < 19 ? 'Buenas tardes' : 'Buenas noches'
