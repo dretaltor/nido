@@ -153,7 +153,7 @@ export default function Nosotros() {
                 num:'02',
                 titulo:'Plataforma SaaS para asesores',
                 desc:'Asesores inmobiliarios independientes se suscriben a NIDO para acceder al CRM, Valeria IA, la academia y el portal de propiedades.',
-                items:['Plan Pro: $49/mes','Plan Enterprise: $129/mes','Valeria IA incluida','Academia + certificaciones'],
+                items:['Plan Elite: $59/mes','Plan Black: $149/mes','Valeria IA incluida','Academia + certificaciones'],
                 color:'var(--gold)',
               },
               {
