@@ -1,7 +1,8 @@
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID || '1156099824249418'
-const WA_TOKEN = process.env.WHATSAPP_TOKEN || 'EAA9uUc0RdRkBRqxPkZAYTxTVtjESr7CkBC27lH9q7v3lNebwxTZA1FMcvYU0FyJRkgaynzHrtrx6Cz8kJSBJ0VZBDDmjgKP83CqquHvhw9Dazc4oKA9AcgljAFWZAOZAyMr17EMtx9AZCSqYgUjLW6tZCbCNAgkKrlsQjp8ip1zpPapqnylqFDd2KyASbjdTgZDZD'
+const WA_TOKEN = process.env.WHATSAPP_TOKEN
 
 export async function sendWhatsApp(to: string, message: string): Promise<boolean> {
+  if (!WA_TOKEN) { console.error('WHATSAPP_TOKEN no configurado en Vercel'); return false }
   const phone = to.replace(/[^0-9]/g, '')
   const fullPhone = phone.startsWith('506') ? phone : '506' + phone
 
@@ -19,8 +20,13 @@ export async function sendWhatsApp(to: string, message: string): Promise<boolean
         text: { body: message }
       })
     })
+    if (!res.ok) {
+      const errBody = await res.text()
+      console.error('sendWhatsApp error:', res.status, errBody)
+    }
     return res.ok
-  } catch {
+  } catch (e) {
+    console.error('sendWhatsApp exception:', e)
     return false
   }
 }

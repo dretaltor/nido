@@ -7,7 +7,7 @@ const supabaseAdmin = createClient(
 )
 
 const VERIFY_TOKEN = process.env.WHATSAPP_VERIFY_TOKEN || 'nido-webhook-2026'
-const WA_TOKEN = process.env.WHATSAPP_TOKEN || 'EAA9uUc0RdRkBRqxPkZAYTxTVtjESr7CkBC27lH9q7v3lNebwxTZA1FMcvYU0FyJRkgaynzHrtrx6Cz8kJSBJ0VZBDDmjgKP83CqquHvhw9Dazc4oKA9AcgljAFWZAOZAyMr17EMtx9AZCSqYgUjLW6tZCbCNAgkKrlsQjp8ip1zpPapqnylqFDd2KyASbjdTgZDZD'
+const WA_TOKEN = process.env.WHATSAPP_TOKEN
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID || '1156099824249418'
 
 // Verificación webhook Meta
@@ -144,17 +144,26 @@ Para cualquier otra consulta, responde normalmente en texto.`
 }
 
 async function sendWA(to: string, message: string) {
-  await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${WA_TOKEN}`
-    },
-    body: JSON.stringify({
-      messaging_product: 'whatsapp',
-      to,
-      type: 'text',
-      text: { body: message }
+  if (!WA_TOKEN) { console.error('WHATSAPP_TOKEN no configurado en Vercel'); return }
+  try {
+    const res = await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${WA_TOKEN}`
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to,
+        type: 'text',
+        text: { body: message }
+      })
     })
-  })
+    if (!res.ok) {
+      const errBody = await res.text()
+      console.error('WhatsApp send error:', res.status, errBody)
+    }
+  } catch (e) {
+    console.error('WhatsApp send exception:', e)
+  }
 }
