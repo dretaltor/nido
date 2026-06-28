@@ -89,6 +89,8 @@ export default function Dashboard() {
     setUpdatingOferta(false)
   }
   const [loading, setLoading] = useState(true)
+  const [suscripcion, setSuscripcion] = useState<any>(null)
+  const [checandoTrial, setCheckandoTrial] = useState(true)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -99,6 +101,8 @@ export default function Dashboard() {
       const tipo = tipoLocal || tipoMeta || 'asesor'
       if (tipo === 'propietario') { router.push('/dashboard/propietario'); return }
       setUser(user)
+      supabase.from('suscripciones').select('plan,activo,es_trial,trial_fin').eq('correo', user.email).maybeSingle()
+        .then(({ data }) => { setSuscripcion(data); setCheckandoTrial(false) })
       Promise.all([
         supabase.from('propiedades').select('*').eq('asesor_email', user.email),
         supabase.from('leads').select('*').order('created_at', { ascending: false }),
@@ -148,6 +152,34 @@ export default function Dashboard() {
       <p style={{ color:'var(--ink-3)', fontSize:14 }}>Cargando tu dashboard...</p>
     </main>
   )
+
+  // Trial expirado y sin plan pago activo -> bloquear todo
+  const trialVencido = suscripcion?.es_trial && suscripcion?.trial_fin && new Date(suscripcion.trial_fin) < new Date()
+  const tienePlanPagoActivo = suscripcion?.activo && !suscripcion?.es_trial
+  if (!checandoTrial && trialVencido && !tienePlanPagoActivo) {
+    const diasDesdeVencido = Math.floor((Date.now() - new Date(suscripcion.trial_fin).getTime()) / 86400000)
+    return (
+      <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+        <style>{CSS}</style>
+        <div style={{ maxWidth:480, textAlign:'center', background:'white', border:'1px solid var(--rule)', borderRadius:20, padding:'48px 40px' }}>
+          <div style={{ width:64, height:64, borderRadius:'50%', background:'oklch(0.95 0.04 50)', display:'grid', placeItems:'center', margin:'0 auto 24px', fontSize:28 }}>⏳</div>
+          <h1 style={{ fontFamily:'var(--serif)', fontSize:30, fontWeight:400, marginBottom:10 }}>Tu prueba de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>NIDO Black</em> terminó.</h1>
+          <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.65, marginBottom:8 }}>
+            Probaste todas las funciones de NIDO Black gratis por 7 días{diasDesdeVencido > 0 ? ' (terminó hace ' + diasDesdeVencido + ' día' + (diasDesdeVencido!==1?'s':'') + ')' : ''}.
+          </p>
+          <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.65, marginBottom:28 }}>
+            Para seguir publicando propiedades, usando Valeria IA y el CRM, elegí un plan.
+          </p>
+          <a href="/precios" style={{ display:'inline-block', padding:'14px 32px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none', marginBottom:14 }}>
+            Ver planes →
+          </a>
+          <div>
+            <a href="/login" onClick={() => { supabase.auth.signOut(); localStorage.removeItem('nido_user_tipo') }} style={{ fontSize:12, color:'var(--ink-3)' }}>Cerrar sesión</a>
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }}>
