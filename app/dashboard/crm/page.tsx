@@ -55,9 +55,12 @@ export default function CRM() {
   const [userEmail, setUserEmail] = useState('')
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => { if (user) setUserEmail(user.email || '') })
-    supabase.from('leads').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { setLeads(data || []); setLoading(false) })
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { setLoading(false); return }
+      setUserEmail(user.email || '')
+      supabase.from('leads').select('*').eq('asesor_email', user.email).order('created_at', { ascending: false })
+        .then(({ data }) => { setLeads(data || []); setLoading(false) })
+    })
   }, [])
 
   const filtrados = filtro === 'todos' ? leads : leads.filter(l => l.estado === filtro)
@@ -155,10 +158,19 @@ export default function CRM() {
         <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'0 16px' }}>
           {loading && <p style={{ padding:'24px', color:'var(--ink-3)', textAlign:'center', fontSize:14 }}>Cargando leads...</p>}
           {!loading && filtrados.length === 0 && <p style={{ padding:'32px', color:'var(--ink-3)', textAlign:'center', fontSize:14 }}>No hay leads {filtro!=='todos'?'con estado "'+filtro+'"':'aún'}.</p>}
-          {filtrados.map(l => {
+          {filtrados.map((l, i) => {
             const badge = ESTADO_BADGE[l.estado] || ESTADO_BADGE.nuevo
+            const propAnterior = i > 0 ? (filtrados[i-1].propiedad_titulo || filtrados[i-1].propiedad) : null
+            const propActual = l.propiedad_titulo || l.propiedad
+            const mostrarHeader = propActual && propActual !== propAnterior
             return (
-              <div key={l.id} className="lead-row" onClick={() => setSel(l)}>
+              <div key={l.id}>
+                {mostrarHeader && (
+                  <div style={{ padding:'14px 0 6px', fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--accent)', fontWeight:600, borderTop:i>0?'1px solid var(--rule-soft)':'none', marginTop:i>0?4:0 }}>
+                    🏠 {propActual}
+                  </div>
+                )}
+              <div className="lead-row" onClick={() => setSel(l)}>
                 <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', border:'1px solid var(--rule)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:17, flexShrink:0 }}>
                   {(l.nombre||'?')[0].toUpperCase()}
                 </div>
@@ -174,6 +186,7 @@ export default function CRM() {
                   <span style={{ fontSize:11, color:'var(--ink-3)' }}>{timeAgo(l.created_at)}</span>
                   <span style={{ padding:'3px 10px', borderRadius:999, fontSize:11, fontWeight:500, background:badge.bg, color:badge.color }}>{l.estado}</span>
                 </div>
+              </div>
               </div>
             )
           })}

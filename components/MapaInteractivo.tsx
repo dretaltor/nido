@@ -1,48 +1,41 @@
 'use client'
 import { useEffect, useRef } from 'react'
 
-const COORDS: Record<string, [number, number]> = {
-  'Escazu': [-84.1366, 9.9194],
-  'Escazú': [-84.1366, 9.9194],
-  'Santa Ana': [-84.1836, 9.9328],
-  'San Jose': [-84.0875, 9.9281],
-  'San José': [-84.0875, 9.9281],
-  'Curridabat': [-84.0316, 9.9119],
-  'Heredia': [-84.1168, 9.9986],
-  'Alajuela': [-84.2141, 10.0162],
-  'Cartago': [-83.9194, 9.8647],
-  'Liberia': [-85.4358, 10.6340],
-  'Tamarindo': [-85.8397, 10.2993],
-  'Manuel Antonio': [-84.1564, 9.3908],
-  'Jaco': [-84.6275, 9.6127],
-  'Jacó': [-84.6275, 9.6127],
-  'Monteverde': [-84.8239, 10.3082],
-  'Nosara': [-85.6531, 9.9791],
-}
-
-function getCoords(zona: string): [number, number] {
-  const entries = Object.entries(COORDS)
-  for (let i = 0; i < entries.length; i++) {
-    const key = entries[i][0]
-    const coords = entries[i][1] as [number, number]
-    if (zona.toLowerCase().includes(key.toLowerCase())) return coords
-  }
-  return [-84.0875, 9.9281]
-}
-
 interface PropiedadMapa {
   id: string
   titulo: string
   precio: number
   operacion: string
   zona: string
+  distrito?: string
+  provincia?: string
   habitaciones: number
   metros: number
+  tipo?: string
 }
 
 interface Props {
   propiedades: PropiedadMapa[]
   onSelect?: (id: string) => void
+}
+
+const geocodeCache: Record<string, [number, number]> = {}
+
+async function geocodeQuery(query: string, token: string): Promise<[number, number]> {
+  if (geocodeCache[query]) return geocodeCache[query]
+  try {
+    const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${token}&country=cr&limit=1`
+    const res = await fetch(url)
+    const json = await res.json()
+    if (json.features && json.features[0]) {
+      const coords = json.features[0].center as [number, number]
+      geocodeCache[query] = coords
+      return coords
+    }
+  } catch {}
+  const fallback: [number, number] = [-84.0875, 9.9281]
+  geocodeCache[query] = fallback
+  return fallback
 }
 
 export default function MapaInteractivo({ propiedades, onSelect }: Props) {
@@ -57,8 +50,12 @@ export default function MapaInteractivo({ propiedades, onSelect }: Props) {
     link.href = 'https://api.mapbox.com/mapbox-gl-js/v3.0.0/mapbox-gl.css'
     document.head.appendChild(link)
 
-    import('mapbox-gl').then(({ default: mapboxgl }) => {
-      mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string
+    let cancelled = false
+
+    import('mapbox-gl').then(async ({ default: mapboxgl }) => {
+      if (cancelled) return
+      const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN as string
+      mapboxgl.accessToken = token
 
       const map = new mapboxgl.Map({
         container: mapRef.current as HTMLDivElement,
@@ -66,12 +63,20 @@ export default function MapaInteractivo({ propiedades, onSelect }: Props) {
         center: [-84.0875, 9.9281],
         zoom: 7.5,
       })
-
       mapInstance.current = map
 
-      map.on('load', () => {
-        propiedades.forEach(p => {
-          const coords = getCoords(p.zona)
+      map.on('load', async () => {
+        if (cancelled || propiedades.length === 0) return
+
+        const bounds = new mapboxgl.LngLatBounds()
+
+        for (const p of propiedades) {
+          const query = [p.distrito, p.zona, p.provincia, 'Costa Rica'].filter(Boolean).join(', ')
+          const coords = await geocodeQuery(query, token)
+          if (cancelled) return
+
+          bounds.extend(coords)
+
           const priceLabel = p.operacion === 'alquiler'
             ? '$' + (p.precio / 1000).toFixed(1) + 'k/m'
             : '$' + (p.precio / 1000).toFixed(0) + 'k'
@@ -101,24 +106,30 @@ export default function MapaInteractivo({ propiedades, onSelect }: Props) {
           })
           el.addEventListener('click', () => { if (onSelect) onSelect(p.id) })
 
+          const detalle = p.tipo === 'lote' ? (p.metros + 'm² terreno') : (p.habitaciones + ' hab · ' + p.metros + 'm²')
           const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
-            .setHTML('<div style="font-family:DM Sans,sans-serif;padding:4px;min-width:150px"><div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:4px">' + p.zona + '</div><div style="font-weight:500;color:#1a1a1a;margin-bottom:4px">' + p.titulo + '</div><div style="font-size:12px;color:#6B7280">' + p.habitaciones + ' hab · ' + p.metros + 'm²</div></div>')
+            .setHTML('<div style="font-family:DM Sans,sans-serif;padding:4px;min-width:150px"><div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:4px">' + p.zona + '</div><div style="font-weight:500;color:#1a1a1a;margin-bottom:4px">' + p.titulo + '</div><div style="font-size:12px;color:#6B7280">' + detalle + '</div></div>')
 
           new mapboxgl.Marker({ element: el, anchor: 'bottom' })
             .setLngLat(coords)
             .setPopup(popup)
             .addTo(map)
-        })
+        }
+
+        if (!bounds.isEmpty() && !cancelled) {
+          map.fitBounds(bounds, { padding: 60, maxZoom: propiedades.length === 1 ? 13 : 14, duration: 0 })
+        }
       })
     })
 
     return () => {
+      cancelled = true
       if (mapInstance.current) {
         mapInstance.current.remove()
         mapInstance.current = null
       }
     }
-  }, [])
+  }, [propiedades.map(p => p.id).join(',')])
 
   return <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
 }

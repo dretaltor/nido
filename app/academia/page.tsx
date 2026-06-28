@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../../lib/supabase'
 
 const CURSOS = [
   { id:1, cat:'Ventas', nivel:'Básico', dur:'2 horas', titulo:'Fundamentos de ventas inmobiliarias', desc:'Aprende las bases para cerrar tu primera venta. Técnicas de prospección, presentación y cierre.', temas:['¿Qué busca un comprador?','Cómo hacer una presentación efectiva','Manejo de objeciones','Técnicas de cierre'], icon:'🏠', gratis:true, hue:150 },
@@ -34,6 +35,17 @@ export default function Academia() {
   const [cat, setCat] = useState('Todos')
   const [nivel, setNivel] = useState('Todos')
   const [sel, setSel] = useState<typeof CURSOS[0] | null>(null)
+  const [planActivo, setPlanActivo] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user?.email) return
+      const { data } = await supabase.from('suscripciones').select('plan,activo').eq('correo', user.email).maybeSingle()
+      if (data?.activo) setPlanActivo(data.plan)
+    })
+  }, [])
+
+  const todoDesbloqueado = planActivo === 'enterprise'
 
   const filtrados = CURSOS.filter(c =>
     (cat==='Todos'||c.cat===cat) && (nivel==='Todos'||c.nivel===nivel)
@@ -100,11 +112,12 @@ export default function Academia() {
         {/* Grid cursos */}
         <div className="cursos-grid" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20, marginBottom:40 }}>
           {filtrados.map(c => (
-            <div key={c.id} className="curso-card" onClick={() => { if(c.gratis) { window.location.href = '/academia/curso?id=' + c.id } else { setSel(c) } }}>
+            <div key={c.id} className="curso-card" onClick={() => { if(c.gratis || todoDesbloqueado) { window.location.href = '/academia/curso?id=' + c.id } else { setSel(c) } }}>
               <div style={{ height:120, background:`oklch(0.88 0.03 ${c.hue})`, display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
                 <span style={{ fontSize:36 }}>{c.icon}</span>
                 {c.gratis && <span style={{ position:'absolute', top:10, right:10, background:'var(--accent)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em', fontWeight:500 }}>GRATIS</span>}
-                {!c.gratis && <span style={{ position:'absolute', top:10, right:10, background:'var(--ink)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em' }}>PRO</span>}
+                {!c.gratis && todoDesbloqueado && <span style={{ position:'absolute', top:10, right:10, background:'var(--accent)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em', fontWeight:500 }}>INCLUIDO</span>}
+                {!c.gratis && !todoDesbloqueado && <span style={{ position:'absolute', top:10, right:10, background:'var(--ink)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em' }}>PRO</span>}
               </div>
               <div style={{ padding:'16px 18px', flex:1, display:'flex', flexDirection:'column' }}>
                 <div style={{ display:'flex', gap:8, marginBottom:10 }}>
@@ -171,13 +184,13 @@ export default function Academia() {
                   </div>
                 ))}
               </div>
-              {sel.gratis
-                ? <button style={{ width:'100%', padding:'13px', borderRadius:999, background:'var(--accent)', border:'none', color:'white', fontSize:14, fontWeight:500, cursor:'pointer' }}>Comenzar curso gratis →</button>
+              {(sel.gratis || todoDesbloqueado)
+                ? <a href={'/academia/curso?id=' + sel.id} style={{ display:'block', textAlign:'center', width:'100%', padding:'13px', borderRadius:999, background:'var(--accent)', border:'none', color:'white', fontSize:14, fontWeight:500, cursor:'pointer', textDecoration:'none' }}>{sel.gratis ? 'Comenzar curso gratis →' : 'Comenzar curso →'}</a>
                 : <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:10, padding:'12px 14px', fontSize:13, color:'var(--ink-2)' }}>
-                      Este curso es parte del plan Pro. Desbloquealo junto con todos los demás cursos.
+                      Este curso es parte del plan Enterprise. Desbloquealo junto con todos los demás cursos.
                     </div>
-                    <a href="/precios" style={{ display:'block', padding:'13px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textAlign:'center', textDecoration:'none' }}>Ver plan Pro →</a>
+                    <a href="/precios" style={{ display:'block', padding:'13px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textAlign:'center', textDecoration:'none' }}>Ver plan Enterprise →</a>
                   </div>
               }
             </div>
