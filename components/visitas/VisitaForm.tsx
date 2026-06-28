@@ -6,12 +6,13 @@ interface VisitaFormProps {
   propiedadId: string
   propiedadTitulo: string
   asesorEmail: string
+  asesorNombre?: string
   asesorWhatsapp?: string
   onClose: () => void
   onSuccess: () => void
 }
 
-export function VisitaForm({ propiedadId, propiedadTitulo, asesorEmail, asesorWhatsapp, onClose, onSuccess }: VisitaFormProps) {
+export function VisitaForm({ propiedadId, propiedadTitulo, asesorEmail, asesorNombre, asesorWhatsapp, onClose, onSuccess }: VisitaFormProps) {
   const [form, setForm] = useState({
     comprador_nombre: '', comprador_telefono: '', comprador_email: '',
     fecha: '', hora: '10:00', tipo: 'presencial', notas: ''
@@ -52,6 +53,20 @@ export function VisitaForm({ propiedadId, propiedadTitulo, asesorEmail, asesorWh
     await Promise.all([
       asesorWhatsapp ? fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: asesorWhatsapp, message: msgAsesor }) }) : Promise.resolve(),
       form.comprador_telefono ? fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: form.comprador_telefono, message: msgComprador }) }) : Promise.resolve(),
+      asesorEmail ? fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        to: asesorEmail,
+        tipo: 'nueva_visita',
+        data: {
+          asesor_nombre: asesorNombre,
+          propiedad: propiedadTitulo,
+          comprador_nombre: form.comprador_nombre,
+          comprador_telefono: form.comprador_telefono,
+          fecha: fechaFmt,
+          hora: form.hora,
+          tipo: form.tipo,
+          notas: form.notas,
+        }
+      }) }) : Promise.resolve(),
     ])
 
     setLoading(false)

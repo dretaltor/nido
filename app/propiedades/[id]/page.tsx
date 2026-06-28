@@ -434,6 +434,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                 propiedadId={propiedad.id}
                 propiedadTitulo={propiedad.titulo}
                 asesorEmail={propiedad.asesor_email || ''}
+                asesorNombre={propiedad.asesor_nombre || ''}
                 asesorWhatsapp={propiedad.asesor_whatsapp || ''}
                 onClose={() => setVisitaOpen(false)}
                 onSuccess={() => setVisitaExito(true)}

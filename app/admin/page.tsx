@@ -107,6 +107,7 @@ export default function AdminPanel() {
   }
 
   const verificarPropiedad = async (id: string, aprobar: boolean, notas?: string) => {
+    const { data: prop } = await supabase.from('propiedades').select('titulo,asesor_email,asesor_nombre,asesor_whatsapp').eq('id', id).maybeSingle()
     await supabase.from('propiedades').update({
       verificacion_estado: aprobar ? 'aprobada' : 'rechazada',
       verificacion_notas: notas || null,
@@ -114,18 +115,33 @@ export default function AdminPanel() {
       verificado_por: adminUser?.email,
       verificado_at: new Date().toISOString(),
     }).eq('id', id)
+    if (aprobar && prop?.asesor_email) {
+      fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        to: prop.asesor_email,
+        tipo: 'propiedad_aprobada',
+        data: { asesor_nombre: prop.asesor_nombre, propiedad: prop.titulo, propiedad_id: id, asesor_telefono: prop.asesor_whatsapp }
+      }) }).catch(() => {})
+    }
     loadAll()
     setMsg(aprobar ? '✓ Propiedad aprobada y publicada' : '✓ Propiedad rechazada')
     setSel(null)
   }
 
   const aprobarKYC = async (id: string, aprobar: boolean, notas?: string) => {
+    const { data: asesorRow } = await supabase.from('perfiles').select('nombre,correo,telefono').eq('id', id).maybeSingle()
     await supabase.from('perfiles').update({
       verificado: aprobar,
       verificacion_estado: aprobar ? 'aprobado' : 'rechazado',
       verificacion_notas: notas || null,
       verificado_at: new Date().toISOString(),
     }).eq('id', id)
+    if (aprobar && asesorRow?.correo) {
+      fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        to: asesorRow.correo,
+        tipo: 'kyc_aprobado',
+        data: { nombre: asesorRow.nombre, asesor_telefono: asesorRow.telefono }
+      }) }).catch(() => {})
+    }
     loadAll()
     setSel((p:any) => p ? {...p, verificado: aprobar, verificacion_estado: aprobar ? 'aprobado' : 'rechazado'} : null)
   }

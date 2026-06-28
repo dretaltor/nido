@@ -174,6 +174,103 @@ export async function POST(req: NextRequest) {
         </body>
         </html>`
       },
+      nueva_visita: {
+        subject: 'Nueva visita agendada · ' + (data?.propiedad || 'Tu propiedad') + ' · NIDO',
+        html: `
+        <html>
+        <body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Nueva Visita Agendada</p>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">Hola ${data?.asesor_nombre || 'asesor'},</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Te agendaron una visita para <strong>${data?.propiedad}</strong>.</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F7F3;border:1px solid #C8E6D4;border-radius:12px;margin-bottom:24px">
+            <tr><td style="padding:20px 24px">
+              <p style="font-size:12px;font-weight:600;color:#1B5E3B;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.08em">Detalle de la visita</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:140px">Comprador</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.comprador_nombre}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Teléfono</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.comprador_telefono}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Fecha</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.fecha}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Hora</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.hora}</td></tr>
+                <tr><td style="padding:8px 0;font-size:13px;color:#6B7280">Tipo</td><td style="padding:8px 0;font-size:13px;font-weight:500;color:#0D1F15">${data?.tipo === 'virtual' ? 'Virtual' : 'Presencial'}</td></tr>
+                ${data?.notas ? '<tr><td style="padding:8px 0;font-size:13px;color:#6B7280;vertical-align:top">Notas</td><td style="padding:8px 0;font-size:13px;color:#0D1F15">' + data.notas + '</td></tr>' : ''}
+              </table>
+            </td></tr>
+            </table>
+            <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+              <a href="https://www.nido-cr.com/dashboard" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ver en mi dashboard →</a>
+            </td></tr></table>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:24px 40px;border-top:1px solid #E5E3DC">
+            <p style="font-size:12px;color:#9CA3AF;margin:0;text-align:center">NIDO · Plataforma Inmobiliaria de Costa Rica · © 2026</p>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body>
+        </html>`
+      },
+      kyc_aprobado: {
+        subject: '✓ Tu identidad fue verificada · NIDO',
+        html: `
+        <html>
+        <body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Verificación Aprobada</p>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">¡Felicidades, ${data?.nombre || 'asesor'}!</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Tu identidad fue verificada y aprobada. Ya podés publicar propiedades en NIDO.</p>
+            <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+              <a href="https://www.nido-cr.com/dashboard/nueva-propiedad" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Publicar mi primera propiedad →</a>
+            </td></tr></table>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:24px 40px;border-top:1px solid #E5E3DC">
+            <p style="font-size:12px;color:#9CA3AF;margin:0;text-align:center">NIDO · Plataforma Inmobiliaria de Costa Rica · © 2026</p>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body>
+        </html>`
+      },
+      propiedad_aprobada: {
+        subject: '✓ Tu propiedad ya está publicada · NIDO',
+        html: `
+        <html>
+        <body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Propiedad Publicada</p>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">¡Listo, ${data?.asesor_nombre || 'asesor'}!</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px"><strong>${data?.propiedad}</strong> fue aprobada y ya está visible en el portal público.</p>
+            <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+              <a href="https://www.nido-cr.com/propiedades/${data?.propiedad_id || ''}" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ver mi ficha publicada →</a>
+            </td></tr></table>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:24px 40px;border-top:1px solid #E5E3DC">
+            <p style="font-size:12px;color:#9CA3AF;margin:0;text-align:center">NIDO · Plataforma Inmobiliaria de Costa Rica · © 2026</p>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body>
+        </html>`
+      },
       mensaje_admin: {
         subject: data?.asunto || 'Mensaje del equipo NIDO',
         html: `
@@ -344,6 +441,10 @@ export async function POST(req: NextRequest) {
         ? `🏠 *Nuevo lead NIDO*\n\nPropiedad: ${data?.propiedad || '—'}\nNombre: ${data?.nombre || '—'}\nTeléfono: ${data?.telefono || '—'}\nMensaje: ${data?.mensaje || '—'}\n\nRespondé rápido — los primeros 2 min son clave.`
         : tipo === 'nueva_oferta'
         ? `💼 *Nueva oferta NIDO*\n\nPropiedad: ${data?.propiedad || '—'}\nComprador: ${data?.comprador || '—'}\nOferta: ${data?.monto || '—'}\n\nRevisá tu dashboard para ver los detalles.`
+        : tipo === 'kyc_aprobado'
+        ? `✓ *Identidad verificada — NIDO*\n\n¡Felicidades! Tu KYC fue aprobado. Ya podés publicar propiedades en NIDO.\n\n🌐 nido-cr.com/dashboard/nueva-propiedad`
+        : tipo === 'propiedad_aprobada'
+        ? `✓ *Propiedad publicada — NIDO*\n\n${data?.propiedad || 'Tu propiedad'} ya está visible en el portal público.\n\n🌐 nido-cr.com/propiedades/${data?.propiedad_id || ''}`
         : null
       
       if (waMsg) {
