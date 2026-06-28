@@ -346,15 +346,25 @@ export default function Dashboard() {
                 const isPendiente = v.estado === 'pendiente'
                 const fechaEvento = safeDate(v.fecha, v.hora)
                 const googleCal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Visita propiedad NIDO: '+v.propiedad_titulo)}&dates=${fechaEvento.toISOString().replace(/[-:]/g,'').split('.')[0]}Z/${new Date(fechaEvento.getTime()+3600000).toISOString().replace(/[-:]/g,'').split('.')[0]}Z&details=${encodeURIComponent('Comprador: '+v.comprador_nombre+' | Tel: '+v.comprador_telefono)}&location=${encodeURIComponent(v.propiedad_titulo)}`
-                const appleCal = `data:text/calendar;charset=utf8,BEGIN:VCALENDAR
-VERSION:2.0
-BEGIN:VEVENT
-SUMMARY:Visita NIDO: ${v.propiedad_titulo}
-DTSTART:${fechaEvento.toISOString().replace(/[-:]/g,'').split('.')[0]}Z
-DTEND:${new Date(fechaEvento.getTime()+3600000).toISOString().replace(/[-:]/g,'').split('.')[0]}Z
-DESCRIPTION:Comprador: ${v.comprador_nombre}
-END:VEVENT
-END:VCALENDAR`
+                const icsLines = [
+                  'BEGIN:VCALENDAR',
+                  'VERSION:2.0',
+                  'PRODID:-//NIDO//Visitas//ES',
+                  'CALSCALE:GREGORIAN',
+                  'BEGIN:VEVENT',
+                  'UID:' + v.id + '@nido-cr.com',
+                  'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z',
+                  'DTSTART:' + fechaEvento.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z',
+                  'DTEND:' + new Date(fechaEvento.getTime()+3600000).toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z',
+                  'SUMMARY:Visita NIDO: ' + v.propiedad_titulo.replace(/[,;]/g,' '),
+                  'DESCRIPTION:Comprador: ' + (v.comprador_nombre||'').replace(/[,;]/g,' ') + ' - Tel: ' + (v.comprador_telefono||''),
+                  'LOCATION:' + v.propiedad_titulo.replace(/[,;]/g,' '),
+                  'STATUS:CONFIRMED',
+                  'END:VEVENT',
+                  'END:VCALENDAR'
+                ]
+                const icsContent = icsLines.join('\r\n')
+                const appleCal = 'data:text/calendar;charset=utf-8,' + encodeURIComponent(icsContent)
                 return (
                   <div key={v.id} onClick={() => setVisitaDetalle(v)} style={{ background:'white', border:'1px solid '+(isPendiente?'oklch(0.85 0.05 80)':'var(--rule)'), borderRadius:12, padding:'14px 18px', display:'flex', alignItems:'center', gap:14, cursor:'pointer' }}>
                     <div style={{ width:44, height:44, borderRadius:10, background:isPendiente?'oklch(0.93 0.05 80)':'var(--accent-tint)', display:'grid', placeItems:'center', fontSize:20, flexShrink:0 }}>
