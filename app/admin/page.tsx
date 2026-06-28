@@ -117,7 +117,8 @@ export default function AdminPanel() {
       verificado_at: new Date().toISOString(),
     }).eq('id', id)
     if (aprobar && prop?.asesor_email) {
-      fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      const { data: { session: ses1 } } = await supabase.auth.getSession()
+      fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+ses1?.access_token}, body: JSON.stringify({
         to: prop.asesor_email,
         tipo: 'propiedad_aprobada',
         data: { asesor_nombre: prop.asesor_nombre, propiedad: prop.titulo, propiedad_id: id, asesor_telefono: prop.asesor_whatsapp }
@@ -137,7 +138,8 @@ export default function AdminPanel() {
       verificado_at: new Date().toISOString(),
     }).eq('id', id)
     if (aprobar && asesorRow?.correo) {
-      fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      const { data: { session: ses2 } } = await supabase.auth.getSession()
+      fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+ses2?.access_token}, body: JSON.stringify({
         to: asesorRow.correo,
         tipo: 'kyc_aprobado',
         data: { nombre: asesorRow.nombre, asesor_telefono: asesorRow.telefono }
@@ -152,7 +154,8 @@ export default function AdminPanel() {
       equipo_nido_estado: aprobar ? 'aprobado' : 'rechazado',
     }).eq('id', asesor.id)
     setAsesores(prev => prev.map((a:any) => a.id===asesor.id ? {...a, equipo_nido_estado: aprobar?'aprobado':'rechazado'} : a))
-    fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+    const { data: { session: ses3 } } = await supabase.auth.getSession()
+    fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+ses3?.access_token}, body: JSON.stringify({
       to: asesor.correo,
       tipo: aprobar ? 'equipo_nido_aprobado' : 'mensaje_admin',
       data: aprobar
@@ -162,9 +165,10 @@ export default function AdminPanel() {
   }
 
   const enviarMensaje = async (correo: string, asunto: string, mensaje: string) => {
+    const { data: { session: ses4 } } = await supabase.auth.getSession()
     await fetch('/api/email', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + ses4?.access_token },
       body: JSON.stringify({ to: correo, tipo: 'mensaje_admin', data: { asunto, mensaje } })
     })
     setMsg('✓ Mensaje enviado a ' + correo)

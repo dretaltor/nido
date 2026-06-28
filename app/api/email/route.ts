@@ -4,6 +4,20 @@ export async function POST(req: NextRequest) {
   try {
     const { to, tipo, data } = await req.json()
 
+    // Plantillas oficiales que solo el admin debe poder disparar (texto libre o anuncios de aprobacion)
+    const TIPOS_SOLO_ADMIN = ['mensaje_admin', 'kyc_aprobado', 'propiedad_aprobada', 'equipo_nido_aprobado']
+    if (TIPOS_SOLO_ADMIN.includes(tipo)) {
+      const { createClient } = await import('@supabase/supabase-js')
+      const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+      const authHeader = req.headers.get('authorization')
+      const token = authHeader?.replace('Bearer ', '')
+      if (!token) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+      const { data: { user } } = await supabaseAdmin.auth.getUser(token)
+      if (!user) return NextResponse.json({ error: 'Sesion invalida' }, { status: 401 })
+      const { data: esAdmin } = await supabaseAdmin.from('admins').select('correo').eq('correo', user.email).maybeSingle()
+      if (!esAdmin) return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+    }
+
     const templates: Record<string, { subject: string, html: string }> = {
       contrato_aprobado: {
         subject: '✅ Tu contrato NIDO está activo — podés publicar tu propiedad',
