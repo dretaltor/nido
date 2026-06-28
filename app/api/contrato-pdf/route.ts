@@ -6,6 +6,18 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// Este archivo construye HTML con texto plano (no es React, no escapa solo).
+// Sin esto, un nombre/cedula con <script> se inyecta tal cual en el contrato generado.
+function esc(v: any): string {
+  if (v === null || v === undefined) return ''
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const correo = searchParams.get('correo') || ''
@@ -102,7 +114,7 @@ export async function GET(req: NextRequest) {
 <h3>Partes Contratantes</h3>
 <div class="partes">
   <p><strong>EL CORREDOR:</strong> NIDO Plataforma Inmobiliaria, con domicilio en San José, Costa Rica, correo electrónico hola@nido-cr.com, sitio web www.nido-cr.com (en adelante "NIDO").</p>
-  <p><strong>EL PROPIETARIO:</strong> ${prop?.nombre || '___________________'}, cédula de identidad ${prop?.cedula || '___________________'}, correo electrónico ${correo}, teléfono ${prop?.telefono || '___________________'} (en adelante "EL PROPIETARIO").</p>
+  <p><strong>EL PROPIETARIO:</strong> ${esc(prop?.nombre) || '___________________'}, cédula de identidad ${esc(prop?.cedula) || '___________________'}, correo electrónico ${esc(correo)}, teléfono ${esc(prop?.telefono) || '___________________'} (en adelante "EL PROPIETARIO").</p>
 </div>
 
 <h3>Cláusula Primera — Objeto del Contrato</h3>
@@ -159,8 +171,8 @@ ${clausulaExclusividad}
   <div class="firma-box">
     <div class="firma-label">Firma del Propietario</div>
     <div class="firma-espacio"></div>
-    <div style="font-weight:500">${prop?.nombre || '___________________'}</div>
-    <div style="font-size:11px;color:#666">Cédula: ${prop?.cedula || '___________________'}</div>
+    <div style="font-weight:500">${esc(prop?.nombre) || '___________________'}</div>
+    <div style="font-size:11px;color:#666">Cédula: ${esc(prop?.cedula) || '___________________'}</div>
     <div style="font-size:11px;color:#666">Fecha: ${fmtDate(hoy)}</div>
   </div>
   <div class="firma-box">
