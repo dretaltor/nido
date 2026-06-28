@@ -1,5 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+function esc(v: any): string {
+  if (v === null || v === undefined) return ''
+  return String(v)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { to, tipo, data } = await req.json()
@@ -30,7 +40,7 @@ export async function POST(req: NextRequest) {
           </td></tr>
           <tr><td style="padding:32px 40px">
             <h1 style="font-family:Georgia,serif;font-size:26px;font-weight:400;color:#0D1F15;margin:0 0 12px">¡Tu contrato está activo!</h1>
-            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 20px">Hola ${data?.nombre}, tu contrato de ${data?.tipo === 'exclusividad' ? 'exclusividad de 90 días' : 'servicios mensual'} con NIDO fue aprobado y está activo. Ya podés publicar tu propiedad.</p>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 20px">Hola ${esc(data?.nombre)}, tu contrato de ${data?.tipo === 'exclusividad' ? 'exclusividad de 90 días' : 'servicios mensual'} con NIDO fue aprobado y está activo. Ya podés publicar tu propiedad.</p>
             <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
               <a href="https://www.nido-cr.com/dashboard/propietario" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ir a mi panel →</a>
             </td></tr></table>
@@ -56,8 +66,8 @@ export async function POST(req: NextRequest) {
             <h1 style="font-family:Georgia,serif;font-size:24px;font-weight:400;color:#0D1F15;margin:0 0 16px">Nuevo contrato firmado</h1>
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F7F3;border:1px solid #C8E6D4;border-radius:12px;margin-bottom:24px">
             <tr><td style="padding:20px 24px">
-              <p style="font-size:13px;color:#374151;margin:0 0 8px"><strong>Propietario:</strong> ${data?.nombre}</p>
-              <p style="font-size:13px;color:#374151;margin:0 0 8px"><strong>Correo:</strong> ${data?.correo}</p>
+              <p style="font-size:13px;color:#374151;margin:0 0 8px"><strong>Propietario:</strong> ${esc(data?.nombre)}</p>
+              <p style="font-size:13px;color:#374151;margin:0 0 8px"><strong>Correo:</strong> ${esc(data?.correo)}</p>
               <p style="font-size:13px;color:#374151;margin:0 0 8px"><strong>Tipo:</strong> ${data?.tipo === 'exclusividad' ? 'Exclusividad 90 días' : 'Mensual $39.99'}</p>
               <p style="font-size:13px;color:#374151;margin:0"><strong>Firma:</strong> ${data?.firma === 'digital' ? 'Digital (canvas)' : 'Física escaneada'}</p>
             </td></tr>
@@ -89,11 +99,11 @@ export async function POST(req: NextRequest) {
             <tr><td style="padding:20px 24px">
               <p style="font-size:12px;font-weight:600;color:#1B5E3B;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.08em">Datos del propietario</p>
               <table width="100%" cellpadding="0" cellspacing="0">
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:120px">Nombre</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.nombre}</td></tr>
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Correo</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.correo}</td></tr>
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Teléfono</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.telefono || '—'}</td></tr>
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Cédula</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.cedula || '—'}</td></tr>
-                <tr><td style="padding:8px 0;font-size:13px;color:#6B7280">Relación</td><td style="padding:8px 0;font-size:13px;font-weight:500;color:#0D1F15">${data?.relacion || '—'}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:120px">Nombre</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.nombre)}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Correo</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.correo)}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Teléfono</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.telefono || '—')}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Cédula</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.cedula || '—')}</td></tr>
+                <tr><td style="padding:8px 0;font-size:13px;color:#6B7280">Relación</td><td style="padding:8px 0;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.relacion || '—')}</td></tr>
               </table>
             </td></tr>
             </table>
@@ -127,7 +137,7 @@ export async function POST(req: NextRequest) {
             <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Plataforma Inmobiliaria · Costa Rica</p>
           </td></tr>
           <tr><td style="padding:32px 40px">
-            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">Hola ${data?.nombre},</h1>
+            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">Hola ${esc(data?.nombre)},</h1>
             <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Gracias por registrarte en NIDO. Antes de publicar tu propiedad, necesitamos verificar tu identidad y la información registral. Es un proceso simple que garantiza la seguridad de todos.</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
               ${['Subí tu cédula (frente y reverso) y un selfie sosteniéndola en tu dashboard.', 'Un asesor NIDO te contactará en las próximas 24 horas para coordinar una llamada o visita.', 'Una vez verificado, tu propiedad se publicará en el portal y empezarás a recibir leads.'].map((paso, i) => `
@@ -162,15 +172,15 @@ export async function POST(req: NextRequest) {
             <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Nueva Consulta de Comprador</p>
           </td></tr>
           <tr><td style="padding:32px 40px">
-            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">Hola ${data?.asesor_nombre || 'asesor'},</h1>
-            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Recibiste una consulta para <strong>${data?.propiedad}</strong>.</p>
+            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">Hola ${esc(data?.asesor_nombre || 'asesor')},</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Recibiste una consulta para <strong>${esc(data?.propiedad)}</strong>.</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F7F3;border:1px solid #C8E6D4;border-radius:12px;margin-bottom:24px">
             <tr><td style="padding:20px 24px">
               <p style="font-size:12px;font-weight:600;color:#1B5E3B;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.08em">Datos del interesado</p>
               <table width="100%" cellpadding="0" cellspacing="0">
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:120px">Nombre</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.comprador_nombre}</td></tr>
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Correo</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.comprador_email}</td></tr>
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Teléfono</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.comprador_telefono}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:120px">Nombre</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.comprador_nombre)}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Correo</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.comprador_email)}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Teléfono</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.comprador_telefono)}</td></tr>
                 ${data?.mensaje ? '<tr><td style="padding:8px 0;font-size:13px;color:#6B7280;vertical-align:top">Mensaje</td><td style="padding:8px 0;font-size:13px;color:#0D1F15">' + data.mensaje + '</td></tr>' : ''}
               </table>
             </td></tr>
@@ -201,16 +211,16 @@ export async function POST(req: NextRequest) {
             <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Nueva Visita Agendada</p>
           </td></tr>
           <tr><td style="padding:32px 40px">
-            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">Hola ${data?.asesor_nombre || 'asesor'},</h1>
-            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Te agendaron una visita para <strong>${data?.propiedad}</strong>.</p>
+            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">Hola ${esc(data?.asesor_nombre || 'asesor')},</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Te agendaron una visita para <strong>${esc(data?.propiedad)}</strong>.</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F7F3;border:1px solid #C8E6D4;border-radius:12px;margin-bottom:24px">
             <tr><td style="padding:20px 24px">
               <p style="font-size:12px;font-weight:600;color:#1B5E3B;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.08em">Detalle de la visita</p>
               <table width="100%" cellpadding="0" cellspacing="0">
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:140px">Comprador</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.comprador_nombre}</td></tr>
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Teléfono</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.comprador_telefono}</td></tr>
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Fecha</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.fecha}</td></tr>
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Hora</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.hora}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:140px">Comprador</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.comprador_nombre)}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Teléfono</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.comprador_telefono)}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Fecha</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.fecha)}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Hora</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.hora)}</td></tr>
                 <tr><td style="padding:8px 0;font-size:13px;color:#6B7280">Tipo</td><td style="padding:8px 0;font-size:13px;font-weight:500;color:#0D1F15">${data?.tipo === 'virtual' ? 'Virtual' : 'Presencial'}</td></tr>
                 ${data?.notas ? '<tr><td style="padding:8px 0;font-size:13px;color:#6B7280;vertical-align:top">Notas</td><td style="padding:8px 0;font-size:13px;color:#0D1F15">' + data.notas + '</td></tr>' : ''}
               </table>
@@ -242,7 +252,7 @@ export async function POST(req: NextRequest) {
             <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Verificación Aprobada</p>
           </td></tr>
           <tr><td style="padding:32px 40px">
-            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">¡Felicidades, ${data?.nombre || 'asesor'}!</h1>
+            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">¡Felicidades, ${esc(data?.nombre || 'asesor')}!</h1>
             <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Tu identidad fue verificada y aprobada. Ya podés publicar propiedades en NIDO.</p>
             <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
               <a href="https://www.nido-cr.com/dashboard/nueva-propiedad" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Publicar mi primera propiedad →</a>
@@ -270,7 +280,7 @@ export async function POST(req: NextRequest) {
             <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Equipo NIDO</p>
           </td></tr>
           <tr><td style="padding:32px 40px">
-            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">¡Bienvenido, ${data?.nombre || 'asesor'}!</h1>
+            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">¡Bienvenido, ${esc(data?.nombre || 'asesor')}!</h1>
             <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Tu solicitud para unirte al Equipo NIDO fue aprobada. Falta un último paso: firmar el addendum con los términos de comisión 50/50 y los beneficios exclusivos del equipo.</p>
             <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
               <a href="https://www.nido-cr.com/dashboard/contrato-equipo-nido" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ver y firmar addendum →</a>
@@ -298,10 +308,10 @@ export async function POST(req: NextRequest) {
             <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Propiedad Publicada</p>
           </td></tr>
           <tr><td style="padding:32px 40px">
-            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">¡Listo, ${data?.asesor_nombre || 'asesor'}!</h1>
-            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px"><strong>${data?.propiedad}</strong> fue aprobada y ya está visible en el portal público.</p>
+            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">¡Listo, ${esc(data?.asesor_nombre || 'asesor')}!</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px"><strong>${esc(data?.propiedad)}</strong> fue aprobada y ya está visible en el portal público.</p>
             <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
-              <a href="https://www.nido-cr.com/propiedades/${data?.propiedad_id || ''}" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ver mi ficha publicada →</a>
+              <a href="https://www.nido-cr.com/propiedades/${esc(data?.propiedad_id || '')}" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ver mi ficha publicada →</a>
             </td></tr></table>
           </td></tr>
           <tr><td style="background:#F9F8F5;padding:24px 40px;border-top:1px solid #E5E3DC">
@@ -326,8 +336,8 @@ export async function POST(req: NextRequest) {
             <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Mensaje del equipo NIDO</p>
           </td></tr>
           <tr><td style="padding:32px 40px">
-            <h2 style="font-family:Georgia,serif;font-size:24px;font-weight:400;color:#0D1F15;margin:0 0 16px">${data?.asunto}</h2>
-            <div style="font-size:15px;color:#374151;line-height:1.75;white-space:pre-wrap">${data?.mensaje}</div>
+            <h2 style="font-family:Georgia,serif;font-size:24px;font-weight:400;color:#0D1F15;margin:0 0 16px">${esc(data?.asunto)}</h2>
+            <div style="font-size:15px;color:#374151;line-height:1.75;white-space:pre-wrap">${esc(data?.mensaje)}</div>
           </td></tr>
           <tr><td style="background:#F9F8F5;padding:24px 40px;border-top:1px solid #E5E3DC">
             <table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
@@ -354,13 +364,13 @@ export async function POST(req: NextRequest) {
             <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Nueva Oferta Recibida</p>
           </td></tr>
           <tr><td style="padding:32px 40px">
-            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">Hola ${data?.asesor_nombre || 'asesor'},</h1>
-            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Recibiste una nueva oferta para <strong>${data?.propiedad}</strong>.</p>
+            <h1 style="font-family:Georgia,serif;font-size:28px;font-weight:400;color:#0D1F15;margin:0 0 8px">Hola ${esc(data?.asesor_nombre || 'asesor')},</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Recibiste una nueva oferta para <strong>${esc(data?.propiedad)}</strong>.</p>
             <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F7F3;border:1px solid #C8E6D4;border-radius:12px;margin-bottom:24px">
             <tr><td style="padding:20px 24px">
               <p style="font-size:12px;font-weight:600;color:#1B5E3B;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.08em">Detalle de la oferta</p>
               <table width="100%" cellpadding="0" cellspacing="0">
-                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:140px">Comprador</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.comprador_nombre}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:140px">Comprador</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.comprador_nombre)}</td></tr>
                 <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Valor ofertado</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:16px;font-weight:600;color:#1B5E3B">$${Number(data?.valor_oferta?.replace?.(/,/g,'')||0).toLocaleString()} USD</td></tr>
                 <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Tipo de compra</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${data?.tipo_compra === 'contado' ? 'Contado' : 'Crédito bancario'}</td></tr>
                 ${data?.condiciones ? '<tr><td style="padding:8px 0;font-size:13px;color:#6B7280;vertical-align:top">Condiciones</td><td style="padding:8px 0;font-size:13px;color:#0D1F15">' + data.condiciones + '</td></tr>' : ''}
@@ -396,8 +406,8 @@ export async function POST(req: NextRequest) {
             <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Plataforma Inmobiliaria · Costa Rica</p>
           </td></tr>
           <tr><td style="padding:40px 40px 32px">
-            <h1 style="font-family:Georgia,serif;font-size:30px;font-weight:400;color:#0D1F15;margin:0 0 12px">Tu plan ${data?.plan || 'Pro'} esta activo.</h1>
-            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Gracias por suscribirte a NIDO. Tu cuenta ya tiene acceso completo a todas las funciones del plan ${data?.plan || 'Pro'}.</p>
+            <h1 style="font-family:Georgia,serif;font-size:30px;font-weight:400;color:#0D1F15;margin:0 0 12px">Tu plan ${esc(data?.plan || 'Pro')} esta activo.</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Gracias por suscribirte a NIDO. Tu cuenta ya tiene acceso completo a todas las funciones del plan ${esc(data?.plan || 'Pro')}.</p>
             <table cellpadding="0" cellspacing="0" style="background:#F0F7F3;border:1px solid #C8E6D4;border-radius:12px;width:100%;margin-bottom:24px">
             <tr><td style="padding:20px 24px">
               <p style="font-size:12px;font-weight:600;color:#1B5E3B;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.08em">Lo que tenes disponible ahora</p>
@@ -433,7 +443,7 @@ export async function POST(req: NextRequest) {
               </td>
               <td style="padding-left:12px">
                 <p style="font-size:12px;font-weight:600;color:#1B5E3B;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.08em">Valeria · Tu mentora IA</p>
-                <p style="font-size:13px;color:#374151;line-height:1.6;margin:0;font-style:italic">"Bienvenido al plan ${data?.plan || 'Pro'}. Estoy lista para ayudarte a publicar propiedades, gestionar leads y cerrar mas rapido. Nos vemos en el dashboard."</p>
+                <p style="font-size:13px;color:#374151;line-height:1.6;margin:0;font-style:italic">"Bienvenido al plan ${esc(data?.plan || 'Pro')}. Estoy lista para ayudarte a publicar propiedades, gestionar leads y cerrar mas rapido. Nos vemos en el dashboard."</p>
               </td>
             </tr>
             </table>
@@ -480,13 +490,13 @@ export async function POST(req: NextRequest) {
     if (data?.asesor_telefono || data?.telefono || data?.asesor_whatsapp) {
       const phone = data.asesor_telefono || data.telefono || data.asesor_whatsapp
       const waMsg = tipo === 'nuevo_lead' 
-        ? `🏠 *Nuevo lead NIDO*\n\nPropiedad: ${data?.propiedad || '—'}\nNombre: ${data?.nombre || '—'}\nTeléfono: ${data?.telefono || '—'}\nMensaje: ${data?.mensaje || '—'}\n\nRespondé rápido — los primeros 2 min son clave.`
+        ? `🏠 *Nuevo lead NIDO*\n\nPropiedad: ${esc(data?.propiedad || '—')}\nNombre: ${esc(data?.nombre || '—')}\nTeléfono: ${esc(data?.telefono || '—')}\nMensaje: ${esc(data?.mensaje || '—')}\n\nRespondé rápido — los primeros 2 min son clave.`
         : tipo === 'nueva_oferta'
-        ? `💼 *Nueva oferta NIDO*\n\nPropiedad: ${data?.propiedad || '—'}\nComprador: ${data?.comprador || '—'}\nOferta: ${data?.monto || '—'}\n\nRevisá tu dashboard para ver los detalles.`
+        ? `💼 *Nueva oferta NIDO*\n\nPropiedad: ${esc(data?.propiedad || '—')}\nComprador: ${esc(data?.comprador || '—')}\nOferta: ${esc(data?.monto || '—')}\n\nRevisá tu dashboard para ver los detalles.`
         : tipo === 'kyc_aprobado'
         ? `✓ *Identidad verificada — NIDO*\n\n¡Felicidades! Tu KYC fue aprobado. Ya podés publicar propiedades en NIDO.\n\n🌐 nido-cr.com/dashboard/nueva-propiedad`
         : tipo === 'propiedad_aprobada'
-        ? `✓ *Propiedad publicada — NIDO*\n\n${data?.propiedad || 'Tu propiedad'} ya está visible en el portal público.\n\n🌐 nido-cr.com/propiedades/${data?.propiedad_id || ''}`
+        ? `✓ *Propiedad publicada — NIDO*\n\n${esc(data?.propiedad || 'Tu propiedad')} ya está visible en el portal público.\n\n🌐 nido-cr.com/propiedades/${esc(data?.propiedad_id || '')}`
         : null
       
       if (waMsg) {
