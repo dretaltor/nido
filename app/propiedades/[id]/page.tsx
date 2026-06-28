@@ -13,7 +13,7 @@ interface Propiedad {
   id: string; titulo: string; descripcion: string; precio: number; tipo: string;
   operacion: string; habitaciones: number; banos: number; metros: number;
   zona: string; direccion: string; asesor_nombre: string; asesor_email: string; asesor_telefono?: string; asesor_whatsapp: string; ref_id: string; fotos: string[];
-  distrito?: string; topografia?: string; uso_suelo?: string; terreno_tipo?: string; cuota_condominal?: number;
+  distrito?: string; provincia?: string; topografia?: string; uso_suelo?: string; terreno_tipo?: string; cuota_condominal?: number;
 }
 
 function Icon({ name }: { name: string }) {
@@ -142,8 +142,10 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
         <>
         <div style={{position:'relative',height:480,borderRadius:'0 0 16px 16px',overflow:'hidden',marginBottom:fotosArr.length>1?12:32,background:`oklch(0.88 0.03 ${hue})`}}>
           <img
+            key={idx}
             src={fotosArr[idx]}
             alt={propiedad.titulo}
+            className="ficha-foto-fade"
             style={{width:'100%',height:'100%',objectFit:'cover'}}
           />
           <div style={{position:'absolute',inset:0,background:'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)'}}/>
@@ -213,7 +215,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
             <div style={{marginBottom:32}}>
               <h3 style={{fontSize:11,letterSpacing:'0.16em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:16}}>Ubicación</h3>
               <div style={{height:280,borderRadius:12,border:'1px solid var(--rule)',overflow:'hidden'}}>
-                <MapaUbicacion zona={propiedad.distrito ? propiedad.distrito+', '+propiedad.zona : propiedad.zona} titulo={propiedad.titulo}/>
+                <MapaUbicacion distrito={propiedad.distrito} canton={propiedad.zona} provincia={propiedad.provincia} titulo={propiedad.titulo}/>
               </div>
               <p style={{fontSize:12,color:'var(--ink-3)',marginTop:8}}>{[propiedad.distrito, propiedad.zona].filter(Boolean).join(', ')} · {propiedad.direccion||'Costa Rica'}</p>
             </div>
@@ -307,7 +309,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                   {[
                     {icon:'✉',label:'Correo',val:perfilAsesor?.correo||propiedad.asesor_email,href:'mailto:'+(perfilAsesor?.correo||propiedad.asesor_email)},
                     {icon:'📱',label:'WhatsApp',val:perfilAsesor?.telefono||propiedad.asesor_whatsapp||'No disponible',href:(perfilAsesor?.telefono||propiedad.asesor_whatsapp)?'https://wa.me/'+(perfilAsesor?.telefono||propiedad.asesor_whatsapp).replace(/[^0-9]/g,''):null},
-                    {icon:'📍',label:'Zona',val:propiedad.zona||'Costa Rica',href:null},
+                    {icon:'📍',label:'Zona',val:[propiedad.zona, propiedad.provincia].filter(Boolean).join(', ')||'Costa Rica',href:null},
                   ].map(c => (
                     <div key={c.label} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:'1px solid var(--rule-soft)'}}>
                       <span style={{fontSize:14,width:20,textAlign:'center'}}>{c.icon}</span>
@@ -425,6 +427,8 @@ const CSS = `
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root { --bg:oklch(0.97 0.005 80);--bg-elev:oklch(0.985 0.004 80);--bg-card:oklch(0.99 0.003 80);--ink:oklch(0.20 0.005 80);--ink-2:oklch(0.42 0.005 80);--ink-3:oklch(0.60 0.005 80);--rule:oklch(0.88 0.006 80);--rule-soft:oklch(0.93 0.005 80);--accent:oklch(0.42 0.06 150);--accent-tint:oklch(0.95 0.02 150); }
   a { color:inherit; text-decoration:none; } button { font:inherit; color:inherit; cursor:pointer; }
+  .ficha-foto-fade { animation: fichaFadeIn 0.35s ease; }
+  @keyframes fichaFadeIn { from { opacity:0; transform:scale(1.02); } to { opacity:1; transform:scale(1); } }
   @media(max-width:768px){
     nav > div { padding: 12px 16px !important; }
     main > div:last-child { padding: 0 16px 80px !important; }

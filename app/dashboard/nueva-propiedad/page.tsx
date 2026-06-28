@@ -84,6 +84,7 @@ export default function NuevaPropiedad() {
         lote_m2: data.lot,
         amenidades: data.amenities,
         zona: data.canton||data.provincia,
+        provincia: data.provincia,
         distrito: data.distrito,
         direccion: data.direccion,
         topografia: data.kind==='lote' ? data.topografia : null,

@@ -94,6 +94,7 @@ export default function EditarPropiedad() {
       descripcion: p.descripcion,
       precio: parseInt(p.precio) || 0,
       zona: p.zona,
+      provincia: p.provincia,
       distrito: p.distrito,
       direccion: p.direccion,
       habitaciones: p.habitaciones,
