@@ -189,8 +189,8 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',borderTop:'1px solid var(--rule)',borderBottom:'1px solid var(--rule)',marginBottom:32}}>
               {(propiedad.tipo === 'lote' ? [
                 {icon:'ruler',val:(propiedad.metros||0)+'m²',label:'Área terreno'},
-                {icon:'ruler',val:({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as any)[propiedad.topografia]||'—',label:'Topografía'},
-                {icon:'ruler',val:({residencial:'Residencial',comercial:'Comercial',agricola:'Agrícola',mixto:'Mixto',forestal:'Forestal'} as any)[propiedad.uso_suelo]||'—',label:'Uso de suelo'},
+                {icon:'ruler',val:({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as any)[propiedad.topografia||'']||'—',label:'Topografía'},
+                {icon:'ruler',val:({residencial:'Residencial',comercial:'Comercial',agricola:'Agrícola',mixto:'Mixto',forestal:'Forestal'} as any)[propiedad.uso_suelo||'']||'—',label:'Uso de suelo'},
                 {icon:'ruler',val:propiedad.terreno_tipo==='condominio'?('Condominio'+(propiedad.cuota_condominal?' · $'+propiedad.cuota_condominal+'/mes':'')):'Residencial libre',label:'Tipo'},
               ] : [
                 {icon:'bed',val:propiedad.habitaciones||0,label:'Habitaciones'},
