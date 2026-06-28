@@ -2,6 +2,7 @@
 import { VisitaForm } from '@/components/visitas/VisitaForm'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { getPlanConfig } from '../../../lib/planes'
 
 interface Lead {
   id: string; nombre: string; email: string; telefono: string
@@ -59,11 +60,23 @@ export default function CRM() {
 
   const [visitas, setVisitas] = useState<any[]>([])
   const [ofertas, setOfertas] = useState<any[]>([])
+  const [crmBloqueado, setCrmBloqueado] = useState(false)
+  const [checandoPlan, setCheckandoPlan] = useState(true)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { setLoading(false); return }
       setUserEmail(user.email || '')
+
+      supabase.from('suscripciones').select('plan,activo,es_trial,trial_fin').eq('correo', user.email).maybeSingle()
+        .then(({ data: sus }) => {
+          const trialVencido = sus?.es_trial && sus?.trial_fin && new Date(sus.trial_fin) < new Date()
+          const tienePlanPagoActivo = sus?.activo && !sus?.es_trial
+          const sinAccesoCRM = !getPlanConfig(sus?.plan).valeriaIA
+          setCrmBloqueado(!!(trialVencido && !tienePlanPagoActivo) || sinAccesoCRM)
+          setCheckandoPlan(false)
+        })
+
       supabase.from('leads').select('*').eq('asesor_email', user.email).order('created_at', { ascending: false })
         .then(({ data }) => { setLeads(data || []); setLoading(false) })
       supabase.from('visitas').select('*').eq('asesor_email', user.email).order('created_at', { ascending: false })
@@ -150,6 +163,20 @@ export default function CRM() {
   const counts = ESTADOS.slice(1).reduce((acc, e) => ({ ...acc, [e]: leads.filter(l => l.estado === e).length }), {} as Record<string,number>)
   counts['visita'] = visitas.length
   counts['oferta'] = ofertas.length
+
+  if (!checandoPlan && crmBloqueado) return (
+    <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+      <style>{CSS}</style>
+      <div style={{ maxWidth:460, textAlign:'center', background:'white', border:'1px solid var(--rule)', borderRadius:20, padding:'44px 36px' }}>
+        <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
+        <h1 style={{ fontFamily:'var(--serif)', fontSize:28, fontWeight:400, marginBottom:10 }}>El CRM es para planes <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Elite y Black.</em></h1>
+        <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.65, marginBottom:24 }}>
+          Gestioná leads, citas y ofertas con la ayuda de Valeria IA. Subí de plan para desbloquear el CRM completo.
+        </p>
+        <a href="/precios" style={{ display:'inline-block', padding:'13px 28px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>Ver planes →</a>
+      </div>
+    </main>
+  )
 
   return (
     <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }}>
