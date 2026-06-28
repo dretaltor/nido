@@ -24,12 +24,18 @@ export default function NuevaPropiedad() {
   const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', distrito:'', direccion:'', topografia:'', uso_suelo:'', terreno_tipo:'residencial', cuota_condominal:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'', numero_finca:'', numero_plano:'', naturaleza:'', area_registral:'', colindancias:'', gravamenes:'', anotaciones:'', libre_gravamenes:false })
   const [published, setPublished] = useState(false)
   const [contratoAceptado, setContratoAceptado] = useState<boolean|null>(null)
+  const [trialBloqueado, setTrialBloqueado] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return
       const { data } = await supabase.from('perfiles').select('contrato_asesor_aceptado').eq('id', user.id).maybeSingle()
       setContratoAceptado(!!data?.contrato_asesor_aceptado)
+
+      const { data: sus } = await supabase.from('suscripciones').select('activo,es_trial,trial_fin').eq('correo', user.email).maybeSingle()
+      const trialVencido = sus?.es_trial && sus?.trial_fin && new Date(sus.trial_fin) < new Date()
+      const tienePlanPagoActivo = sus?.activo && !sus?.es_trial
+      setTrialBloqueado(!!(trialVencido && !tienePlanPagoActivo))
     })
   }, [])
   const [publishing, setPublishing] = useState(false)
@@ -146,6 +152,17 @@ export default function NuevaPropiedad() {
   const s = { fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }
 
   // Bloquear hasta aceptar contrato de afiliación de asesor
+  if (trialBloqueado) return (
+    <main style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24, background:'var(--bg)' }}>
+      <div style={{ maxWidth:440, textAlign:'center', background:'white', border:'1px solid var(--rule)', borderRadius:20, padding:'40px 32px' }}>
+        <div style={{ fontSize:40, marginBottom:16 }}>⏳</div>
+        <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:400, marginBottom:10 }}>Tu prueba de NIDO Black terminó</h1>
+        <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6, marginBottom:24 }}>Elegí un plan para seguir publicando propiedades.</p>
+        <a href="/precios" style={{ display:'inline-block', padding:'13px 28px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>Ver planes →</a>
+      </div>
+    </main>
+  )
+
   if (contratoAceptado === false || contratoAceptado === null) return (
     <main style={{ fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');:root{--bg:oklch(0.97 0.005 80);--accent:oklch(0.42 0.06 150);--accent-tint:oklch(0.95 0.02 150);--ink:oklch(0.20 0.005 80);--ink-3:oklch(0.60 0.005 80);--rule:oklch(0.88 0.006 80);}`}</style>
@@ -502,7 +519,9 @@ export default function NuevaPropiedad() {
         {[
           {label:'Tipo', body:data.kind+' · '+data.op, step:0},
           {label:'Ubicación', body:[data.canton,data.provincia].filter(Boolean).join(', ')||'—', step:1},
-          {label:'Detalles', body:data.beds+' hab · '+data.baths+' baños · '+(data.area||'—')+'m²', step:2},
+          {label:'Detalles', body: data.kind==='lote'
+            ? (data.area||'—')+'m² · '+({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as any)[data.topografia]||(data.area||'—')+'m²'
+            : data.beds+' hab · '+data.baths+' baños · '+(data.area||'—')+'m²', step:2},
           {label:'Amenidades', body:data.amenities.length+' seleccionadas', step:3},
           {label:'Fotos', body:data.photos.length+' fotos · '+(data.tour?'Tour 360° solicitado':'Sin tour'), step:4},
           {label:'Descripción', body:data.title||'Sin título', step:5},
