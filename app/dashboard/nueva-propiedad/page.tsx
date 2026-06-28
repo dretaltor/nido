@@ -3,6 +3,7 @@
 // @ts-nocheck
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { getPlanConfig } from '../../../lib/planes'
 import { COSTA_RICA } from '../../../lib/costaRicaData'
 
 const STEPS = [
@@ -25,6 +26,9 @@ export default function NuevaPropiedad() {
   const [published, setPublished] = useState(false)
   const [contratoAceptado, setContratoAceptado] = useState<boolean|null>(null)
   const [trialBloqueado, setTrialBloqueado] = useState(false)
+  const [limiteAlcanzado, setLimiteAlcanzado] = useState(false)
+  const [planActual, setPlanActual] = useState<string>('gratis')
+  const [propiedadesActuales, setPropiedadesActuales] = useState(0)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -36,6 +40,13 @@ export default function NuevaPropiedad() {
       const trialVencido = sus?.es_trial && sus?.trial_fin && new Date(sus.trial_fin) < new Date()
       const tienePlanPagoActivo = sus?.activo && !sus?.es_trial
       setTrialBloqueado(!!(trialVencido && !tienePlanPagoActivo))
+
+      const plan = sus?.plan || 'gratis'
+      setPlanActual(plan)
+      const { count } = await supabase.from('propiedades').select('id', { count:'exact', head:true }).eq('asesor_email', user.email)
+      setPropiedadesActuales(count || 0)
+      const limite = getPlanConfig(plan).maxPropiedades
+      setLimiteAlcanzado((count || 0) >= limite)
     })
   }, [])
   const [publishing, setPublishing] = useState(false)
@@ -158,6 +169,22 @@ export default function NuevaPropiedad() {
         <div style={{ fontSize:40, marginBottom:16 }}>⏳</div>
         <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:400, marginBottom:10 }}>Tu prueba de NIDO Black terminó</h1>
         <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6, marginBottom:24 }}>Elegí un plan para seguir publicando propiedades.</p>
+        <a href="/precios" style={{ display:'inline-block', padding:'13px 28px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>Ver planes →</a>
+      </div>
+    </main>
+  )
+
+  if (limiteAlcanzado) return (
+    <main style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24, background:'var(--bg)' }}>
+      <div style={{ maxWidth:460, textAlign:'center', background:'white', border:'1px solid var(--rule)', borderRadius:20, padding:'40px 32px' }}>
+        <div style={{ fontSize:40, marginBottom:16 }}>🔒</div>
+        <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:400, marginBottom:10 }}>Llegaste al límite de tu plan</h1>
+        <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6, marginBottom:8 }}>
+          Tu plan {getPlanConfig(planActual).nombrePublico} permite hasta {getPlanConfig(planActual).maxPropiedades === Infinity ? 'propiedades ilimitadas' : getPlanConfig(planActual).maxPropiedades + ' propiedades'}.
+        </p>
+        <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6, marginBottom:24 }}>
+          Tenés {propiedadesActuales} publicadas. Subí de plan para publicar sin límite.
+        </p>
         <a href="/precios" style={{ display:'inline-block', padding:'13px 28px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>Ver planes →</a>
       </div>
     </main>
@@ -426,7 +453,7 @@ export default function NuevaPropiedad() {
           <label className="field-label">Descripción</label>
           <textarea className="wiz-textarea" placeholder="Una residencia contemporánea..." value={data.desc} onChange={e => patch({desc:e.target.value})}/>
           <div style={{display:'flex',alignItems:'center',gap:12,marginTop:12}}>
-            <button onClick={writeWithAI} disabled={aiWriting} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 18px',borderRadius:999,border:'1px solid var(--rule)',background:'var(--bg-card)',cursor:'pointer',fontSize:13}}>
+            <button onClick={() => { if (!getPlanConfig(planActual).valeriaIA) { alert('Valeria IA está disponible desde el plan Elite. Mirá los planes en /precios.'); return } writeWithAI() }} disabled={aiWriting} style={{display:'flex',alignItems:'center',gap:8,padding:'8px 18px',borderRadius:999,border:'1px solid var(--rule)',background: getPlanConfig(planActual).valeriaIA ? 'var(--bg-card)' : 'oklch(0.95 0.005 80)',cursor:'pointer',fontSize:13,opacity: getPlanConfig(planActual).valeriaIA ? 1 : 0.6}}>
               <span style={{fontFamily:"'Cormorant Garamond',serif",fontSize:16,fontStyle:'italic',color:'var(--accent)'}}>V</span>
               {aiWriting?'Valeria está escribiendo...':'Escribir con Valeria IA'}
             </button>
