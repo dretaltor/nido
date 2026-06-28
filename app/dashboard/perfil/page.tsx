@@ -221,6 +221,8 @@ export default function Perfil() {
     setTimeout(() => setMsgPass(''), 4000)
   }
 
+  const [fotoFeedback, setFotoFeedback] = useState<{buena:boolean,mensaje:string}|null>(null)
+
   const uploadFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file || !user) return
@@ -238,6 +240,24 @@ export default function Perfil() {
       set('foto_url', publicUrl)
       // Guardar en tabla perfiles
       await supabase.from('perfiles').update({ foto_url: publicUrl }).eq('id', user.id)
+
+      // Pedir feedback de calidad de foto a Valeria (vision)
+      setFotoFeedback(null)
+      try {
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve((reader.result as string).split(',')[1])
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+        const fbRes = await fetch('/api/foto-feedback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageBase64: base64, mediaType: file.type })
+        })
+        const fb = await fbRes.json()
+        if (fb?.mensaje) setFotoFeedback({ buena: !!fb.buena, mensaje: fb.mensaje })
+      } catch {}
     } catch (err: any) {
       alert('Error al subir foto: ' + err.message)
     } finally {
@@ -297,6 +317,11 @@ export default function Perfil() {
                 {uploading ? 'Subiendo...' : 'Cambiar foto'}
               </button>
               <input ref={fileRef} type="file" accept="image/*" onChange={uploadFoto} style={{ display:'none' }}/>
+              {fotoFeedback && (
+                <div style={{ marginTop:8, fontSize:12, lineHeight:1.5, color: fotoFeedback.buena ? 'var(--accent)' : 'oklch(0.5 0.1 50)', background: fotoFeedback.buena ? 'var(--accent-tint)' : 'oklch(0.97 0.03 50)', padding:'8px 12px', borderRadius:8, maxWidth:320 }}>
+                  {fotoFeedback.buena ? '✓ ' : '💡 '}{fotoFeedback.mensaje}
+                </div>
+              )}
             </div>
           </div>
 
