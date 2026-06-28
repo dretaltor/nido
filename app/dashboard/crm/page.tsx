@@ -54,12 +54,19 @@ export default function CRM() {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('')
 
+  const [visitas, setVisitas] = useState<any[]>([])
+  const [ofertas, setOfertas] = useState<any[]>([])
+
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (!user) { setLoading(false); return }
       setUserEmail(user.email || '')
       supabase.from('leads').select('*').eq('asesor_email', user.email).order('created_at', { ascending: false })
         .then(({ data }) => { setLeads(data || []); setLoading(false) })
+      supabase.from('visitas').select('*').eq('asesor_email', user.email).order('created_at', { ascending: false })
+        .then(({ data }) => setVisitas(data || []))
+      supabase.from('ofertas').select('*').eq('asesor_email', user.email).order('created_at', { ascending: false })
+        .then(({ data }) => setOfertas(data || []))
     })
   }, [])
 
@@ -191,6 +198,44 @@ export default function CRM() {
             )
           })}
         </div>
+
+        {/* CITAS Y OFERTAS — agrupadas por propiedad */}
+        {(visitas.length > 0 || ofertas.length > 0) && (
+          <div style={{ marginTop:40 }}>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:6 }}>Citas y <em style={{ fontStyle:'italic', color:'var(--accent)' }}>ofertas.</em></h2>
+            <p style={{ fontSize:13, color:'var(--ink-3)', marginBottom:20 }}>{visitas.length} visitas · {ofertas.length} ofertas — agrupadas por propiedad</p>
+            {(() => {
+              const titulos = Array.from(new Set([
+                ...visitas.map((v:any) => v.propiedad_titulo || 'Sin propiedad'),
+                ...ofertas.map((o:any) => o.propiedad_titulo || o.propiedad || 'Sin propiedad'),
+              ]))
+              return titulos.map(titulo => {
+                const vDeEsta = visitas.filter((v:any) => (v.propiedad_titulo||'Sin propiedad') === titulo)
+                const oDeEsta = ofertas.filter((o:any) => (o.propiedad_titulo || o.propiedad || 'Sin propiedad') === titulo)
+                if (vDeEsta.length === 0 && oDeEsta.length === 0) return null
+                return (
+                  <div key={titulo} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'18px 20px', marginBottom:14 }}>
+                    <div style={{ fontSize:13, fontWeight:500, marginBottom:12, color:'var(--ink)' }}>🏠 {titulo}</div>
+                    {vDeEsta.map((v:any) => (
+                      <div key={v.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+                        <span style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:500, background:'oklch(0.93 0.04 200)', color:'oklch(0.35 0.07 200)' }}>VISITA</span>
+                        <span style={{ flex:1 }}>{v.comprador_nombre} · {v.fecha} {v.hora}</span>
+                        <span style={{ fontSize:11, color:'var(--ink-3)' }}>{v.estado}</span>
+                      </div>
+                    ))}
+                    {oDeEsta.map((o:any) => (
+                      <div key={o.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+                        <span style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:500, background:'oklch(0.93 0.05 50)', color:'oklch(0.45 0.08 50)' }}>OFERTA</span>
+                        <span style={{ flex:1 }}>{o.comprador_nombre} · ${Number(o.valor_oferta||0).toLocaleString()}</span>
+                        <span style={{ fontSize:11, color:'var(--ink-3)' }}>{o.estado}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              })
+            })()}
+          </div>
+        )}
       </div>
 
       {/* Drawer detalle */}
