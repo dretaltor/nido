@@ -23,17 +23,23 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData()
     const file = formData.get('file') as File
-    const tipo = formData.get('tipo') as string // 'gaudi' | 'fisica' | 'perfil'
+    const tipo = formData.get('tipo') as string // 'gaudi' | 'fisica' | 'perfil' | 'cedula_frente' | 'cedula_reverso' | 'selfie'
 
     if (!file) {
       return NextResponse.json({ error: 'Falta archivo' }, { status: 400 })
     }
 
     const ext = file.name.split('.').pop()
+    const tiposKYC = ['cedula_frente', 'cedula_reverso', 'selfie']
+    const tiposKYCPropietario = ['cedula_frente_prop', 'cedula_reverso_prop', 'selfie_prop']
     const path = tipo === 'gaudi'
       ? `contratos/${userId}_gaudi_${Date.now()}.${ext}`
       : tipo === 'perfil'
       ? `perfiles/${userId}.${ext}`
+      : tiposKYC.includes(tipo)
+      ? `kyc/${userId}_${tipo}.${ext}`
+      : tiposKYCPropietario.includes(tipo)
+      ? `kyc-propietarios/${userId}_${tipo.replace('_prop','')}.${ext}`
       : `contratos/${userId}_firma.${ext}`
 
     const arrayBuffer = await file.arrayBuffer()

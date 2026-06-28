@@ -86,15 +86,24 @@ function VerificacionKYC({ userId }: { userId: string }) {
 
   const uploadDoc = async (tipo: string, file: File) => {
     setUploading(tipo)
-    const ext = file.name.split('.').pop()
-    const path = 'kyc/' + userId + '_' + tipo + '.' + ext
-    await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
-    const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
-    const update = { [tipo + '_url']: publicUrl }
-    await supabase.from('perfiles').upsert({ id: userId, ...update, verificacion_estado: 'en_revision' })
-    setDocs(p => ({ ...p, [tipo + '_url']: publicUrl }))
-    setEstado((p: any) => ({ ...p, verificacion_estado: 'en_revision' }))
-    setUploading(null)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('tipo', tipo)
+      const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Error al subir')
+      const publicUrl = json.publicUrl
+      const update = { [tipo + '_url']: publicUrl }
+      await supabase.from('perfiles').upsert({ id: userId, ...update, verificacion_estado: 'en_revision' })
+      setDocs(p => ({ ...p, [tipo + '_url']: publicUrl }))
+      setEstado((p: any) => ({ ...p, verificacion_estado: 'en_revision' }))
+    } catch (err: any) {
+      alert('Error al subir documento: ' + err.message)
+    } finally {
+      setUploading(null)
+    }
   }
 
   const estadoColor: Record<string, string> = {

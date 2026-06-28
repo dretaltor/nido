@@ -641,14 +641,23 @@ export default function DashboardPropietario() {
                           const file = e.target.files?.[0]
                           if (!file || !user) return
                           setUploadingDoc(doc.key)
-                          const ext = file.name.split('.').pop()
-                          const path = 'kyc-propietarios/' + user.id + '_' + doc.key + '.' + ext
-                          await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
-                          const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
-                          const update: any = { [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }
-                          await supabase.from('propietarios').update(update).eq('correo', user.email!)
-                          setPerfilPropietario((p:any) => ({ ...p, [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }))
-                          setUploadingDoc(null)
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession()
+                            const fd = new FormData()
+                            fd.append('file', file)
+                            fd.append('tipo', doc.key + '_prop')
+                            const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
+                            const json = await res.json()
+                            if (!res.ok) throw new Error(json.error || 'Error al subir')
+                            const publicUrl = json.publicUrl
+                            const update: any = { [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }
+                            await supabase.from('propietarios').update(update).eq('correo', user.email!)
+                            setPerfilPropietario((p:any) => ({ ...p, [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }))
+                          } catch (err: any) {
+                            alert('Error al subir documento: ' + err.message)
+                          } finally {
+                            setUploadingDoc(null)
+                          }
                         }}/>
                       </label>
                     </div>
