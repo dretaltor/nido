@@ -150,7 +150,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
             onClick={() => setLightboxOpen(true)}
             style={{width:'100%',height:'100%',objectFit:'cover',cursor:'zoom-in'}}
           />
-          <div style={{position:'absolute',inset:0,background:'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)'}}/>
+          <div style={{position:'absolute',inset:0,background:'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 60%)',pointerEvents:'none'}}/>
           <div style={{position:'absolute',bottom:24,left:32}}>
             <span style={{background:propiedad.operacion==='alquiler'?'rgba(0,0,0,0.7)':'var(--accent)',color:'white',padding:'4px 12px',borderRadius:999,fontSize:12,letterSpacing:'0.06em',textTransform:'uppercase'}}>
               {propiedad.operacion==='alquiler'?'Alquiler':'Venta'}
