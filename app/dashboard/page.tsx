@@ -429,7 +429,7 @@ export default function Dashboard() {
                           setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'confirmada'} : x))
                           // Notify comprador
                           if (v.comprador_telefono) {
-                            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `✅ *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${v.propiedad_titulo}\nFecha: ${safeFmt(v.fecha, {weekday:'long',month:'long',day:'numeric'})}\nHora: ${v.hora}\nTipo: ${v.tipo === 'virtual' ? 'Virtual' : 'Presencial'}\n\nTe enviaremos un recordatorio el día antes. 🏠` }) }).catch(()=>{})
+                            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `✅ *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${v.propiedad_titulo}\nFecha: ${safeFmt(v.fecha, {weekday:'long',month:'long',day:'numeric'})}\nHora: ${v.hora}\nTipo: ${v.tipo === 'virtual' ? 'Virtual' : 'Presencial'}\n\nTe enviaremos un recordatorio el día antes. 🏠`, visitaId: v.id }) }).catch(()=>{})
                           }
                         }} style={{ padding:'6px 12px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:11, fontWeight:500, cursor:'pointer' }}>
                           Confirmar
@@ -748,7 +748,7 @@ export default function Dashboard() {
           await supabase.from('visitas').update({ estado:'rechazada' }).eq('id', v.id)
           setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'rechazada'} : x))
           if (v.comprador_telefono) {
-            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `Hola ${v.comprador_nombre||''}, lamentablemente no podemos confirmar la visita a *${v.propiedad_titulo}* para la fecha solicitada. Contactanos para coordinar otra fecha. 🏠 NIDO` }) }).catch(()=>{})
+            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `Hola ${v.comprador_nombre||''}, lamentablemente no podemos confirmar la visita a *${v.propiedad_titulo}* para la fecha solicitada. Contactanos para coordinar otra fecha. 🏠 NIDO`, visitaId: v.id }) }).catch(()=>{})
           }
           setVisitaDetalle(null)
         }
@@ -759,7 +759,7 @@ export default function Dashboard() {
           setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, fecha:nuevaFecha, hora:nuevaHora, estado:'pendiente'} : x))
           if (v.comprador_telefono) {
             const fechaFmt = new Date(nuevaFecha+'T12:00:00').toLocaleDateString('es-CR',{weekday:'long',month:'long',day:'numeric'})
-            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `Hola ${v.comprador_nombre||''}, te propongo una nueva fecha para tu visita a *${v.propiedad_titulo}*:\n\n📅 ${fechaFmt}\n🕐 ${nuevaHora}\n\n¿Te funciona? Respondeme para confirmar. 🏠 NIDO` }) }).catch(()=>{})
+            fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `Hola ${v.comprador_nombre||''}, te propongo una nueva fecha para tu visita a *${v.propiedad_titulo}*:\n\n📅 ${fechaFmt}\n🕐 ${nuevaHora}\n\n¿Te funciona? Respondeme para confirmar. 🏠 NIDO`, visitaId: v.id }) }).catch(()=>{})
           }
           setReprogramando(false)
           setNuevaFecha('')
@@ -805,7 +805,7 @@ export default function Dashboard() {
                       await supabase.from('visitas').update({ estado:'confirmada' }).eq('id', v.id)
                       setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'confirmada'} : x))
                       if (v.comprador_telefono) {
-                        fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `✅ *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${v.propiedad_titulo}\nFecha: ${safeFmt(v.fecha, {weekday:'long',month:'long',day:'numeric'})}\nHora: ${v.hora}\n\nTe enviaremos un recordatorio el día antes. 🏠` }) }).catch(()=>{})
+                        fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `✅ *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${v.propiedad_titulo}\nFecha: ${safeFmt(v.fecha, {weekday:'long',month:'long',day:'numeric'})}\nHora: ${v.hora}\n\nTe enviaremos un recordatorio el día antes. 🏠`, visitaId: v.id }) }).catch(()=>{})
                       }
                       setVisitaDetalle(null)
                     }} style={{ padding:'12px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:14, fontWeight:500, cursor:'pointer' }}>

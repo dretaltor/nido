@@ -11,6 +11,22 @@ export async function GET(req: NextRequest) {
   const correo = searchParams.get('correo') || ''
   const tipo = searchParams.get('tipo') || 'exclusividad'
 
+  // Verificar sesion real — antes cualquiera podia pedir el contrato de cualquier correo sin login
+  const authHeader = req.headers.get('authorization')
+  const token = authHeader?.replace('Bearer ', '')
+  if (!token) {
+    return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+  }
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Sesion invalida' }, { status: 401 })
+  }
+  const esElMismoPropietario = user.email === correo
+  const { data: esAdmin } = await supabaseAdmin.from('admins').select('correo').eq('correo', user.email).maybeSingle()
+  if (!esElMismoPropietario && !esAdmin) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
   const { data: prop } = await supabaseAdmin.from('propietarios').select('*').eq('correo', correo).maybeSingle()
 
   const hoy = new Date()

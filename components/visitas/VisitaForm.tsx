@@ -27,7 +27,7 @@ export function VisitaForm({ propiedadId, propiedadTitulo, asesorEmail, asesorNo
     }
     setLoading(true); setError('')
 
-    const { error: err } = await supabase.from('visitas').insert({
+    const { data: nuevaVisita, error: err } = await supabase.from('visitas').insert({
       propiedad_id: propiedadId || null,
       propiedad_titulo: propiedadTitulo,
       asesor_email: asesorEmail,
@@ -39,9 +39,10 @@ export function VisitaForm({ propiedadId, propiedadTitulo, asesorEmail, asesorNo
       hora: form.hora,
       tipo: form.tipo,
       notas: form.notas,
-    })
+    }).select('id').single()
 
     if (err) { console.error('Visita error:', err); setError('Error al agendar: ' + err.message); setLoading(false); return }
+    const visitaId = nuevaVisita?.id
 
     // Notify both parties immediately
     const fechaFmt = new Date(form.fecha + 'T12:00:00').toLocaleDateString('es-CR', { weekday:'long', year:'numeric', month:'long', day:'numeric' })
@@ -51,8 +52,8 @@ export function VisitaForm({ propiedadId, propiedadTitulo, asesorEmail, asesorNo
     const msgComprador = `🏠 *Solicitud de visita recibida NIDO*\n\nRecibimos tu solicitud de visita:\n\nPropiedad: ${propiedadTitulo}\nFecha: ${fechaFmt}\nHora: ${form.hora}\nTipo: ${form.tipo === 'virtual' ? 'Virtual — recibirás el link' : 'Presencial'}\n\nEl asesor la confirmará en las próximas horas.`
 
     await Promise.all([
-      asesorWhatsapp ? fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: asesorWhatsapp, message: msgAsesor }) }) : Promise.resolve(),
-      form.comprador_telefono ? fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: form.comprador_telefono, message: msgComprador }) }) : Promise.resolve(),
+      asesorWhatsapp ? fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: asesorWhatsapp, message: msgAsesor, visitaId }) }) : Promise.resolve(),
+      form.comprador_telefono ? fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: form.comprador_telefono, message: msgComprador, visitaId }) }) : Promise.resolve(),
       asesorEmail ? fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
         to: asesorEmail,
         tipo: 'nueva_visita',

@@ -1135,11 +1135,18 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
 
         {/* Ver PDF contrato */}
         <div style={{ marginBottom:20 }}>
-          <a href={'/api/contrato-pdf?correo='+sel.propietario_correo+'&tipo='+sel.tipo} target="_blank" style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', background:'var(--bg)' }}>
+          <button onClick={async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            const res = await fetch('/api/contrato-pdf?correo='+sel.propietario_correo+'&tipo='+sel.tipo, { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
+            if (!res.ok) { alert('No se pudo cargar el contrato'); return }
+            const html = await res.text()
+            const blob = new Blob([html], { type: 'text/html' })
+            window.open(URL.createObjectURL(blob), '_blank')
+          }} style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, background:'var(--bg)', cursor:'pointer', width:'100%', textAlign:'left' }}>
             <span style={{ fontSize:20 }}>📋</span>
             <div style={{ fontSize:13, fontWeight:500 }}>Ver contrato original</div>
             <span style={{ marginLeft:'auto', color:'var(--accent)' }}>→</span>
-          </a>
+          </button>
         </div>
 
         {/* Acciones */}

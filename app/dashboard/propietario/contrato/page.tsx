@@ -401,9 +401,16 @@ export default function Contrato() {
                   </div>
                 </div>
                 <div style={{ display:'flex', gap:10, marginBottom:20 }}>
-                  <a href={'/api/contrato-pdf?correo='+user?.email+'&tipo='+tipoContrato} target="_blank" style={{ flex:1, padding:'12px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none', textAlign:'center' }}>
+                  <button onClick={async () => {
+                    const { data: { session } } = await supabase.auth.getSession()
+                    const res = await fetch('/api/contrato-pdf?correo='+user?.email+'&tipo='+tipoContrato, { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
+                    if (!res.ok) { alert('No se pudo cargar el contrato'); return }
+                    const html = await res.text()
+                    const blob = new Blob([html], { type: 'text/html' })
+                    window.open(URL.createObjectURL(blob), '_blank')
+                  }} style={{ flex:1, padding:'12px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, border:'none', cursor:'pointer', textAlign:'center' }}>
                     ⬇ Descargar contrato PDF
-                  </a>
+                  </button>
                   <a href="https://gaudi.go.cr" target="_blank" style={{ flex:1, padding:'12px', borderRadius:999, background:'transparent', border:'1px solid var(--rule)', color:'var(--ink-2)', fontSize:14, textDecoration:'none', textAlign:'center' }}>
                     Ir a GAUDI →
                   </a>
