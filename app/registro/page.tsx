@@ -32,7 +32,18 @@ function RegistroInner() {
     if (error) { setError(error.message.includes('already') || error.message.includes('registered') ? 'Este correo ya está registrado. Intentá iniciar sesión.' : 'Error al registrarse: ' + error.message) }
     else {
       // Auto login after registration
-      await supabase.auth.signInWithPassword({ email, password })
+      const { data: loginData } = await supabase.auth.signInWithPassword({ email, password })
+      // Crear fila en perfiles INMEDIATAMENTE — no esperar al onboarding
+      if (loginData?.user) {
+        await supabase.from('perfiles').upsert({
+          id: loginData.user.id,
+          nombre,
+          correo: email,
+          plan: plan || 'gratis',
+          valeria_onboarding_completo: false,
+          created_at: new Date().toISOString(),
+        })
+      }
       if (typeof window !== 'undefined') localStorage.setItem('nido_user_tipo', 'asesor')
       window.location.href = '/dashboard/valeria-onboarding'
     }
