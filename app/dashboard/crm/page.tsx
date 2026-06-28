@@ -50,6 +50,9 @@ export default function CRM() {
   const [visitaOpen, setVisitaOpen] = useState(false)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiMensaje, setAiMensaje] = useState('')
+  const [selVO, setSelVO] = useState<any>(null)
+  const [voMensaje, setVoMensaje] = useState('')
+  const [voLoading, setVoLoading] = useState(false)
   const [aiAccion, setAiAccion] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('')
@@ -85,14 +88,41 @@ export default function CRM() {
       cierre: `Redactá un mensaje de cierre para un lead que ya mostró interés. Nombre: ${sel.nombre}. Zona: ${sel.zona_interes}. Creá urgencia genuina y ofrecé ayuda concreta para dar el siguiente paso. Máximo 3 oraciones. Solo el mensaje.`,
     }
 
-    const res = await fetch('/api/valeria-crm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: prompts[accion] })
-    })
-    const data = await res.json()
-    setAiMensaje(data.text || '')
+    try {
+      const res = await fetch('/api/valeria-crm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: prompts[accion] })
+      })
+      const data = await res.json()
+      setAiMensaje(data.text || 'No se pudo generar el mensaje. Intentá de nuevo.')
+    } catch {
+      setAiMensaje('Error de conexión con Valeria. Intentá de nuevo.')
+    }
     setAiLoading(false)
+  }
+
+  const generarMensajeVO = async (tipo: 'confirmar'|'seguimiento') => {
+    if (!selVO) return
+    setVoLoading(true)
+    setVoMensaje('')
+    const esVisita = selVO._tipo === 'visita'
+    const prompt = esVisita
+      ? (tipo === 'confirmar'
+        ? `Redactá un mensaje breve y profesional en español para confirmar una visita inmobiliaria. Nombre del cliente: ${selVO.comprador_nombre}. Propiedad: ${selVO.propiedad_titulo}. Fecha: ${selVO.fecha} a las ${selVO.hora}. Confirmá la cita y pedí que avise si necesita cambiar algo. Máximo 2 oraciones. Solo el mensaje.`
+        : `Redactá un mensaje de seguimiento despues de una visita inmobiliaria ya realizada o agendada. Nombre: ${selVO.comprador_nombre}. Propiedad: ${selVO.propiedad_titulo}. Pregunta cómo le pareció o si tiene dudas, e invitá a dar el siguiente paso. Máximo 3 oraciones. Solo el mensaje.`)
+      : (tipo === 'confirmar'
+        ? `Redactá un mensaje profesional para responder a una oferta inmobiliaria recibida. Nombre: ${selVO.comprador_nombre}. Propiedad: ${selVO.propiedad_titulo}. Monto ofrecido: $${Number(selVO.valor_oferta||0).toLocaleString()}. Agradecé la oferta y decí que la estás revisando con el propietario. Máximo 2 oraciones. Solo el mensaje.`
+        : `Redactá un mensaje de seguimiento para negociar una oferta inmobiliaria. Nombre: ${selVO.comprador_nombre}. Propiedad: ${selVO.propiedad_titulo}. Monto ofrecido: $${Number(selVO.valor_oferta||0).toLocaleString()}. Sugerí abrir la conversación a una contraoferta o ajuste, de forma cordial. Máximo 3 oraciones. Solo el mensaje.`)
+
+    try {
+      const res = await fetch('/api/valeria-crm', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt }) })
+      const data = await res.json()
+      setVoMensaje(data.text || 'No se pudo generar el mensaje. Intentá de nuevo.')
+    } catch {
+      setVoMensaje('Error de conexión con Valeria. Intentá de nuevo.')
+    }
+    setVoLoading(false)
   }
 
   const enviarWA = async (mensaje: string) => {
@@ -118,6 +148,8 @@ export default function CRM() {
   }
 
   const counts = ESTADOS.slice(1).reduce((acc, e) => ({ ...acc, [e]: leads.filter(l => l.estado === e).length }), {} as Record<string,number>)
+  counts['visita'] = visitas.length
+  counts['oferta'] = ofertas.length
 
   return (
     <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }}>
@@ -217,17 +249,19 @@ export default function CRM() {
                   <div key={titulo} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'18px 20px', marginBottom:14 }}>
                     <div style={{ fontSize:13, fontWeight:500, marginBottom:12, color:'var(--ink)' }}>🏠 {titulo}</div>
                     {vDeEsta.map((v:any) => (
-                      <div key={v.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+                      <div key={v.id} onClick={() => setSelVO({...v, _tipo:'visita'})} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13, cursor:'pointer' }}>
                         <span style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:500, background:'oklch(0.93 0.04 200)', color:'oklch(0.35 0.07 200)' }}>VISITA</span>
                         <span style={{ flex:1 }}>{v.comprador_nombre} · {v.fecha} {v.hora}</span>
                         <span style={{ fontSize:11, color:'var(--ink-3)' }}>{v.estado}</span>
+                        <span style={{ color:'var(--ink-3)', fontSize:12 }}>→</span>
                       </div>
                     ))}
                     {oDeEsta.map((o:any) => (
-                      <div key={o.id} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+                      <div key={o.id} onClick={() => setSelVO({...o, _tipo:'oferta'})} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13, cursor:'pointer' }}>
                         <span style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:500, background:'oklch(0.93 0.05 50)', color:'oklch(0.45 0.08 50)' }}>OFERTA</span>
                         <span style={{ flex:1 }}>{o.comprador_nombre} · ${Number(o.valor_oferta||0).toLocaleString()}</span>
                         <span style={{ fontSize:11, color:'var(--ink-3)' }}>{o.estado}</span>
+                        <span style={{ color:'var(--ink-3)', fontSize:12 }}>→</span>
                       </div>
                     ))}
                   </div>
@@ -330,6 +364,86 @@ export default function CRM() {
           </div>
         </>
       )}
+      {selVO && (
+        <>
+          <div className="overlay" onClick={() => { setSelVO(null); setVoMensaje('') }}/>
+          <div className="drawer">
+            <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--rule)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, background:'white', zIndex:1 }}>
+              <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400 }}>
+                {selVO._tipo === 'visita' ? '📅 Visita' : '💼 Oferta'} · {selVO.comprador_nombre||'Sin nombre'}
+              </h2>
+              <button onClick={() => { setSelVO(null); setVoMensaje('') }} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, display:'grid', placeItems:'center' }}>×</button>
+            </div>
+            <div style={{ padding:'20px 24px' }}>
+              <div style={{ marginBottom:20 }}>
+                <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Información</div>
+                {[
+                  { l:'Propiedad', v: selVO.propiedad_titulo },
+                  { l:'Teléfono', v: selVO.comprador_telefono },
+                  { l:'Email', v: selVO.comprador_email },
+                  selVO._tipo === 'visita'
+                    ? { l:'Fecha y hora', v: selVO.fecha + ' · ' + selVO.hora }
+                    : { l:'Monto ofrecido', v: '$' + Number(selVO.valor_oferta||0).toLocaleString() },
+                  { l:'Estado', v: selVO.estado },
+                ].map((f:any) => f.v ? (
+                  <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:14 }}>
+                    <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
+                    <span style={{ fontWeight:500 }}>{f.v}</span>
+                  </div>
+                ) : null)}
+              </div>
+
+              <div style={{ marginTop:20 }}>
+                <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Acciones con IA</div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
+                  <button onClick={() => generarMensajeVO('confirmar')} disabled={voLoading} style={{ padding:'10px 8px', borderRadius:10, border:'1px solid var(--rule)', background:'white', cursor:'pointer', textAlign:'left', opacity:voLoading?0.5:1 }}>
+                    <div style={{ fontSize:12, fontWeight:500 }}>{selVO._tipo === 'visita' ? '✅ Confirmar' : '🤝 Responder'}</div>
+                    <div style={{ fontSize:10, color:'var(--ink-3)' }}>{selVO._tipo === 'visita' ? 'Confirmar la cita' : 'Agradecer la oferta'}</div>
+                  </button>
+                  <button onClick={() => generarMensajeVO('seguimiento')} disabled={voLoading} style={{ padding:'10px 8px', borderRadius:10, border:'1px solid var(--rule)', background:'white', cursor:'pointer', textAlign:'left', opacity:voLoading?0.5:1 }}>
+                    <div style={{ fontSize:12, fontWeight:500 }}>💬 Seguimiento</div>
+                    <div style={{ fontSize:10, color:'var(--ink-3)' }}>{selVO._tipo === 'visita' ? 'Dar seguimiento' : 'Negociar / contraofertar'}</div>
+                  </button>
+                </div>
+
+                {voLoading && (
+                  <div style={{ padding:'12px', background:'var(--bg)', borderRadius:8, fontSize:12, color:'var(--ink-3)', textAlign:'center' }}>
+                    Valeria está redactando...
+                  </div>
+                )}
+
+                {voMensaje && !voLoading && (
+                  <div style={{ marginBottom:12 }}>
+                    <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:10, padding:'12px 14px', marginBottom:8 }}>
+                      <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+                        <div style={{ width:20, height:20, borderRadius:'50%', background:'var(--accent)', display:'grid', placeItems:'center', fontSize:10, color:'white' }}>V</div>
+                        <span style={{ fontSize:10, color:'var(--accent)', fontWeight:500 }}>Valeria · Mensaje sugerido</span>
+                      </div>
+                      <textarea value={voMensaje} onChange={e => setVoMensaje(e.target.value)} rows={4} style={{ width:'100%', border:'none', background:'transparent', fontSize:13, color:'var(--ink-2)', lineHeight:1.65, resize:'vertical', fontFamily:'var(--sans)', outline:'none' }}/>
+                    </div>
+                    <div style={{ display:'flex', gap:8 }}>
+                      {selVO.comprador_telefono && (
+                        <button onClick={() => enviarWA(voMensaje)} style={{ flex:1, padding:'9px', borderRadius:999, background:'#22c55e', color:'white', border:'none', fontSize:12, fontWeight:500, cursor:'pointer' }}>
+                          💬 Enviar por WhatsApp
+                        </button>
+                      )}
+                      <button onClick={() => navigator.clipboard.writeText(voMensaje)} style={{ padding:'9px 14px', borderRadius:999, border:'1px solid var(--rule)', background:'transparent', fontSize:12, cursor:'pointer', color:'var(--ink-2)' }}>
+                        📋 Copiar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop:12, display:'flex', gap:10 }}>
+                {selVO.comprador_email && <a href={'mailto:'+selVO.comprador_email} style={{ flex:1, padding:'10px', borderRadius:999, border:'1px solid var(--rule)', fontSize:13, textAlign:'center', color:'var(--ink)', fontWeight:500 }}>Enviar email</a>}
+                {selVO.comprador_telefono && <a href={'https://wa.me/'+selVO.comprador_telefono.replace(/\D/g,'')} target="_blank" style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:13, textAlign:'center', fontWeight:500 }}>WhatsApp directo</a>}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {visitaOpen && sel && (
         <>
           <div onClick={() => setVisitaOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:300, backdropFilter:'blur(4px)' }}/>
