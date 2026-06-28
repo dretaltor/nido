@@ -28,6 +28,7 @@ export default function Nosotros() {
         <div style={{ display:'flex', gap:24, fontSize:13 }} className="hide-mobile">
           <a href="#mision" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Misión</a>
           <a href="#modelo" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Modelo</a>
+          <a href="#producto" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Producto</a>
           <a href="#red" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Red de asesores</a>
           <a href="#valores" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Valores</a>
           <a href="#latam" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Expansión</a>
@@ -258,6 +259,69 @@ export default function Nosotros() {
                 ))}
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* LO QUE OFRECEMOS HOY + ROADMAP */}
+      <section id="producto" style={{ background:'var(--bg)', padding:'80px 24px' }}>
+        <div style={{ maxWidth:900, margin:'0 auto' }}>
+          <div style={{ textAlign:'center', marginBottom:56 }}>
+            <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>La plataforma</div>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:'clamp(32px,5vw,56px)', fontWeight:400, lineHeight:1.05 }}>
+              Lo que ofrecemos <em style={{ fontStyle:'italic', color:'var(--accent)' }}>hoy.</em>
+            </h2>
+            <p style={{ fontSize:15, color:'var(--ink-3)', lineHeight:1.75, maxWidth:560, margin:'16px auto 0' }}>
+              NIDO no es una promesa — es una plataforma en producción, usada por asesores reales todos los días.
+            </p>
+          </div>
+
+          <div className="grid-3" style={{ marginBottom:48 }}>
+            {[
+              { icon:'🗺️', titulo:'Portal nacional con mapa real', desc:'Búsqueda de propiedades con geolocalización en las 7 provincias y los 84 cantones de Costa Rica.' },
+              { icon:'✦', titulo:'Valeria IA 24/7', desc:'Asistente con IA que responde por WhatsApp y CRM — califica leads, agenda visitas y da seguimiento sin descanso.' },
+              { icon:'🪪', titulo:'KYC verificado', desc:'Verificación de identidad con cédula y selfie para cada asesor y propietario antes de operar en la plataforma.' },
+              { icon:'📝', titulo:'Contratos digitales', desc:'Firma de contrato de corretaje vía GAUDI o física escaneada, con contrafirma y activación desde el backoffice.' },
+              { icon:'🧙', titulo:'Wizard de publicación', desc:'Publicá una propiedad en minutos — datos registrales, fotos con reordenamiento, y campos específicos para casas, lotes y terrenos.' },
+              { icon:'🎓', titulo:'Academia certificada', desc:'6 cursos completos sobre ventas, marketing digital, legal, inversión y negociación — con quizzes y certificación.' },
+              { icon:'📅', titulo:'Visitas y ofertas en vivo', desc:'Gestión completa de citas y ofertas con confirmación, reprogramación y rechazo — sincronizado a Google Calendar.' },
+              { icon:'🔔', titulo:'Notificaciones automáticas', desc:'Correo y WhatsApp en cada evento importante: nueva visita, oferta recibida, aprobación de KYC o propiedad.' },
+              { icon:'🤝', titulo:'Colaboración entre asesores', desc:'Esquema de comisión compartida 50/50 para negociaciones conjuntas entre asesores afiliados.' },
+            ].map((f, i) => (
+              <div key={i} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:14, padding:'24px' }}>
+                <div style={{ fontSize:26, marginBottom:12 }}>{f.icon}</div>
+                <div style={{ fontSize:15, fontWeight:500, marginBottom:8, color:'var(--ink)' }}>{f.titulo}</div>
+                <div style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.65 }}>{f.desc}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* PRÓXIMAMENTE */}
+          <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:16, padding:'40px' }}>
+            <div style={{ textAlign:'center', marginBottom:32 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--accent)', marginBottom:12 }}>En desarrollo</div>
+              <h3 style={{ fontFamily:'var(--serif)', fontSize:28, fontWeight:400, lineHeight:1.1 }}>
+                Lo que viene <em style={{ fontStyle:'italic', color:'var(--accent)' }}>próximamente.</em>
+              </h3>
+            </div>
+            <div className="grid-2">
+              {[
+                { icon:'💳', titulo:'Pasarela de pagos real', desc:'Integración bancaria para suscripciones, reemplazando el proceso manual actual.' },
+                { icon:'🎥', titulo:'Tours virtuales 360°', desc:'Recorridos inmersivos en las fichas de propiedades del plan Pro y Enterprise.' },
+                { icon:'🔗', titulo:'Multiportal automático', desc:'Publicación simultánea en OLX y Encuentra24 desde el mismo wizard de NIDO.' },
+                { icon:'📱', titulo:'App instalable (PWA)', desc:'NIDO instalable en el celular como app nativa, sin pasar por App Store.' },
+                { icon:'🧮', titulo:'Valuación automática con IA', desc:'Un lead llena datos básicos y Valeria estima el precio de mercado al instante.' },
+                { icon:'🌎', titulo:'Expansión a Panamá', desc:'Primer mercado fuera de Costa Rica, adaptando el modelo regulatorio local.' },
+              ].map((f, i) => (
+                <div key={i} style={{ display:'flex', gap:14, alignItems:'flex-start' }}>
+                  <div style={{ fontSize:22, flexShrink:0 }}>{f.icon}</div>
+                  <div>
+                    <div style={{ fontSize:14, fontWeight:500, marginBottom:4, color:'var(--ink)' }}>{f.titulo}</div>
+                    <div style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6 }}>{f.desc}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
