@@ -73,7 +73,20 @@ export default function ContratoAsesor() {
               <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>5. Uso de la plataforma</h3>
               <p style={{ marginBottom:16 }}>El Asesor se compromete a un uso ético del CRM, WhatsApp Business y herramientas de IA (Valeria), evitando spam o prácticas engañosas hacia los leads.</p>
 
-              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>6. Terminación</h3>
+              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>6. Colaboración entre Asesores (50/50)</h3>
+              <p style={{ marginBottom:16 }}>El Asesor puede colaborar con otro Asesor afiliado a NIDO en una misma negociación o cierre, bajo un esquema de comisión compartida 50/50, siempre que:</p>
+              <ol style={{ paddingLeft:18, marginBottom:16 }}>
+                <li style={{ marginBottom:6 }}>Ambos Asesores estén activos y verificados en NIDO al momento del acuerdo.</li>
+                <li style={{ marginBottom:6 }}>El acuerdo de colaboración quede registrado por escrito (correo, WhatsApp Business o CRM de NIDO) antes del cierre de la negociación, indicando los nombres de ambos Asesores y la propiedad o lead involucrado.</li>
+                <li style={{ marginBottom:6 }}>La distribución de la comisión total acordada con el Propietario o comprador se reparta en partes iguales (50% y 50%) entre ambos Asesores, salvo que exista un acuerdo distinto firmado por ambas partes.</li>
+                <li style={{ marginBottom:6 }}>NIDO no media ni garantiza el cumplimiento de los acuerdos de colaboración entre Asesores; estos son responsabilidad exclusiva de quienes los suscriben.</li>
+                <li>En caso de disputa entre Asesores colaboradores, NIDO podrá suspender el registro de la comisión en el sistema hasta que las partes resuelvan el conflicto o presenten evidencia del acuerdo original.</li>
+              </ol>
+
+              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>7. Responsabilidad y conducta profesional</h3>
+              <p style={{ marginBottom:16 }}>El Asesor se compromete a actuar con honestidad ante propietarios, compradores y otros Asesores. NIDO puede suspender o dar de baja cuentas ante denuncias verificadas de fraude, suplantación de identidad, o incumplimiento reiterado de acuerdos de colaboración.</p>
+
+              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>8. Terminación</h3>
               <p>Cualquiera de las partes puede terminar esta afiliación en cualquier momento. NIDO se reserva el derecho de suspender cuentas que incumplan estos términos.</p>
             </div>
 

@@ -3,6 +3,7 @@
 // @ts-nocheck
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
+import { COSTA_RICA } from '../../../lib/costaRicaData'
 
 const STEPS = [
   { key:'tipo', label:'Tipo', meta:'Operación y categoría' },
@@ -15,14 +16,12 @@ const STEPS = [
   { key:'rev', label:'Revisar', meta:'Y publicar' },
 ]
 
-const PROVINCIAS = ['San José','Alajuela','Heredia','Cartago','Puntarenas','Guanacaste','Limón']
-const CANTONES = ['Escazú','Santa Ana','Curridabat','Atenas','Santa Teresa','Tamarindo','Nosara','Monteverde','Sabana','Heredia Centro','San José Centro','Moravia','Tibás']
 const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la montaña','Pet friendly','Jardín privado','Patio','Terraza','Balcón','Aire acondicionado','Cocina italiana','Isla en cocina','Walk-in closet','Cuarto de servicio','Gimnasio','Salón de eventos','Coworking','Rooftop','BBQ','Jacuzzi','Smart home','Generador eléctrico','Paneles solares','Cisterna','Seguridad 24/7','Acceso controlado','Internet 1 Gbps','Cerca de escuelas']
 
 export default function NuevaPropiedad() {
   const [current, setCurrent] = useState(0)
   const [completed, setCompleted] = useState(new Set())
-  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', direccion:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'', numero_finca:'', numero_plano:'', naturaleza:'', area_registral:'', colindancias:'', gravamenes:'', anotaciones:'', libre_gravamenes:false })
+  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', distrito:'', direccion:'', topografia:'', uso_suelo:'', terreno_tipo:'residencial', cuota_condominal:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'', numero_finca:'', numero_plano:'', naturaleza:'', area_registral:'', colindancias:'', gravamenes:'', anotaciones:'', libre_gravamenes:false })
   const [published, setPublished] = useState(false)
   const [contratoAceptado, setContratoAceptado] = useState<boolean|null>(null)
 
@@ -82,7 +81,12 @@ export default function NuevaPropiedad() {
         banos: data.baths,
         metros: data.area,
         zona: data.canton||data.provincia,
+        distrito: data.distrito,
         direccion: data.direccion,
+        topografia: data.kind==='lote' ? data.topografia : null,
+        uso_suelo: data.kind==='lote' ? data.uso_suelo : null,
+        terreno_tipo: data.kind==='lote' ? data.terreno_tipo : null,
+        cuota_condominal: data.kind==='lote' && data.terreno_tipo==='condominio' && data.cuota_condominal ? parseFloat(data.cuota_condominal) : null,
         disponible: false,
         verificacion_estado: 'pendiente_verificacion',
         asesor_email: user?.email||'',
@@ -219,14 +223,18 @@ export default function NuevaPropiedad() {
         <p className="wiz-sub">La ubicación es el factor #1 para los compradores.</p>
         <div className="field-group">
           <label className="field-label">Provincia y cantón</label>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <select className="wiz-input" value={data.provincia} onChange={e => patch({provincia:e.target.value})}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+            <select className="wiz-input" value={data.provincia} onChange={e => patch({provincia:e.target.value, canton:'', distrito:''})}>
               <option value="">Provincia</option>
-              {PROVINCIAS.map(p => <option key={p}>{p}</option>)}
+              {COSTA_RICA.map(p => <option key={p.nombre}>{p.nombre}</option>)}
             </select>
-            <select className="wiz-input" value={data.canton} onChange={e => patch({canton:e.target.value})}>
+            <select className="wiz-input" value={data.canton} onChange={e => patch({canton:e.target.value, distrito:''})} disabled={!data.provincia}>
               <option value="">Cantón</option>
-              {CANTONES.map(c => <option key={c}>{c}</option>)}
+              {(COSTA_RICA.find(p => p.nombre === data.provincia)?.cantones || []).map(ct => <option key={ct.nombre}>{ct.nombre}</option>)}
+            </select>
+            <select className="wiz-input" value={data.distrito} onChange={e => patch({distrito:e.target.value})} disabled={!data.canton}>
+              <option value="">Distrito</option>
+              {(COSTA_RICA.find(p => p.nombre === data.provincia)?.cantones.find(ct => ct.nombre === data.canton)?.distritos || []).map(d => <option key={d}>{d}</option>)}
             </select>
           </div>
         </div>
@@ -239,7 +247,7 @@ export default function NuevaPropiedad() {
           <div style={{background:'oklch(0.93 0.01 150)',borderRadius:8,height:160,display:'flex',alignItems:'center',justifyContent:'center',border:'1px solid var(--rule)'}}>
             <div style={{textAlign:'center'}}>
               <div style={{width:14,height:14,borderRadius:'50%',background:'var(--accent)',margin:'0 auto 8px'}}/>
-              <p style={{fontSize:12,color:'var(--ink-3)'}}>{data.canton||'Selecciona un cantón'}</p>
+              <p style={{fontSize:12,color:'var(--ink-3)'}}>{data.distrito && data.canton ? data.distrito+', '+data.canton : (data.canton||'Selecciona un cantón')}</p>
             </div>
           </div>
         </div>
@@ -250,6 +258,7 @@ export default function NuevaPropiedad() {
         <div className="wiz-eyebrow">Paso 03 · Detalles</div>
         <h1 className="wiz-h1">Lo <em>esencial</em>.</h1>
         <p className="wiz-sub">Los datos que filtran toda búsqueda.</p>
+        {data.kind !== 'lote' && (
         <div className="field-group">
           {[{l:'Habitaciones',s:'Dormitorios principales',v:data.beds,k:'beds',max:15},{l:'Baños',s:'Completos y medios',v:data.baths,k:'baths',max:15,step:0.5},{l:'Estacionamientos',s:'Espacios cubiertos',v:data.parking,k:'parking',max:10}].map(f => (
             <div key={f.k} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 0',borderBottom:'1px solid var(--rule-soft)'}}>
@@ -262,17 +271,60 @@ export default function NuevaPropiedad() {
             </div>
           ))}
         </div>
+        )}
         <div className="field-group">
           <label className="field-label">Áreas</label>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-            <div><div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:6}}>m² construidos</div><input className="wiz-input" type="number" placeholder="240" value={data.area||''} onChange={e => patch({area:parseInt(e.target.value)||0})}/></div>
-            <div><div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:6}}>m² lote</div><input className="wiz-input" type="number" placeholder="420" value={data.lot||''} onChange={e => patch({lot:parseInt(e.target.value)||0})}/></div>
+            <div><div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:6}}>{data.kind==='lote'?'m² del terreno':'m² construidos'}</div><input className="wiz-input" type="number" placeholder={data.kind==='lote'?'500':'240'} value={data.area||''} onChange={e => patch({area:parseInt(e.target.value)||0})}/></div>
+            {data.kind !== 'lote' && (
+              <div><div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:6}}>m² lote</div><input className="wiz-input" type="number" placeholder="420" value={data.lot||''} onChange={e => patch({lot:parseInt(e.target.value)||0})}/></div>
+            )}
           </div>
         </div>
+        {data.kind === 'lote' ? (
+          <>
+            <div className="field-group">
+              <label className="field-label">Topografía</label>
+              <select className="wiz-input" value={data.topografia} onChange={e => patch({topografia:e.target.value})}>
+                <option value="">Seleccionar</option>
+                <option value="plano">Plano</option>
+                <option value="ligera_pendiente">Ligera pendiente</option>
+                <option value="pendiente_pronunciada">Pendiente pronunciada</option>
+                <option value="irregular">Irregular</option>
+              </select>
+            </div>
+            <div className="field-group">
+              <label className="field-label">Uso de suelo</label>
+              <select className="wiz-input" value={data.uso_suelo} onChange={e => patch({uso_suelo:e.target.value})}>
+                <option value="">Seleccionar</option>
+                <option value="residencial">Residencial</option>
+                <option value="comercial">Comercial</option>
+                <option value="agricola">Agrícola</option>
+                <option value="mixto">Mixto</option>
+                <option value="forestal">Forestal / Protegido</option>
+              </select>
+            </div>
+            <div className="field-group">
+              <label className="field-label">Tipo de terreno</label>
+              <div className="toggle-group">
+                {[['residencial','Residencial libre'],['condominio','En condominio']].map(([v,l]) => (
+                  <button key={v} className={data.terreno_tipo===v?'active':''} onClick={() => patch({terreno_tipo:v})}>{l}</button>
+                ))}
+              </div>
+            </div>
+            {data.terreno_tipo === 'condominio' && (
+              <div className="field-group">
+                <label className="field-label">Cuota condominal mensual (USD)</label>
+                <input className="wiz-input" type="number" placeholder="150" value={data.cuota_condominal||''} onChange={e => patch({cuota_condominal:e.target.value})} style={{maxWidth:200}}/>
+              </div>
+            )}
+          </>
+        ) : (
         <div className="field-group">
           <label className="field-label">Año de construcción</label>
           <input className="wiz-input" type="number" placeholder="2021" value={data.year||''} onChange={e => patch({year:parseInt(e.target.value)||0})} style={{maxWidth:160}}/>
         </div>
+        )}
       </div>
     )
     if (current === 3) return (
