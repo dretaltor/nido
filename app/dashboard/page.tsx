@@ -224,7 +224,7 @@ export default function Dashboard() {
               </div>
             )}
             {propiedades.slice(0,5).map(p => (
-              <div key={p.id} className="prop-row">
+              <a key={p.id} href={'/propiedades/'+p.id} target="_blank" className="prop-row" style={{ textDecoration:'none', color:'inherit', cursor:'pointer' }}>
                 <div style={{ width:40, height:40, borderRadius:8, background:'var(--accent-tint)', display:'grid', placeItems:'center', flexShrink:0, fontSize:18 }}>🏠</div>
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ fontSize:14, fontWeight:500, marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.titulo||'Sin título'}</div>
@@ -234,7 +234,7 @@ export default function Dashboard() {
                   <div style={{ fontFamily:'var(--mono)', fontSize:13, marginBottom:4 }}>{p.precio?'$'+p.precio.toLocaleString('en-US'):'—'}</div>
                   <span className={'badge '+(p.disponible?'badge-active':'badge-paused')}>{p.disponible?'Activa':'Pausada'}</span>
                 </div>
-              </div>
+              </a>
             ))}
             {propiedades.length > 5 && <p style={{ fontSize:12, color:'var(--ink-3)', textAlign:'center', paddingTop:12 }}>{propiedades.length-5} más →</p>}
           </div>
