@@ -28,6 +28,8 @@ export default function Asesores() {
             const zonas = (vp.zonas || 'Valle Central').split(',').map((z:string) => z.trim())
             return {
               ...a,
+              name: a.nombre,
+              role: 'Asesor NIDO Certificado',
               initial: (a.nombre || 'A')[0].toUpperCase(),
               hue: 80,
               region: zonas[0] || 'Valle Central',
@@ -106,8 +108,8 @@ export default function Asesores() {
         <div className="agent-grid-inner" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px'}}>
           {filtered.map(a => (
             <div key={a.id} className="agent-card">
-              <div style={{width:56,height:56,borderRadius:'50%',background:`oklch(0.85 0.04 ${a.hue})`,display:'grid',placeItems:'center',fontFamily:'var(--serif)',fontSize:22,color:`oklch(0.35 0.06 ${a.hue})`,flexShrink:0}}>
-                {a.initial}
+              <div style={{width:56,height:56,borderRadius:'50%',background:`oklch(0.85 0.04 ${a.hue})`,display:'grid',placeItems:'center',fontFamily:'var(--serif)',fontSize:22,color:`oklch(0.35 0.06 ${a.hue})`,flexShrink:0,overflow:'hidden'}}>
+                {a.foto_url ? <img src={a.foto_url} alt={a.nombre} style={{width:'100%',height:'100%',objectFit:'cover'}}/> : a.initial}
               </div>
               <div>
                 <div style={{fontFamily:'var(--serif)',fontSize:22,marginBottom:2}}>{a.name}</div>

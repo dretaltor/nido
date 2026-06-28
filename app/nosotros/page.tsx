@@ -296,33 +296,6 @@ export default function Nosotros() {
             ))}
           </div>
 
-          {/* PRÓXIMAMENTE */}
-          <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:16, padding:'40px' }}>
-            <div style={{ textAlign:'center', marginBottom:32 }}>
-              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--accent)', marginBottom:12 }}>En desarrollo</div>
-              <h3 style={{ fontFamily:'var(--serif)', fontSize:28, fontWeight:400, lineHeight:1.1 }}>
-                Lo que viene <em style={{ fontStyle:'italic', color:'var(--accent)' }}>próximamente.</em>
-              </h3>
-            </div>
-            <div className="grid-2">
-              {[
-                { icon:'💳', titulo:'Pasarela de pagos real', desc:'Integración bancaria para suscripciones, reemplazando el proceso manual actual.' },
-                { icon:'🎥', titulo:'Tours virtuales 360°', desc:'Recorridos inmersivos en las fichas de propiedades del plan Pro y Enterprise.' },
-                { icon:'🔗', titulo:'Multiportal automático', desc:'Publicación simultánea en OLX y Encuentra24 desde el mismo wizard de NIDO.' },
-                { icon:'📱', titulo:'App instalable (PWA)', desc:'NIDO instalable en el celular como app nativa, sin pasar por App Store.' },
-                { icon:'🧮', titulo:'Valuación automática con IA', desc:'Un lead llena datos básicos y Valeria estima el precio de mercado al instante.' },
-                { icon:'🌎', titulo:'Expansión a Panamá', desc:'Primer mercado fuera de Costa Rica, adaptando el modelo regulatorio local.' },
-              ].map((f, i) => (
-                <div key={i} style={{ display:'flex', gap:14, alignItems:'flex-start' }}>
-                  <div style={{ fontSize:22, flexShrink:0 }}>{f.icon}</div>
-                  <div>
-                    <div style={{ fontSize:14, fontWeight:500, marginBottom:4, color:'var(--ink)' }}>{f.titulo}</div>
-                    <div style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6 }}>{f.desc}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 

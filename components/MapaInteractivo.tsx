@@ -41,6 +41,7 @@ async function geocodeQuery(query: string, token: string): Promise<[number, numb
 export default function MapaInteractivo({ propiedades, onSelect }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstance = useRef<any>(null)
+  const boundsRef = useRef<any>(null)
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return
@@ -117,6 +118,7 @@ export default function MapaInteractivo({ propiedades, onSelect }: Props) {
         }
 
         if (!bounds.isEmpty() && !cancelled) {
+          boundsRef.current = bounds
           map.fitBounds(bounds, { padding: 60, maxZoom: propiedades.length === 1 ? 13 : 14, duration: 0 })
         }
       })
@@ -131,5 +133,18 @@ export default function MapaInteractivo({ propiedades, onSelect }: Props) {
     }
   }, [propiedades.map(p => p.id).join(',')])
 
-  return <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+  const recentrar = () => {
+    if (mapInstance.current && boundsRef.current) {
+      mapInstance.current.fitBounds(boundsRef.current, { padding: 60, maxZoom: propiedades.length === 1 ? 13 : 14, duration: 600 })
+    }
+  }
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+      <button onClick={recentrar} title="Volver a centrar" style={{ position:'absolute', top:12, right:12, width:36, height:36, borderRadius:8, background:'white', border:'1px solid rgba(0,0,0,0.1)', boxShadow:'0 2px 8px rgba(0,0,0,0.12)', cursor:'pointer', display:'grid', placeItems:'center', fontSize:16, zIndex:10 }}>
+        ⟲
+      </button>
+    </div>
+  )
 }
