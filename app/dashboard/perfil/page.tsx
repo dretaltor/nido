@@ -28,6 +28,16 @@ function ValeriaPerfilResumen({ userId }: { userId: string }) {
       .then(({ data }) => { setPerfil(data); setLoading(false) })
   }, [userId])
 
+  if (!checandoTrial && trialBloqueado) return (
+    <main style={{ fontFamily:'sans-serif', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#f9f8f5' }}>
+      <div style={{ textAlign:'center', padding:40 }}>
+        <div style={{ fontSize:36, marginBottom:12 }}>⏳</div>
+        <p style={{ fontSize:16, marginBottom:16 }}>Tu prueba de NIDO Black terminó.</p>
+        <a href="/precios" style={{ background:'#1a1a1a', color:'white', padding:'12px 24px', borderRadius:999, textDecoration:'none', fontSize:14 }}>Ver planes →</a>
+      </div>
+    </main>
+  )
+
   if (loading) return <div style={{ fontSize:13, color:'var(--ink-3)' }}>Cargando...</div>
 
   if (!perfil?.valeria_onboarding_completo) return (

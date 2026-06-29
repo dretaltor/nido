@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
+import { useTrial } from '../../../../lib/useTrial'
 import { COSTA_RICA } from '../../../../lib/costaRicaData'
 
 const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la montaña','Pet friendly','Jardín privado','Patio','Terraza','Balcón','Aire acondicionado','Cocina italiana','Isla en cocina','Walk-in closet','Cuarto de servicio','Gimnasio','Salón de eventos','Coworking','Rooftop','BBQ','Jacuzzi','Smart home','Generador eléctrico','Paneles solares','Cisterna','Seguridad 24/7','Acceso controlado','Internet 1 Gbps','Cerca de escuelas']
 
 export default function EditarPropiedad() {
+  const { bloqueado: trialBloqueado, checando: checandoTrial } = useTrial()
   const router = useRouter()
   const params = useParams()
   const id = params.id as string
@@ -114,6 +116,16 @@ export default function EditarPropiedad() {
     if (error) { setMsg('Error al guardar: ' + error.message) }
     else { setMsg('✓ Cambios guardados'); setTimeout(() => setMsg(''), 3000) }
   }
+
+  if (!checandoTrial && trialBloqueado) return (
+    <main style={{ fontFamily:'sans-serif', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#f9f8f5' }}>
+      <div style={{ textAlign:'center', padding:40 }}>
+        <div style={{ fontSize:36, marginBottom:12 }}>⏳</div>
+        <p style={{ fontSize:16, marginBottom:16 }}>Tu prueba de NIDO Black terminó.</p>
+        <a href="/precios" style={{ background:'#1a1a1a', color:'white', padding:'12px 24px', borderRadius:999, textDecoration:'none', fontSize:14 }}>Ver planes →</a>
+      </div>
+    </main>
+  )
 
   if (loading) return (
     <main style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'sans-serif', color:'#999' }}>Cargando...</main>

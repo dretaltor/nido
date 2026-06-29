@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getPlanConfig } from '../../lib/planes'
+import { useTrial } from '../../lib/useTrial'
 
 const CURSOS = [
   { id:1, cat:'Ventas', nivel:'Básico', dur:'2 horas', titulo:'Fundamentos de ventas inmobiliarias', desc:'Aprende las bases para cerrar tu primera venta. Técnicas de prospección, presentación y cierre.', temas:['¿Qué busca un comprador?','Cómo hacer una presentación efectiva','Manejo de objeciones','Técnicas de cierre'], icon:'🏠', gratis:true, hue:150 },
@@ -37,6 +38,7 @@ export default function Academia() {
   const [nivel, setNivel] = useState('Todos')
   const [sel, setSel] = useState<typeof CURSOS[0] | null>(null)
   const [planActivo, setPlanActivo] = useState<string | null>(null)
+  const { bloqueado: trialBloqueado, checando: checandoTrial } = useTrial()
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -47,6 +49,17 @@ export default function Academia() {
   }, [])
 
   const todoDesbloqueado = getPlanConfig(planActivo).academiaCompleta
+
+  if (!checandoTrial && trialBloqueado) return (
+    <main style={{ fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
+      <div style={{ maxWidth:460, textAlign:'center', background:'white', border:'1px solid var(--rule)', borderRadius:20, padding:'44px 36px' }}>
+        <div style={{ fontSize:40, marginBottom:16 }}>⏳</div>
+        <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:28, fontWeight:400, marginBottom:10 }}>Tu prueba de NIDO Black terminó</h1>
+        <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.65, marginBottom:24 }}>Subí de plan para seguir accediendo a la Academia y sus certificaciones.</p>
+        <a href="/precios" style={{ display:'inline-block', padding:'13px 28px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>Ver planes →</a>
+      </div>
+    </main>
+  )
 
   const filtrados = CURSOS.filter(c =>
     (cat==='Todos'||c.cat===cat) && (nivel==='Todos'||c.nivel===nivel)
