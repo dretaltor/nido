@@ -74,7 +74,7 @@ export default function RegistroPropietario() {
         })
       ]).catch(console.error)
       await supabase.from('propietarios').upsert({
-        user_id: user?.id || null,
+        user_id: user?.id,
         nombre: form.nombre,
         cedula: form.cedula,
         telefono: form.telefono,
