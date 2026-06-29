@@ -102,9 +102,10 @@ export default function CRM() {
     }
 
     try {
+      const { data: { session: sv1 } } = await supabase.auth.getSession()
       const res = await fetch('/api/valeria-crm', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sv1?.access_token },
         body: JSON.stringify({ prompt: prompts[accion] })
       })
       const data = await res.json()
@@ -129,7 +130,8 @@ export default function CRM() {
         : `Redactá un mensaje de seguimiento para negociar una oferta inmobiliaria. Nombre: ${selVO.comprador_nombre}. Propiedad: ${selVO.propiedad_titulo}. Monto ofrecido: $${Number(selVO.valor_oferta||0).toLocaleString()}. Sugerí abrir la conversación a una contraoferta o ajuste, de forma cordial. Máximo 3 oraciones. Solo el mensaje.`)
 
     try {
-      const res = await fetch('/api/valeria-crm', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt }) })
+      const { data: { session: sv2 } } = await supabase.auth.getSession()
+      const res = await fetch('/api/valeria-crm', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+sv2?.access_token}, body: JSON.stringify({ prompt }) })
       const data = await res.json()
       setVoMensaje(data.text || 'No se pudo generar el mensaje. Intentá de nuevo.')
     } catch {
