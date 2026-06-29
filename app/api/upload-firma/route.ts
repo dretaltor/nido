@@ -64,6 +64,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, publicUrl })
   } catch (err: any) {
     console.error('Upload firma error:', err)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    return NextResponse.json({ error: 'Error al subir el archivo' }, { status: 500 })
   }
 }

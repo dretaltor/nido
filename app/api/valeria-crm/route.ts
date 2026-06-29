@@ -8,6 +8,8 @@ export async function POST(req: NextRequest) {
   }
 
   const { prompt } = await req.json()
+
+  try {
   
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -25,4 +27,8 @@ export async function POST(req: NextRequest) {
   
   const data = await res.json()
   return NextResponse.json({ text: data.content?.[0]?.text || '' })
+  } catch (err: any) {
+    console.error('Valeria CRM error:', err)
+    return NextResponse.json({ error: 'Error al procesar la solicitud' }, { status: 500 })
+  }
 }
