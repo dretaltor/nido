@@ -271,9 +271,10 @@ export default function Perfil() {
           reader.onerror = reject
           reader.readAsDataURL(file)
         })
+        const { data: { session: sfb } } = await supabase.auth.getSession()
         const fbRes = await fetch('/api/foto-feedback', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + sfb?.access_token },
           body: JSON.stringify({ imageBase64: base64, mediaType: file.type })
         })
         const fb = await fbRes.json()

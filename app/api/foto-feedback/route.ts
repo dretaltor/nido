@@ -1,9 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getClientIp } from '../../../lib/rateLimit'
+
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
 export async function POST(req: NextRequest) {
   try {
-    const permitido = await checkRateLimit('foto-feedback:' + getClientIp(req), 15, 10)
+    // Solo asesores con sesion activa — previene uso gratuito de Anthropic Vision
+    const authHeader = req.headers.get('authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    if (!token) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
+    if (authError || !user) return NextResponse.json({ error: 'Sesion invalida' }, { status: 401 })
+
+    const permitido = await checkRateLimit('foto-feedback:' + user.email, 15, 10)
     if (!permitido) {
       return NextResponse.json({ error: 'Demasiadas solicitudes, espera unos minutos' }, { status: 429 })
     }
@@ -17,7 +30,7 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'x-api-key': process.env.ANTHROPIC_API_KEY!,
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
