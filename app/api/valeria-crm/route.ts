@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit'
 
 export async function POST(req: NextRequest) {
+  const permitido = await checkRateLimit('valeria-crm:' + getClientIp(req), 30, 10)
+  if (!permitido) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes, espera unos minutos' }, { status: 429 })
+  }
+
   const { prompt } = await req.json()
   
   const res = await fetch('https://api.anthropic.com/v1/messages', {

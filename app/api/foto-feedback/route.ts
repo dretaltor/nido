@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit'
 
 export async function POST(req: NextRequest) {
   try {
+    const permitido = await checkRateLimit('foto-feedback:' + getClientIp(req), 15, 10)
+    if (!permitido) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes, espera unos minutos' }, { status: 429 })
+    }
+
     const { imageBase64, mediaType } = await req.json()
     if (!imageBase64) {
       return NextResponse.json({ error: 'Falta imagen' }, { status: 400 })

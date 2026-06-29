@@ -1,11 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 })
 
 export async function POST(req: NextRequest) {
+  const permitido = await checkRateLimit('chat:' + getClientIp(req), 20, 10)
+  if (!permitido) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes, espera unos minutos' }, { status: 429 })
+  }
+
   const { messages, system } = await req.json()
 
   // Limites basicos contra abuso de costo — sin esto, cualquiera podia mandar

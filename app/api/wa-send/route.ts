@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendWhatsApp } from '../../../lib/whatsapp'
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -8,6 +9,11 @@ const supabaseAdmin = createClient(
 )
 
 export async function POST(req: NextRequest) {
+  const permitido = await checkRateLimit('wa-send:' + getClientIp(req), 15, 10)
+  if (!permitido) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes, espera unos minutos' }, { status: 429 })
+  }
+
   const { to, message, visitaId } = await req.json()
   if (!to || !message) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
 

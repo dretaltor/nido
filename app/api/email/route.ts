@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit'
 
 function esc(v: any): string {
   if (v === null || v === undefined) return ''
@@ -12,6 +13,11 @@ function esc(v: any): string {
 
 export async function POST(req: NextRequest) {
   try {
+    const permitido = await checkRateLimit('email:' + getClientIp(req), 20, 10)
+    if (!permitido) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes, espera unos minutos' }, { status: 429 })
+    }
+
     const { to, tipo, data } = await req.json()
 
     // Plantillas oficiales que solo el admin debe poder disparar (texto libre o anuncios de aprobacion)
