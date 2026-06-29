@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NIDO — Plataforma Inmobiliaria de Costa Rica
 
-## Getting Started
+Plataforma inmobiliaria premium construida sobre Next.js 16, Supabase y Claude AI. Conecta asesores verificados con compradores y propietarios en Costa Rica.
 
-First, run the development server:
+**Producción:** [nido-cr.com](https://www.nido-cr.com) | **Deploy:** Vercel (auto-deploy desde `main`)
+
+---
+
+## Stack
+
+| Capa | Tecnología |
+|---|---|
+| Frontend | Next.js 16 (App Router) + TypeScript |
+| Base de datos | Supabase (Postgres + Auth + Storage + RLS) |
+| IA | Claude claude-haiku-4-5 (Anthropic) vía API |
+| Mapas | Mapbox GL JS con geocoding CR |
+| Correos | Resend |
+| WhatsApp | Meta Cloud API (WhatsApp Business) |
+| Pagos | Stripe (en standby) |
+
+---
+
+## Variables de entorno
+
+Copiar `.env.example` a `.env.local` y completar los valores:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ver `.env.example` para la lista completa con instrucciones de dónde obtener cada valor.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Estructura principal
 
-## Learn More
 
-To learn more about Next.js, take a look at the following resources:
+app/
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+(public)/           Rutas públicas (portal, ficha, asesores)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+admin/              Backoffice de administración
 
-## Deploy on Vercel
+api/                Rutas de API (email, WhatsApp, IA, storage)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+dashboard/          Dashboard del asesor (CRM, propiedades, perfil)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+dashboard/propietario/  Dashboard del propietario
+
+components/           Componentes reutilizables
+
+lib/
+
+planes.ts           Configuración central de planes (Despega/Elite/Black)
+
+rateLimit.ts        Rate limiting por IP respaldado en Supabase
+
+supabase.ts         Cliente de Supabase
+
+whatsapp.ts         Envío de mensajes WhatsApp
+---
+
+## Roles de usuario
+
+| Rol | Acceso |
+|---|---|
+| **Asesor** | Dashboard, publicar propiedades, CRM, Academia, Valeria IA |
+| **Propietario** | Dashboard propietario, ver ofertas/visitas de sus propiedades |
+| **Admin** (`dretalva@gmail.com`) | Backoffice completo — aprobar KYC, propiedades, gestionar planes |
+
+---
+
+## Planes
+
+| Plan | Nombre | Precio | Límite propiedades |
+|---|---|---|---|
+| `gratis` | Despega | $0 (7 días Black gratis) | 5 |
+| `pro` | Elite | $59/mes | 15 |
+| `enterprise` | Black | $149/mes | Ilimitadas |
+
+Los límites se configuran en `lib/planes.ts` — un solo archivo controla todo.
+
+---
+
+## Desarrollo local
+
+```bash
+npm install
+cp .env.example .env.local  # completar valores
+npm run dev
+```
+
+---
+
+## Seguridad
+
+- RLS activo en todas las tablas — cada asesor solo ve sus propios datos
+- Uploads de archivos solo vía `/api/upload-firma` (service role, verifica sesión)
+- Rate limiting en las 5 rutas de IA/notificaciones
+- Headers HTTP de seguridad configurados en `next.config.js`
+- Cédula única por cuenta — previene abuso del trial gratuito
