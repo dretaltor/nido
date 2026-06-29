@@ -78,12 +78,12 @@ export default function AdminPanel() {
   const loadAll = async () => {
     const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }] = await Promise.all([
       supabase.from('admin_metricas').select('*').maybeSingle(),
-      supabase.from('perfiles').select('*').order('created_at', { ascending: false }),
-      supabase.from('propietarios').select('*').order('created_at', { ascending: false }),
-      supabase.from('propiedades').select('*').order('created_at', { ascending: false }),
-      supabase.from('suscripciones').select('*').order('created_at', { ascending: false }),
+      supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at').order('created_at', { ascending: false }),
+      supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at').order('created_at', { ascending: false }),
+      supabase.from('propiedades').select('id,titulo,tipo,precio,zona,provincia,disponible,verificacion_estado,verificacion_notas,verificado_at,verificado_por,asesor_email,asesor_nombre,asesor_whatsapp,fotos,created_at').order('created_at', { ascending: false }),
+      supabase.from('suscripciones').select('id,correo,plan,activo,es_trial,trial_fin,created_at,updated_at').order('created_at', { ascending: false }),
       supabase.from('comisiones').select('*').order('created_at', { ascending: false }),
-      supabase.from('contratos').select('*').order('created_at', { ascending: false }),
+      supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,created_at').order('created_at', { ascending: false }),
     ])
     setMetricas(met)
     setAsesores(as || [])
