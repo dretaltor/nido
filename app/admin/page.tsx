@@ -153,6 +153,19 @@ export default function AdminPanel() {
     await supabase.from('perfiles').update({
       equipo_nido_estado: aprobar ? 'aprobado' : 'rechazado',
     }).eq('id', asesor.id)
+
+    // Si se aprueba, activar automaticamente plan Black (enterprise) gratis
+    if (aprobar) {
+      await supabase.from('suscripciones').upsert({
+        correo: asesor.correo,
+        plan: 'enterprise',
+        activo: true,
+        es_trial: false,
+        trial_fin: null,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'correo' })
+    }
+
     setAsesores(prev => prev.map((a:any) => a.id===asesor.id ? {...a, equipo_nido_estado: aprobar?'aprobado':'rechazado'} : a))
     const { data: { session: ses3 } } = await supabase.auth.getSession()
     fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+ses3?.access_token}, body: JSON.stringify({
