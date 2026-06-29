@@ -106,12 +106,12 @@ export default function Dashboard() {
       Promise.all([
         supabase.from('propiedades').select('id,titulo,tipo,precio,zona,provincia,disponible,verificacion_estado,fotos,asesor_email,created_at').eq('asesor_email', user.email),
         supabase.from('leads').select('id,nombre,email,telefono,estado,propiedad_id,asesor_email,created_at').order('created_at', { ascending: false }),
-        supabase.from('ofertas').select('*').eq('asesor_email', user.email).order('created_at', { ascending: false }),
+        supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,relacion,created_at').eq('asesor_email', user.email).order('created_at', { ascending: false }),
       ]).then(([{ data: props }, { data: leadsData }, { data: ofertasData }]) => {
         // Load ofertas received on this asesor's properties
         if (props && props.length > 0) {
           const propIds = props.map((p:any) => p.id)
-          supabase.from('ofertas').select('*').in('propiedad_id', propIds).neq('asesor_email', user.email).order('created_at', { ascending: false })
+          supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,relacion,created_at').in('propiedad_id', propIds).neq('asesor_email', user.email).order('created_at', { ascending: false })
             .then(({ data, error }) => { console.log('ofertasRecibidas:', data, error); setOfertasRecibidas(data || []) })
         }
         setPropiedades(props || [])
@@ -489,7 +489,7 @@ export default function Dashboard() {
                   if (!formTarea.titulo) return
                   const { data: u } = await supabase.auth.getUser()
                   await supabase.from('tareas').insert({ asesor_email: u.user?.email, titulo: formTarea.titulo, descripcion: formTarea.descripcion, prioridad: formTarea.prioridad, fecha_vencimiento: formTarea.fecha_vencimiento || null, propiedad_id: formTarea.propiedad_id || null })
-                  const { data } = await supabase.from('tareas').select('*').eq('asesor_email', u.user?.email).order('fecha_vencimiento', { ascending: true })
+                  const { data } = await supabase.from('tareas').select('id,titulo,descripcion,estado,fecha_vencimiento,propiedad_id,asesor_email,created_at').eq('asesor_email', u.user?.email).order('fecha_vencimiento', { ascending: true })
                   setTareas(data || [])
                   setNuevaTarea(false)
                   setFormTarea({ titulo:'', descripcion:'', prioridad:'media', fecha_vencimiento:'', propiedad_id:'', lead_id:'' })
