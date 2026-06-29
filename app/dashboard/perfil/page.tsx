@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import { useTrial } from '../../../lib/useTrial'
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
@@ -183,6 +184,7 @@ function VerificacionKYC({ userId }: { userId: string }) {
 }
 
 export default function Perfil() {
+  const { bloqueado: trialBloqueado, checando: checandoTrial } = useTrial()
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
   const [user, setUser] = useState<any>(null)
