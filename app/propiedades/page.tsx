@@ -249,7 +249,7 @@ export default function Propiedades() {
 
   const cargar = () => {
     setLoading(true)
-    supabase.from('propiedades').select('*').eq('disponible', true).eq('verificacion_estado', 'aprobada').then(({ data }) => {
+    supabase.from('propiedades').select('id,titulo,tipo,precio,zona,provincia,canton,distrito,fotos,habitaciones,banos,area_m2,area_lote,asesor_email,asesor_nombre,asesor_whatsapp,created_at').eq('disponible', true).eq('verificacion_estado', 'aprobada').then(({ data }) => {
       setPropiedades(data || [])
       setLoading(false)
     })

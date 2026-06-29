@@ -52,7 +52,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
 // Auth handled by AuthContext
-    supabase.from('propiedades').select('*').eq('id', id).single().then(({ data }) => {
+    supabase.from('propiedades').select('id,titulo,descripcion,tipo,precio,zona,provincia,canton,distrito,disponible,fotos,habitaciones,banos,area_m2,area_lote,parqueos,amenidades,asesor_email,asesor_nombre,asesor_whatsapp,verificacion_estado,created_at').eq('id', id).single().then(({ data }) => {
       setPropiedad(data)
       setLoading(false)
       if (data && data.asesor_email) {

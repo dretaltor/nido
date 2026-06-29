@@ -111,14 +111,14 @@ export default function DashboardPropietario() {
       setUser(user)
       setNombre(user.user_metadata?.nombre || user.email?.split('@')[0] || 'propietario')
       // Cargar perfil de propietario
-      supabase.from('propietarios').select('*').eq('correo', user.email!).maybeSingle()
+      supabase.from('propietarios').select('id,user_id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,cedula_frente_url,cedula_reverso_url,selfie_url,created_at').eq('correo', user.email!).maybeSingle()
         .then(({ data }) => {
           setPerfilPropietario(data)
           // Mostrar tour si es primera visita
           const tourVisto = localStorage.getItem('nido_tour_propietario')
           if (!tourVisto) { setTourActivo(true); localStorage.setItem('nido_tour_propietario', '1') }
         })
-      supabase.from('contratos').select('*').eq('propietario_correo', user.email!).in('estado', ['activo','pendiente']).order('created_at', { ascending: false }).limit(1).maybeSingle().then(({ data: c }) => { setContrato(c); setLoadingContrato(false) })
+      supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,comision_porcentaje,created_at').eq('propietario_correo', user.email!).in('estado', ['activo','pendiente']).order('created_at', { ascending: false }).limit(1).maybeSingle().then(({ data: c }) => { setContrato(c); setLoadingContrato(false) })
       // Fetch propiedades del propietario + leads + ofertas filtradas
       supabase.from('propiedades').select('id,titulo,zona,precio,disponible,tipo,ref_id,fotos,habitaciones,banos,metros,operacion')
         .eq('propietario_email', user.email!)
@@ -141,7 +141,7 @@ export default function DashboardPropietario() {
                   })
               })
             // Ofertas filtradas por propiedades del propietario
-            supabase.from('ofertas').select('*').in('propiedad_id', pids)
+            supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,valor_oferta,condiciones,estado,tipo_compra,relacion,propiedad_id,asesor_email,created_at').in('propiedad_id', pids)
               .order('created_at', { ascending: false })
               .then(({ data: ofData }) => setOfertasReales(ofData || []))
             // Fetch visitas del propietario
