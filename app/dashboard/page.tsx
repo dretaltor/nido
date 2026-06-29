@@ -104,8 +104,8 @@ export default function Dashboard() {
       supabase.from('suscripciones').select('plan,activo,es_trial,trial_fin').eq('correo', user.email).maybeSingle()
         .then(({ data }) => { setSuscripcion(data); setCheckandoTrial(false) })
       Promise.all([
-        supabase.from('propiedades').select('*').eq('asesor_email', user.email),
-        supabase.from('leads').select('*').order('created_at', { ascending: false }),
+        supabase.from('propiedades').select('id,titulo,tipo,precio,zona,provincia,disponible,verificacion_estado,fotos,asesor_email,created_at').eq('asesor_email', user.email),
+        supabase.from('leads').select('id,nombre,email,telefono,estado,propiedad_id,asesor_email,created_at').order('created_at', { ascending: false }),
         supabase.from('ofertas').select('*').eq('asesor_email', user.email).order('created_at', { ascending: false }),
       ]).then(([{ data: props }, { data: leadsData }, { data: ofertasData }]) => {
         // Load ofertas received on this asesor's properties
@@ -120,9 +120,9 @@ export default function Dashboard() {
         // Check onboarding status
         supabase.from('perfiles').select('valeria_onboarding_completo,cedula_frente_url,foto_url,nombre,equipo_nido_estado,contrato_equipo_nido_aceptado').eq('id', user.id).maybeSingle().then(({data}) => setValeraPerfilDash(data))
         // Load visitas
-        supabase.from('visitas').select('*').eq('asesor_email', user.email).order('fecha', { ascending: true }).then(({ data }) => setVisitas(data || []))
+        supabase.from('visitas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,propiedad_titulo,asesor_email,asesor_whatsapp,fecha,hora,tipo,notas,estado,created_at').eq('asesor_email', user.email).order('fecha', { ascending: true }).then(({ data }) => setVisitas(data || []))
         // Load tareas
-        supabase.from('tareas').select('*').eq('asesor_email', user.email).order('fecha_vencimiento', { ascending: true }).then(({ data }) => setTareas(data || []))
+        supabase.from('tareas').select('id,titulo,descripcion,estado,fecha_vencimiento,propiedad_id,asesor_email,created_at').eq('asesor_email', user.email).order('fecha_vencimiento', { ascending: true }).then(({ data }) => setTareas(data || []))
         // Load real rating
         supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', user.email).maybeSingle().then(({data}) => { if(data) setCalificacion(data) })
         // Tour primer ingreso
