@@ -23,6 +23,7 @@ function RegistroInner() {
   const [plan, setPlan] = useState(planInicial)
   const [tipoTrabajo, setTipoTrabajo] = useState<'independiente' | 'compania' | 'equipo_nido'>('independiente')
   const [companiaNombre, setCompaniaNombre] = useState('')
+  const [cedula, setCedula] = useState('')
 
   const planInfo = PLANES_INFO[plan]
 
@@ -37,7 +38,11 @@ function RegistroInner() {
     if (!nombre || !email || !password) { setError('Por favor completa todos los campos.'); return }
     if (password.length < 6) { setError('La contrasena debe tener al menos 6 caracteres.'); return }
     if (tipoTrabajo === 'compania' && !companiaNombre.trim()) { setError('Ingresá el nombre de tu compañía.'); return }
+    const cedulaLimpia = cedula.replace(/\D/g, '')
+    if (cedulaLimpia.length < 9) { setError('Ingresá un número de cédula válido (9 dígitos).'); return }
     setLoading(true); setError('')
+
+    const { data: cedulaYaUsada } = await supabase.rpc('cedula_ya_uso_trial', { p_cedula: cedulaLimpia })
     const { error } = await supabase.auth.signUp({
       email, password,
       options: { data: { nombre, plan } }
@@ -52,6 +57,7 @@ function RegistroInner() {
           id: loginData.user.id,
           nombre,
           correo: email,
+          cedula: cedulaLimpia,
           plan,
           compania: tipoTrabajo === 'compania' ? companiaNombre.trim() : null,
           solicita_equipo_nido: tipoTrabajo === 'equipo_nido',
@@ -61,7 +67,7 @@ function RegistroInner() {
         })
 
         // Crear suscripcion inicial
-        if (plan === 'gratis') {
+        if (plan === 'gratis' && !cedulaYaUsada) {
           // Trial de 7 dias con TODO el plan Black activo
           const trialFin = new Date()
           trialFin.setDate(trialFin.getDate() + 7)
@@ -74,10 +80,10 @@ function RegistroInner() {
             updated_at: new Date().toISOString(),
           }, { onConflict: 'correo' })
         } else {
-          // Plan pago elegido — queda pendiente de activacion por NIDO (pago manual via SINPE)
+          // Plan pago elegido, o cedula ya uso un trial antes — queda pendiente de activacion por NIDO
           await supabase.from('suscripciones').upsert({
             correo: email,
-            plan,
+            plan: plan === 'gratis' ? 'gratis' : plan,
             activo: false,
             es_trial: false,
             updated_at: new Date().toISOString(),
@@ -188,6 +194,11 @@ function RegistroInner() {
           <div>
             <label style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Nombre completo</label>
             <input className="field-input" type="text" placeholder="María Rodríguez" value={nombre} onChange={e => setNombre(e.target.value)}/>
+          </div>
+          <div>
+            <label style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Número de cédula</label>
+            <input className="field-input" type="text" placeholder="1-2345-6789" value={cedula} onChange={e => setCedula(e.target.value)}/>
+            <p style={{ fontSize:11, color:'var(--ink-3)', marginTop:6 }}>Solo una cuenta por cédula — necesario para verificar tu identidad.</p>
           </div>
           <div>
             <label style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Correo electrónico</label>
