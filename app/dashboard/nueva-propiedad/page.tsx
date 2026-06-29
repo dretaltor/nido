@@ -32,7 +32,7 @@ export default function NuevaPropiedad() {
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
+      if (!user) { window.location.href = '/login'; return }
       const { data } = await supabase.from('perfiles').select('contrato_asesor_aceptado').eq('id', user.id).maybeSingle()
       setContratoAceptado(!!data?.contrato_asesor_aceptado)
 

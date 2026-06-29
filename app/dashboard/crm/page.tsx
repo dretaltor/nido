@@ -65,7 +65,7 @@ export default function CRM() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (!user) { setLoading(false); return }
+      if (!user) { window.location.href = '/login'; return }
       setUserEmail(user.email || '')
 
       supabase.from('suscripciones').select('plan,activo,es_trial,trial_fin').eq('correo', user.email).maybeSingle()
