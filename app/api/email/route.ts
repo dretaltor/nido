@@ -13,6 +13,11 @@ function esc(v: any): string {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.RESEND_API_KEY) {
+      console.error('RESEND_API_KEY no configurado en Vercel — correos deshabilitados')
+      return NextResponse.json({ error: 'Servicio de correo no configurado' }, { status: 503 })
+    }
+
     const permitido = await checkRateLimit('email:' + getClientIp(req), 20, 10)
     if (!permitido) {
       return NextResponse.json({ error: 'Demasiadas solicitudes, espera unos minutos' }, { status: 429 })
