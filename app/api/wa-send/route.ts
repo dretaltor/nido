@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   }
 
   const { to, message, visitaId } = await req.json()
-  if (!to || !message) return NextResponse.json({ error: 'Missing fields' }, { status: 400 })
+  if (!to || !message) return NextResponse.json({ error: 'Faltan campos requeridos (to, message)' }, { status: 400 })
 
   // Antes: cualquiera podia mandar WA a cualquier numero usando el numero oficial de NIDO.
   // Ahora: el destino debe coincidir con un registro real de visita (comprador o asesor de esa visita).
