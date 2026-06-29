@@ -742,6 +742,26 @@ function CursoInner() {
 
   if (!curso) return <div style={{padding:40,fontFamily:'sans-serif'}}>Curso no encontrado. <a href="/academia" style={{color:'green'}}>Volver</a></div>
 
+  if (!checandoTrial && trialBloqueado) return (
+    <main style={{ fontFamily:'sans-serif', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#f9f8f5' }}>
+      <div style={{ textAlign:'center', padding:40 }}>
+        <div style={{ fontSize:36, marginBottom:12 }}>⏳</div>
+        <p style={{ fontSize:16, marginBottom:16 }}>Tu prueba de NIDO Black terminó.</p>
+        <a href="/precios" style={{ background:'#1a1a1a', color:'white', padding:'12px 24px', borderRadius:999, textDecoration:'none', fontSize:14 }}>Ver planes →</a>
+      </div>
+    </main>
+  )
+
+  if (!checandoTrial && curso && !curso.gratis && !getPlanConfig(planActivo).academiaCompleta) return (
+    <main style={{ fontFamily:'sans-serif', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#f9f8f5' }}>
+      <div style={{ textAlign:'center', padding:40 }}>
+        <div style={{ fontSize:36, marginBottom:12 }}>🔒</div>
+        <p style={{ fontSize:16, marginBottom:16 }}>Este curso requiere un plan Elite o Black.</p>
+        <a href="/precios" style={{ background:'#1a1a1a', color:'white', padding:'12px 24px', borderRadius:999, textDecoration:'none', fontSize:14 }}>Ver planes →</a>
+      </div>
+    </main>
+  )
+
   const mod = curso.modulos[modIdx]
   const isDone = completados.includes(mod.id)
 
