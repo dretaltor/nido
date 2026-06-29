@@ -203,7 +203,7 @@ export default function Perfil() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
       setUser(user)
-      const { data } = await supabase.from('perfiles').select('*').eq('id', user.id).maybeSingle()
+      const { data } = await supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,cedula_frente_url,cedula_reverso_url,selfie_url,compania,plan,valeria_perfil,valeria_onboarding_completo,contrato_asesor_aceptado,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,created_at').eq('id', user.id).maybeSingle()
       setPerfil({
         nombre: data?.nombre || user.user_metadata?.nombre || '',
         correo: user.email || '',
