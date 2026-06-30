@@ -132,8 +132,9 @@ export default function DashboardPropietario() {
               .in('propiedad_id', pids).order('created_at', { ascending: false })
               .then(({ data: leadsData }) => {
                 setLeadsReales(leadsData || [])
-                // Cruzar con visitas para saber si agendó
-                supabase.from('visitas').select('lead_id').in('propiedad_id', pids)
+                // Cruzar con visitas para saber si agendó (visitas no tiene lead_id, se cruza
+                // por numero de telefono via RPC server-side para no exponer telefonos al dueño)
+                supabase.rpc('leads_con_visita', { prop_ids: pids })
                   .then(({ data: vis }) => {
                     const mapa: Record<string,boolean> = {}
                     ;(vis || []).forEach((v:any) => { if(v.lead_id) mapa[v.lead_id] = true })
