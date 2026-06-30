@@ -2,6 +2,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import { exportToCSV } from '../../../lib/csvExport'
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
@@ -277,6 +278,12 @@ export default function DashboardPropietario() {
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
               <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400 }}>Mis propiedades</h2>
+              <button onClick={() => exportToCSV('nido-propiedades-' + new Date().toISOString().split('T')[0], propiedadesReales.map((p:any) => ({
+                titulo: p.titulo, zona: p.zona, precio: p.precio, disponible: p.disponible ? 'Activa' : 'Inactiva',
+                tipo: p.tipo, operacion: p.operacion, ref: p.ref_id, habitaciones: p.habitaciones, banos: p.banos, metros: p.metros,
+              })))} disabled={propiedadesReales.length === 0} style={{ background:'transparent', border:'1px solid var(--rule)', color:'var(--ink-2)', padding:'8px 16px', borderRadius:999, fontSize:13, cursor:propiedadesReales.length===0?'not-allowed':'pointer', opacity:propiedadesReales.length===0?0.5:1 }}>
+                ⬇ Exportar CSV
+              </button>
             </div>
             {propiedadesReales.length === 0 ? (
               <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>
@@ -329,7 +336,15 @@ export default function DashboardPropietario() {
         {/* LEADS */}
         {tab === 'leads' && (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
-            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:20 }}>Leads de compradores</h2>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+              <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400 }}>Leads de compradores</h2>
+              <button onClick={() => exportToCSV('nido-leads-propietario-' + new Date().toISOString().split('T')[0], leadsReales.map((l:any) => ({
+                nombre: l.nombre, propiedad: propiedadesReales.find((p:any) => p.id === l.propiedad_id)?.titulo || '',
+                zona_interes: l.zona_interes, tipo_busqueda: l.tipo_busqueda, estado: l.estado, fecha: l.created_at,
+              })))} disabled={leadsReales.length === 0} style={{ background:'transparent', border:'1px solid var(--rule)', color:'var(--ink-2)', padding:'8px 16px', borderRadius:999, fontSize:13, cursor:leadsReales.length===0?'not-allowed':'pointer', opacity:leadsReales.length===0?0.5:1 }}>
+                ⬇ Exportar CSV
+              </button>
+            </div>
             <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.88 0.04 150)', borderRadius:10, padding:'12px 16px', marginBottom:16, fontSize:13, color:'var(--accent)' }}>
               ℹ️ Solo ves el interés y la propiedad. Los datos de contacto son gestionados por tu asesor NIDO para proteger tu privacidad.
             </div>

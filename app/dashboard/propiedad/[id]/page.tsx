@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
 import { useTrial } from '../../../../lib/useTrial'
 import { COSTA_RICA } from '../../../../lib/costaRicaData'
+import { addWatermark } from '../../../../lib/watermark'
 
 const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la montaña','Pet friendly','Jardín privado','Patio','Terraza','Balcón','Aire acondicionado','Cocina italiana','Isla en cocina','Walk-in closet','Cuarto de servicio','Gimnasio','Salón de eventos','Coworking','Rooftop','BBQ','Jacuzzi','Smart home','Generador eléctrico','Paneles solares','Cisterna','Seguridad 24/7','Acceso controlado','Internet 1 Gbps','Cerca de escuelas']
 
@@ -52,9 +53,10 @@ export default function EditarPropiedad() {
     const nuevas: string[] = []
     for (let i = 0; i < filesToUpload.length; i++) {
       const file = filesToUpload[i]
+      const watermarked = await addWatermark(file)
       const ext = file.name.split('.').pop()
       const path = 'propiedades/' + id + '_' + Date.now() + '_' + i + '.' + ext
-      const { error } = await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
+      const { error } = await supabase.storage.from('Propiedades').upload(path, watermarked, { upsert: true, contentType: 'image/jpeg' })
       if (!error) {
         const { data: urlData } = supabase.storage.from('Propiedades').getPublicUrl(path)
         nuevas.push(urlData.publicUrl)

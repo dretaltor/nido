@@ -3,6 +3,7 @@ import { VisitaForm } from '@/components/visitas/VisitaForm'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { getPlanConfig } from '../../../lib/planes'
+import { exportToCSV } from '../../../lib/csvExport'
 
 interface Lead {
   id: string; nombre: string; email: string; telefono: string
@@ -192,9 +193,20 @@ export default function CRM() {
           <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
             <a href="/dashboard">Dashboard</a>
             <a href="/dashboard/crm" style={{ color:'var(--accent)', fontWeight:500 }}>CRM</a>
+            <a href="/dashboard/comisiones">Comisiones</a>
+            <a href="/dashboard/equipo">Equipo</a>
             <a href="/propiedades">Portal</a>
           </div>
-          <a href="/dashboard/nueva-propiedad" style={{ background:'var(--ink)', color:'white', padding:'8px 18px', borderRadius:999, fontSize:13 }}>+ Nueva propiedad</a>
+          <div style={{ display:'flex', gap:10 }}>
+            <button onClick={() => exportToCSV('nido-leads-' + new Date().toISOString().split('T')[0], leads.map(l => ({
+              nombre: l.nombre, email: l.email, telefono: l.telefono, mensaje: l.mensaje,
+              zona_interes: l.zona_interes, presupuesto: l.presupuesto, tipo_busqueda: l.tipo_busqueda,
+              estado: l.estado, propiedad: l.propiedad_titulo || l.propiedad, fecha: l.created_at,
+            })))} disabled={leads.length === 0} style={{ background:'transparent', border:'1px solid var(--rule)', color:'var(--ink-2)', padding:'8px 16px', borderRadius:999, fontSize:13, cursor:leads.length===0?'not-allowed':'pointer', opacity:leads.length===0?0.5:1 }}>
+              ⬇ Exportar CSV
+            </button>
+            <a href="/dashboard/nueva-propiedad" style={{ background:'var(--ink)', color:'white', padding:'8px 18px', borderRadius:999, fontSize:13 }}>+ Nueva propiedad</a>
+          </div>
         </div>
       </nav>
 

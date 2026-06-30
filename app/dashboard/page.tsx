@@ -544,6 +544,8 @@ export default function Dashboard() {
             {[
               { href:'/dashboard/nueva-propiedad', icon:'＋', label:'Nueva propiedad', desc:'Wizard de 8 pasos' },
               { href:'/dashboard/crm', icon:'◎', label:'CRM de leads', desc:'Gestionar contactos' },
+              { href:'/dashboard/comisiones', icon:'$', label:'Comisiones', desc:'Tracker de cierres' },
+              { href:'/dashboard/equipo', icon:'👥', label:'Equipo', desc:'Invitar agentes y ver reportes' },
               { href:'/propiedades', icon:'🏠', label:'Ver todas las propiedades', desc:'Ofertar en cualquier propiedad' },
               { href:'/chat', icon:'✦', label:'Valeria IA', desc:'Tu asistente inteligente' },
               { href:'/academia', icon:'◈', label:'Academia', desc:'Cursos y certificaciones' },

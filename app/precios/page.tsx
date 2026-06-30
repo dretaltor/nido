@@ -71,7 +71,7 @@ const PLANES = [
 ]
 
 const DIFERENCIAS = [
-  { feature: 'Propiedades publicadas', gratis: '2', pro: '15', enterprise: 'Ilimitadas' },
+  { feature: 'Propiedades publicadas', gratis: '5', pro: '15', enterprise: 'Ilimitadas' },
   { feature: 'Fotos por propiedad', gratis: '3', pro: 'Ilimitadas', enterprise: 'Ilimitadas' },
   { feature: 'Valeria IA', gratis: '—', pro: 'Básica', enterprise: 'Con memoria y contexto' },
   { feature: 'CRM de leads', gratis: '—', pro: 'Completo', enterprise: 'Avanzado + score' },
@@ -228,6 +228,34 @@ export default function Precios() {
               </button>
             </div>
           ))}
+        </div>
+
+        {/* Plan Equipo / Inmobiliaria */}
+        <div style={{ background:'var(--ink)', borderRadius:20, padding:'40px', marginBottom:64, display:'flex', flexWrap:'wrap', gap:32, alignItems:'center', justifyContent:'space-between' }}>
+          <div style={{ flex:'1 1 320px', minWidth:280 }}>
+            <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'oklch(0.85 0.06 80)', marginBottom:10 }}>Para equipos e inmobiliarias</div>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400, color:'white', marginBottom:12, lineHeight:1.15 }}>
+              ¿Lideras un equipo? <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Hay un plan para eso.</em>
+            </h2>
+            <p style={{ fontSize:14, color:'rgba(255,255,255,0.6)', lineHeight:1.7, maxWidth:440 }}>
+              El plan Inmobiliaria agrupa a varios asesores bajo una sola cuenta administrada: invitás a tu equipo por correo, asignás roles, y ves el reporte de comisiones de todos en un solo panel — sin procesos manuales.
+            </p>
+          </div>
+          <div style={{ flex:'0 0 auto', display:'flex', gap:16, flexWrap:'wrap' }}>
+            {[
+              { nombre:'Inmobiliaria Junior', precio:'$249', sub:'hasta 5 agentes · 100 propiedades' },
+              { nombre:'Inmobiliaria Senior', precio:'$480', sub:'hasta 15 agentes · 250 propiedades' },
+            ].map(p => (
+              <div key={p.nombre} style={{ background:'rgba(255,255,255,0.06)', border:'1px solid rgba(255,255,255,0.12)', borderRadius:14, padding:'20px 24px', minWidth:200 }}>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.6)', marginBottom:6 }}>{p.nombre}</div>
+                <div style={{ fontFamily:'var(--serif)', fontSize:30, color:'white', marginBottom:4 }}>{p.precio}<span style={{ fontSize:13, color:'rgba(255,255,255,0.4)' }}>/mes</span></div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.5)' }}>{p.sub}</div>
+              </div>
+            ))}
+            <a href="/dashboard/equipo" style={{ display:'flex', alignItems:'center', justifyContent:'center', background:'var(--accent)', color:'white', padding:'0 28px', borderRadius:999, fontSize:14, fontWeight:500, textDecoration:'none', minHeight:48 }}>
+              Crear mi equipo →
+            </a>
+          </div>
         </div>
 
         {/* Tabla comparativa */}

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import { exportToCSV } from '../../../lib/csvExport'
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
@@ -47,19 +48,29 @@ export default function Comisiones() {
   const [form, setForm] = useState({
     propiedad_titulo:'', propiedad_ref:'', propiedad_zona:'',
     precio_venta:'', porcentaje_comision:'4', estado:'proyectada',
-    fecha_cierre_estimada:'', notas:''
+    fecha_cierre_estimada:'', notas:'',
+    tieneColaborador:false, colaborador_email:'', colaborador_nombre:'', porcentaje_colaborador:'50'
   })
-  const setF = (k: string, v: string) => setForm(p => ({...p, [k]: v}))
+  const setF = (k: string, v: string | boolean) => setForm(p => ({...p, [k]: v}))
+
+  const cargarComisiones = async (email: string) => {
+    const [{ data: propias }, { data: compartidas }] = await Promise.all([
+      supabase.from('comisiones').select('*').eq('asesor_email', email).order('created_at', { ascending: false }),
+      supabase.from('comisiones').select('*').eq('colaborador_email', email).order('created_at', { ascending: false }),
+    ])
+    const compartidasTag = (compartidas || []).map((c: any) => ({ ...c, _soyColaborador: true }))
+    return [...(propias || []), ...compartidasTag]
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
       setUser(user)
-      const [{ data: coms }, { data: res }] = await Promise.all([
-        supabase.from('comisiones').select('*').eq('asesor_email', user.email!).order('created_at', { ascending: false }),
+      const [coms, { data: res }] = await Promise.all([
+        cargarComisiones(user.email!),
         supabase.from('resumen_comisiones').select('*').eq('asesor_email', user.email!).maybeSingle()
       ])
-      setComisiones(coms || [])
+      setComisiones(coms)
       setResumen(res)
       setLoading(false)
     })
@@ -67,20 +78,27 @@ export default function Comisiones() {
 
   const reload = async () => {
     if (!user) return
-    const [{ data: coms }, { data: res }] = await Promise.all([
-      supabase.from('comisiones').select('*').eq('asesor_email', user.email!).order('created_at', { ascending: false }),
+    const [coms, { data: res }] = await Promise.all([
+      cargarComisiones(user.email!),
       supabase.from('resumen_comisiones').select('*').eq('asesor_email', user.email!).maybeSingle()
     ])
-    setComisiones(coms || [])
+    setComisiones(coms)
     setResumen(res)
   }
 
   const guardar = async () => {
     if (!form.propiedad_titulo || !form.precio_venta) return
+    if (form.tieneColaborador && (!form.colaborador_email || !form.colaborador_nombre)) return
     setSaving(true)
     const precio = parseFloat(form.precio_venta.replace(/[^0-9.]/g, ''))
     const pct = parseFloat(form.porcentaje_comision) || 4
     const monto = precio * pct / 100
+
+    const pctColaborador = form.tieneColaborador ? (parseFloat(form.porcentaje_colaborador) || 0) : 0
+    const pctPrincipal = 100 - pctColaborador
+    const montoPrincipal = monto * pctPrincipal / 100
+    const montoColaborador = monto * pctColaborador / 100
+
     await supabase.from('comisiones').insert({
       asesor_email: user.email,
       asesor_nombre: user.user_metadata?.nombre || user.email,
@@ -94,8 +112,15 @@ export default function Comisiones() {
       fecha_cierre_estimada: form.fecha_cierre_estimada || null,
       notas: form.notas,
       creado_por: user.email,
+      colaborador_email: form.tieneColaborador ? form.colaborador_email.trim().toLowerCase() : null,
+      colaborador_nombre: form.tieneColaborador ? form.colaborador_nombre : null,
+      porcentaje_principal: pctPrincipal,
+      porcentaje_colaborador: pctColaborador,
+      monto_principal: montoPrincipal,
+      monto_colaborador_split: montoColaborador,
+      split_registrado_at: form.tieneColaborador ? new Date().toISOString() : null,
     })
-    setForm({ propiedad_titulo:'', propiedad_ref:'', propiedad_zona:'', precio_venta:'', porcentaje_comision:'4', estado:'proyectada', fecha_cierre_estimada:'', notas:'' })
+    setForm({ propiedad_titulo:'', propiedad_ref:'', propiedad_zona:'', precio_venta:'', porcentaje_comision:'4', estado:'proyectada', fecha_cierre_estimada:'', notas:'', tieneColaborador:false, colaborador_email:'', colaborador_nombre:'', porcentaje_colaborador:'50' })
     setShowForm(false)
     await reload()
     setSaving(false)
@@ -124,8 +149,19 @@ export default function Comisiones() {
             <a href="/dashboard">Dashboard</a>
             <a href="/dashboard/crm">CRM</a>
             <a href="/dashboard/comisiones" style={{ color:'var(--accent)', fontWeight:500 }}>Comisiones</a>
+            <a href="/dashboard/equipo">Equipo</a>
           </div>
-          <button onClick={() => setShowForm(true)} className="btn btn-primary" style={{ fontSize:13 }}>+ Registrar negocio</button>
+          <div style={{ display:'flex', gap:10 }}>
+            <button onClick={() => exportToCSV('nido-comisiones-' + new Date().toISOString().split('T')[0], comisiones.map(c => ({
+              propiedad: c.propiedad_titulo, ref: c.propiedad_ref, zona: c.propiedad_zona,
+              precio_venta: c.precio_venta, porcentaje_comision: c.porcentaje_comision, monto_comision: c.monto_comision,
+              colaborador: c.colaborador_nombre || '', porcentaje_colaborador: c.porcentaje_colaborador || '',
+              estado: c.estado, fecha_cierre_estimada: c.fecha_cierre_estimada, fecha_cierre_real: c.fecha_cierre_real,
+            })))} disabled={comisiones.length === 0} className="btn btn-outline" style={{ fontSize:13, opacity:comisiones.length===0?0.5:1, cursor:comisiones.length===0?'not-allowed':'pointer' }}>
+              ⬇ Exportar CSV
+            </button>
+            <button onClick={() => setShowForm(true)} className="btn btn-primary" style={{ fontSize:13 }}>+ Registrar negocio</button>
+          </div>
         </div>
       </nav>
 
@@ -211,7 +247,10 @@ export default function Comisiones() {
               <div key={c.id} className="row" onClick={() => setSel(c)}>
                 <div style={{ width:44, height:44, borderRadius:10, background:'var(--bg)', border:'1px solid var(--rule)', display:'grid', placeItems:'center', fontSize:18, flexShrink:0 }}>🏠</div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{c.propiedad_titulo}</div>
+                  <div style={{ fontSize:14, fontWeight:500, marginBottom:2, display:'flex', alignItems:'center', gap:8 }}>
+                    {c.propiedad_titulo}
+                    {c.colaborador_email && <span style={{ fontSize:10, fontWeight:500, padding:'2px 8px', borderRadius:999, background:'oklch(0.93 0.03 240)', color:'oklch(0.35 0.08 240)' }}>{c._soyColaborador ? 'Eres colaborador' : 'Compartida'} {c.porcentaje_principal??100}/{c.porcentaje_colaborador??0}</span>}
+                  </div>
                   <div style={{ fontSize:12, color:'var(--ink-3)', display:'flex', gap:10 }}>
                     {c.propiedad_ref && <span>{c.propiedad_ref}</span>}
                     {c.propiedad_zona && <span>· {c.propiedad_zona}</span>}
@@ -219,7 +258,7 @@ export default function Comisiones() {
                   </div>
                 </div>
                 <div style={{ textAlign:'right', flexShrink:0 }}>
-                  <div style={{ fontFamily:'var(--mono)', fontSize:16, fontWeight:500, color:c.estado==='cobrada'?'var(--accent)':'var(--ink)', marginBottom:4 }}>{fmt(c.monto_comision||0)}</div>
+                  <div style={{ fontFamily:'var(--mono)', fontSize:16, fontWeight:500, color:c.estado==='cobrada'?'var(--accent)':'var(--ink)', marginBottom:4 }}>{fmt((c._soyColaborador ? c.monto_colaborador_split : c.monto_comision)||0)}</div>
                   <span className="badge" style={{ background:est.bg, color:est.color }}>{est.label}</span>
                 </div>
               </div>
@@ -245,6 +284,28 @@ export default function Comisiones() {
                 <div style={{ fontSize:13, color:'var(--ink-3)' }}>sobre {fmt(sel.precio_venta||0)} de precio de venta</div>
               </div>
 
+              {/* Reparto de comisión entre asesores */}
+              {sel.colaborador_email && (
+                <div style={{ border:'1px solid var(--rule)', borderRadius:12, padding:'16px 18px', marginBottom:20 }}>
+                  <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Reparto de comisión registrado</div>
+                  <div style={{ display:'flex', borderRadius:999, overflow:'hidden', height:10, marginBottom:14 }}>
+                    <div style={{ width:(sel.porcentaje_principal??100)+'%', background:'var(--accent)' }}/>
+                    <div style={{ width:(sel.porcentaje_colaborador??0)+'%', background:'oklch(0.65 0.06 240)' }}/>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:13 }}>
+                      <span style={{ display:'flex', alignItems:'center', gap:6 }}><span style={{ width:8, height:8, borderRadius:'50%', background:'var(--accent)' }}/> Vos · agente principal</span>
+                      <strong>{sel.porcentaje_principal??100}% · {fmt(sel.monto_principal ?? sel.monto_comision ?? 0)}</strong>
+                    </div>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:13 }}>
+                      <span style={{ display:'flex', alignItems:'center', gap:6 }}><span style={{ width:8, height:8, borderRadius:'50%', background:'oklch(0.65 0.06 240)' }}/> {sel.colaborador_nombre} · co-agente</span>
+                      <strong>{sel.porcentaje_colaborador??0}% · {fmt(sel.monto_colaborador_split ?? 0)}</strong>
+                    </div>
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:10 }}>Acuerdo registrado y visible para ambas partes desde {sel.split_registrado_at ? new Date(sel.split_registrado_at).toLocaleDateString('es-CR') : 'el registro del negocio'}.</div>
+                </div>
+              )}
+
               {/* Datos */}
               <div style={{ marginBottom:20 }}>
                 {[
@@ -264,26 +325,34 @@ export default function Comisiones() {
                 {sel.notas && <div style={{ marginTop:12, fontSize:13, color:'var(--ink-2)', background:'var(--bg)', padding:'10px 12px', borderRadius:8 }}>{sel.notas}</div>}
               </div>
 
-              {/* Cambiar estado */}
-              <div style={{ marginBottom:16 }}>
-                <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Actualizar estado</div>
-                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                  {Object.entries(ESTADOS).map(([key, val]) => (
-                    <button key={key} onClick={() => actualizarEstado(sel.id, key)} style={{ padding:'10px 14px', borderRadius:8, border:'1px solid '+(sel.estado===key?val.color:'var(--rule)'), background:sel.estado===key?val.bg:'transparent', color:sel.estado===key?val.color:'var(--ink-2)', fontSize:13, cursor:'pointer', textAlign:'left', display:'flex', alignItems:'center', gap:8 }}>
-                      {sel.estado===key?'✓':''} {val.label}
-                      {key==='cobrada'&&sel.estado!=='cobrada'&&<span style={{ marginLeft:'auto', fontSize:11, color:'var(--ink-3)' }}>Registra fecha de cierre</span>}
-                    </button>
-                  ))}
+              {sel._soyColaborador ? (
+                <div style={{ fontSize:12, color:'var(--ink-3)', background:'var(--bg)', borderRadius:8, padding:'12px 14px' }}>
+                  Este negocio lo registró {sel.asesor_nombre || sel.asesor_email}. Solo podés ver el reparto — la edición y el estado los gestiona quien lo registró.
                 </div>
-              </div>
+              ) : (
+                <>
+                  {/* Cambiar estado */}
+                  <div style={{ marginBottom:16 }}>
+                    <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Actualizar estado</div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                      {Object.entries(ESTADOS).map(([key, val]) => (
+                        <button key={key} onClick={() => actualizarEstado(sel.id, key)} style={{ padding:'10px 14px', borderRadius:8, border:'1px solid '+(sel.estado===key?val.color:'var(--rule)'), background:sel.estado===key?val.bg:'transparent', color:sel.estado===key?val.color:'var(--ink-2)', fontSize:13, cursor:'pointer', textAlign:'left', display:'flex', alignItems:'center', gap:8 }}>
+                          {sel.estado===key?'✓':''} {val.label}
+                          {key==='cobrada'&&sel.estado!=='cobrada'&&<span style={{ marginLeft:'auto', fontSize:11, color:'var(--ink-3)' }}>Registra fecha de cierre</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <button onClick={async () => {
-                await supabase.from('comisiones').delete().eq('id', sel.id)
-                setSel(null)
-                await reload()
-              }} style={{ width:'100%', padding:'10px', borderRadius:999, border:'1px solid oklch(0.85 0.06 20)', color:'oklch(0.45 0.08 20)', background:'transparent', fontSize:13, cursor:'pointer' }}>
-                Eliminar registro
-              </button>
+                  <button onClick={async () => {
+                    await supabase.from('comisiones').delete().eq('id', sel.id)
+                    setSel(null)
+                    await reload()
+                  }} style={{ width:'100%', padding:'10px', borderRadius:999, border:'1px solid oklch(0.85 0.06 20)', color:'oklch(0.45 0.08 20)', background:'transparent', fontSize:13, cursor:'pointer' }}>
+                    Eliminar registro
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </>
@@ -327,12 +396,56 @@ export default function Comisiones() {
               {/* Preview comisión */}
               {form.precio_venta && parseFloat(form.precio_venta) > 0 && (
                 <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:10, padding:'14px 16px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                  <span style={{ fontSize:13, color:'var(--ink-2)' }}>Tu comisión estimada</span>
+                  <span style={{ fontSize:13, color:'var(--ink-2)' }}>{form.tieneColaborador ? 'Comisión total del negocio' : 'Tu comisión estimada'}</span>
                   <span style={{ fontFamily:'var(--mono)', fontSize:20, fontWeight:600, color:'var(--accent)' }}>
                     {fmt(parseFloat(form.precio_venta.replace(/[^0-9.]/g,'')) * (parseFloat(form.porcentaje_comision)||4) / 100)}
                   </span>
                 </div>
               )}
+
+              {/* Colaboración entre asesores — split de comisión */}
+              <div style={{ border:'1px solid var(--rule)', borderRadius:10, padding:'14px 16px' }}>
+                <label style={{ display:'flex', alignItems:'center', gap:10, cursor:'pointer', marginBottom: form.tieneColaborador ? 14 : 0 }}>
+                  <input type="checkbox" checked={form.tieneColaborador} onChange={e => setF('tieneColaborador', e.target.checked)} />
+                  <span style={{ fontSize:13, fontWeight:500 }}>Cerré este negocio con otro asesor NIDO (50/50 u otro %)</span>
+                </label>
+                {form.tieneColaborador && (
+                  <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                      <div>
+                        <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Nombre del colaborador <span style={{ color:'var(--accent)' }}>*</span></label>
+                        <input className="field" placeholder="Nombre y apellido" value={form.colaborador_nombre} onChange={e => setF('colaborador_nombre', e.target.value)}/>
+                      </div>
+                      <div>
+                        <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Correo NIDO del colaborador <span style={{ color:'var(--accent)' }}>*</span></label>
+                        <input className="field" type="email" placeholder="correo@ejemplo.com" value={form.colaborador_email} onChange={e => setF('colaborador_email', e.target.value)}/>
+                      </div>
+                    </div>
+                    <div>
+                      <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>% para el colaborador (el resto queda para vos)</label>
+                      <input className="field" type="number" min="0" max="100" value={form.porcentaje_colaborador} onChange={e => setF('porcentaje_colaborador', e.target.value)}/>
+                    </div>
+                    {form.precio_venta && parseFloat(form.precio_venta) > 0 && (() => {
+                      const montoTotal = parseFloat(form.precio_venta.replace(/[^0-9.]/g,'')) * (parseFloat(form.porcentaje_comision)||4) / 100
+                      const pctCol = Math.min(100, Math.max(0, parseFloat(form.porcentaje_colaborador) || 0))
+                      const pctYo = 100 - pctCol
+                      return (
+                        <div style={{ background:'var(--bg)', borderRadius:8, padding:'12px 14px' }}>
+                          <div style={{ display:'flex', borderRadius:999, overflow:'hidden', height:8, marginBottom:10 }}>
+                            <div style={{ width:pctYo+'%', background:'var(--accent)' }}/>
+                            <div style={{ width:pctCol+'%', background:'oklch(0.65 0.06 240)' }}/>
+                          </div>
+                          <div style={{ display:'flex', justifyContent:'space-between', fontSize:12 }}>
+                            <span>Vos · {pctYo}% · <strong>{fmt(montoTotal*pctYo/100)}</strong></span>
+                            <span>{form.colaborador_nombre || 'Colaborador'} · {pctCol}% · <strong>{fmt(montoTotal*pctCol/100)}</strong></span>
+                          </div>
+                        </div>
+                      )
+                    })()}
+                    <p style={{ fontSize:11, color:'var(--ink-3)', lineHeight:1.5 }}>El reparto queda registrado aquí desde ahora — ambos asesores lo ven antes del cierre, conforme a la cláusula 6 del Contrato de Afiliación de Asesor.</p>
+                  </div>
+                )}
+              </div>
 
               <div>
                 <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Estado inicial</label>

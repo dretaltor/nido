@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { getPlanConfig } from '../../../lib/planes'
 import { COSTA_RICA } from '../../../lib/costaRicaData'
+import { addWatermark } from '../../../lib/watermark'
 
 const STEPS = [
   { key:'tipo', label:'Tipo', meta:'Operación y categoría' },
@@ -69,9 +70,10 @@ export default function NuevaPropiedad() {
       const preview = URL.createObjectURL(file)
       setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => [...prev, { id, url: preview, uploading: true }])
       try {
+        const watermarked = await addWatermark(file)
         const ext = file.name.split('.').pop()
         const path = 'propiedades/' + id + '.' + ext
-        const { error } = await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
+        const { error } = await supabase.storage.from('Propiedades').upload(path, watermarked, { upsert: true, contentType: 'image/jpeg' })
         if (!error) {
           const { data: urlData } = supabase.storage.from('Propiedades').getPublicUrl(path)
           setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => prev.map(p => p.id === id ? { id, url: urlData.publicUrl, uploading: false } : p))
