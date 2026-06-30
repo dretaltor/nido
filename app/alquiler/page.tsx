@@ -11,9 +11,9 @@ interface Propiedad {
   precio: number
   habitaciones?: number
   banos?: number
-  area_m2?: number
+  metros?: number
   fotos?: string[]
-  activa: boolean
+  disponible: boolean
 }
 
 export default function Alquiler() {
@@ -24,9 +24,10 @@ export default function Alquiler() {
   useEffect(() => {
     supabase
       .from('propiedades')
-      .select('id,titulo,tipo,provincia,canton,precio,habitaciones,banos,area_m2,fotos,activa')
+      .select('id,titulo,tipo,provincia,canton,precio,habitaciones,banos,metros,fotos,disponible')
       .eq('operacion', 'alquiler')
-      .eq('activa', true)
+      .eq('disponible', true)
+      .eq('verificacion_estado', 'aprobada')
       .order('created_at', { ascending: false })
       .then(({ data }) => {
         setPropiedades((data || []) as unknown as Propiedad[])
@@ -105,7 +106,7 @@ export default function Alquiler() {
                 <h2 style={{fontFamily:'var(--serif)',fontSize:40,fontWeight:400,lineHeight:1.05,marginBottom:8}}>{featured.titulo}</h2>
                 <div style={{fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:16}}>{[featured.canton, featured.provincia].filter(Boolean).join(', ')}</div>
                 <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',borderTop:'1px solid var(--rule)',paddingTop:16,gap:12}}>
-                  {[{v:featured.habitaciones??'—',l:'Habs'},{v:featured.banos??'—',l:'Baños'},{v:featured.area_m2??'—',l:'m²'}].map((s,i) => (
+                  {[{v:featured.habitaciones??'—',l:'Habs'},{v:featured.banos??'—',l:'Baños'},{v:featured.metros??'—',l:'m²'}].map((s,i) => (
                     <div key={i}><div style={{fontFamily:'var(--serif)',fontSize:22}}>{s.v}</div><div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginTop:2}}>{s.l}</div></div>
                   ))}
                 </div>
@@ -159,7 +160,7 @@ export default function Alquiler() {
                     <div style={{display:'flex',gap:14,fontSize:12,color:'var(--ink-2)'}}>
                       {p.habitaciones != null && <span>🛏 {p.habitaciones} hab</span>}
                       {p.banos != null && <span>🛁 {p.banos} baños</span>}
-                      {p.area_m2 != null && <span>◰ {p.area_m2} m²</span>}
+                      {p.metros != null && <span>◰ {p.metros} m²</span>}
                     </div>
                   </div>
                 </article>
