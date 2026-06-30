@@ -29,6 +29,7 @@ export default function NidoAgent() {
   const [resultado, setResultado] = useState('')
   const [loading, setLoading] = useState(false)
   const [copiado, setCopiado] = useState(false)
+  const [agentError, setAgentError] = useState('')
 
   useEffect(() => {
     const getUser = async () => {
@@ -41,7 +42,8 @@ export default function NidoAgent() {
   }, [])
 
   const ejecutarAgent = async () => {
-    if (!accionSeleccionada) { alert('Selecciona una acción'); return }
+    if (!accionSeleccionada) { setAgentError('Seleccioná una acción antes de continuar.'); return }
+    setAgentError('')
     setLoading(true)
     setResultado('')
 
@@ -132,6 +134,7 @@ export default function NidoAgent() {
               <textarea value={contextoExtra} onChange={e => setContextoExtra(e.target.value)} placeholder={accionSeleccionada === 'descripcion_propiedad' ? 'Ej: Casa 3 hab, 2 baños, 180m², piscina, jardín, Escazú, $285,000' : 'Agrega detalles adicionales...'} rows={3} style={{ width: '100%', padding: '0.7rem', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '0.9rem', color: '#111827', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} />
             </div>
 
+            {agentError && <p style={{ color:'#b91c1c', fontSize:'0.85rem', margin:'0 0 0.75rem', padding:'0.6rem 0.8rem', background:'#fef2f2', borderRadius:8, border:'1px solid #fecaca' }}>{agentError}</p>}
             <button onClick={ejecutarAgent} disabled={loading} style={{ width: '100%', padding: '0.9rem', borderRadius: '10px', border: 'none', backgroundColor: '#15803d', color: 'white', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer' }}>
               {loading ? '🤖 Generando...' : '🚀 Ejecutar NIDO Agent'}
             </button>

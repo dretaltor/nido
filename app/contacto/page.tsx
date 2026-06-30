@@ -18,12 +18,14 @@ export default function Contacto() {
   const [form, setForm] = useState({ nombre: '', email: '', telefono: '', mensaje: '', presupuesto: '', zona_interes: '' })
   const [loading, setLoading] = useState(false)
   const [exito, setExito] = useState(false)
+  const [error, setError] = useState('')
 
   const handleSubmit = async () => {
     if (!form.nombre || !form.email) {
-      alert('Por favor ingresá tu nombre y email')
+      setError('Por favor ingresá tu nombre y email.')
       return
     }
+    setError('')
     setLoading(true)
     await supabase.from('leads').insert({
       nombre: form.nombre,
@@ -105,6 +107,7 @@ export default function Contacto() {
             <textarea className="c-input" value={form.mensaje} onChange={e => setForm({...form, mensaje: e.target.value})} placeholder="Contanos qué tipo de propiedad buscás..." rows={4} style={{ resize:'vertical' }}/>
           </div>
 
+          {error && <p style={{ color:'oklch(0.45 0.08 20)', fontSize:13, marginBottom:12, textAlign:'center' }}>{error}</p>}
           <button onClick={handleSubmit} disabled={loading} style={{ width:'100%', padding:'14px', borderRadius:999, border:'none', background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, cursor:'pointer', opacity:loading?0.6:1 }}>
             {loading ? 'Enviando...' : 'Enviar mensaje →'}
           </button>

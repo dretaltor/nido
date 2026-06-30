@@ -21,6 +21,7 @@ export default function Contrato() {
   const [firmaFisicaUrl, setFirmaFisicaUrl] = useState('')
   const [uploadingFirma, setUploadingFirma] = useState(false)
   const [aceptaTerminos, setAceptaTerminos] = useState(false)
+  const [contratoError, setContratoError] = useState('')
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -88,7 +89,7 @@ export default function Contrato() {
       if (!res.ok) throw new Error(json.error || 'Error al subir archivo')
       setFirmaFisicaUrl(json.publicUrl)
     } catch (err: any) {
-      alert('Error al subir firma: ' + err.message)
+      setContratoError('Error al subir firma: ' + err.message)
     } finally {
       setUploadingFirma(false)
     }
@@ -404,7 +405,7 @@ export default function Contrato() {
                   <button onClick={async () => {
                     const { data: { session } } = await supabase.auth.getSession()
                     const res = await fetch('/api/contrato-pdf?correo='+user?.email+'&tipo='+tipoContrato, { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
-                    if (!res.ok) { alert('No se pudo cargar el contrato'); return }
+                    if (!res.ok) { setContratoError('No se pudo cargar el contrato'); return }
                     const html = await res.text()
                     const blob = new Blob([html], { type: 'text/html' })
                     window.open(URL.createObjectURL(blob), '_blank')
@@ -437,7 +438,7 @@ export default function Contrato() {
                     fd.append('tipo', 'gaudi')
                     const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
                     const json = await res.json()
-                    if (!res.ok) { alert('Error al subir: ' + (json.error || 'intenta de nuevo')); setUploadingFirma(false); return }
+                    if (!res.ok) { setContratoError('Error al subir: ' + (json.error || 'intenta de nuevo')); setUploadingFirma(false); return }
                     const publicUrl = json.publicUrl
                     setFirmaDigital(publicUrl)
                     setUploadingFirma(false)
@@ -472,6 +473,8 @@ export default function Contrato() {
                 He leído y acepto el contrato de {tipoContrato === 'exclusividad' ? 'corretaje con exclusividad de 90 días' : 'servicios inmobiliarios mensual'} de NIDO. Entiendo que al firmar autorizo a NIDO a gestionar mi propiedad según los términos descritos.
               </div>
             </div>
+
+            {contratoError && <p style={{ color:'oklch(0.45 0.08 20)', fontSize:13, marginBottom:12, padding:'10px 14px', background:'oklch(0.97 0.02 20)', borderRadius:8, border:'1px solid oklch(0.88 0.04 20)' }}>{contratoError}</p>}
 
             <div style={{ display:'flex', justifyContent:'space-between' }}>
               <button className="btn-outline" onClick={() => setStep(2)}>← Atrás</button>

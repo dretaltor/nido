@@ -1,6 +1,9 @@
 'use client'
-import { useState, Suspense } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { getPlanConfig } from '../../../lib/planes'
+import { useTrial } from '../../../lib/useTrial'
+import { supabase } from '../../../lib/supabase'
 
 const CURSOS: Record<number, any> = {
   1: {
@@ -739,6 +742,16 @@ function CursoInner() {
   const [respuestas, setRespuestas] = useState<Record<number,number>>({})
   const [enviado, setEnviado] = useState(false)
   const [aprobado, setAprobado] = useState(false)
+  const [planActivo, setPlanActivo] = useState('gratis')
+  const { bloqueado: trialBloqueado, checando: checandoTrial } = useTrial()
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }: { data: { user: { email?: string } | null } }) => {
+      if (!user) return
+      supabase.from('suscripciones').select('plan').eq('correo', user.email).maybeSingle()
+        .then(({ data }: { data: { plan: string } | null }) => { if (data?.plan) setPlanActivo(data.plan) })
+    })
+  }, [])
 
   if (!curso) return <div style={{padding:40,fontFamily:'sans-serif'}}>Curso no encontrado. <a href="/academia" style={{color:'green'}}>Volver</a></div>
 

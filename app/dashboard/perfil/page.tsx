@@ -29,16 +29,6 @@ function ValeriaPerfilResumen({ userId }: { userId: string }) {
       .then(({ data }) => { setPerfil(data); setLoading(false) })
   }, [userId])
 
-  if (!checandoTrial && trialBloqueado) return (
-    <main style={{ fontFamily:'sans-serif', minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'#f9f8f5' }}>
-      <div style={{ textAlign:'center', padding:40 }}>
-        <div style={{ fontSize:36, marginBottom:12 }}>⏳</div>
-        <p style={{ fontSize:16, marginBottom:16 }}>Tu prueba de NIDO Black terminó.</p>
-        <a href="/precios" style={{ background:'#1a1a1a', color:'white', padding:'12px 24px', borderRadius:999, textDecoration:'none', fontSize:14 }}>Ver planes →</a>
-      </div>
-    </main>
-  )
-
   if (loading) return <div style={{ fontSize:13, color:'var(--ink-3)' }}>Cargando...</div>
 
   if (!perfil?.valeria_onboarding_completo) return (
@@ -87,6 +77,7 @@ function VerificacionKYC({ userId }: { userId: string }) {
   const [estado, setEstado] = useState<any>(null)
   const [uploading, setUploading] = useState<string | null>(null)
   const [docs, setDocs] = useState({ cedula_frente_url:'', cedula_reverso_url:'', selfie_url:'' })
+  const [kycError, setKycError] = useState('')
   const refs = { cedula_frente: useRef<HTMLInputElement>(null), cedula_reverso: useRef<HTMLInputElement>(null), selfie: useRef<HTMLInputElement>(null) }
 
   useEffect(() => {
@@ -111,7 +102,7 @@ function VerificacionKYC({ userId }: { userId: string }) {
       setDocs(p => ({ ...p, [tipo + '_url']: publicUrl }))
       setEstado((p: any) => ({ ...p, verificacion_estado: 'en_revision' }))
     } catch (err: any) {
-      alert('Error al subir documento: ' + err.message)
+      setKycError('Error al subir documento: ' + err.message)
     } finally {
       setUploading(null)
     }
@@ -150,6 +141,7 @@ function VerificacionKYC({ userId }: { userId: string }) {
         </div>
       )}
 
+      {kycError && <div style={{ marginBottom:12, padding:'10px 14px', background:'oklch(0.97 0.03 20)', border:'1px solid oklch(0.85 0.06 20)', borderRadius:8, fontSize:13, color:'oklch(0.45 0.08 20)' }}>{kycError}</div>}
       <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
         {items.map(item => {
           const url = (docs as any)[item.key + '_url']
@@ -203,7 +195,7 @@ export default function Perfil() {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
       setUser(user)
-      const { data } = await supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,cedula_frente_url,cedula_reverso_url,selfie_url,compania,plan,valeria_perfil,valeria_onboarding_completo,contrato_asesor_aceptado,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,created_at').eq('id', user.id).maybeSingle()
+      const { data } = await supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,codigo_corredor,foto_url,verificado,verificacion_estado,verificacion_notas,cedula_frente_url,cedula_reverso_url,selfie_url,compania,plan,valeria_perfil,valeria_onboarding_completo,contrato_asesor_aceptado,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,created_at').eq('id', user.id).maybeSingle()
       setPerfil({
         nombre: data?.nombre || user.user_metadata?.nombre || '',
         correo: user.email || '',
@@ -281,7 +273,7 @@ export default function Perfil() {
         if (fb?.mensaje) setFotoFeedback({ buena: !!fb.buena, mensaje: fb.mensaje })
       } catch {}
     } catch (err: any) {
-      alert('Error al subir foto: ' + err.message)
+      setMsg('Error al subir foto: ' + err.message)
     } finally {
       setUploading(false)
     }

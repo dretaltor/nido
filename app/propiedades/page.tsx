@@ -26,20 +26,25 @@ function Icon({ name }: { name: string }) {
 
 interface Propiedad {
   id: string
-  ref_id: string
+  ref_id?: string
   titulo: string
-  descripcion: string
+  descripcion?: string
   precio: number
   tipo: string
-  operacion: string
+  operacion?: string
   habitaciones: number
   banos: number
-  metros: number
+  area_m2?: number
+  area_lote?: number
   zona: string
-  direccion: string
+  provincia?: string
+  canton?: string
+  distrito?: string
+  direccion?: string
   disponible: boolean
   asesor_nombre: string
   asesor_email: string
+  asesor_whatsapp?: string
   fotos?: string[]
   topografia?: string
   uso_suelo?: string
@@ -78,12 +83,12 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
         <h3 style={{ fontFamily: 'var(--serif)', fontSize: 22, fontWeight: 400, margin: '0 0 10px', lineHeight: 1.1 }}>{p.titulo}</h3>
         <div style={{ display: 'flex', gap: 16, fontSize: 13, color: 'var(--ink-3)', marginBottom: 12 }}>
           {p.tipo === 'lote' ? (
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="ruler" /> {p.metros} m² terreno</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="ruler" /> {p.area_m2 || p.area_lote} m² terreno</span>
           ) : (
             <>
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="bed" /> {p.habitaciones} hab</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="bath" /> {p.banos} baños</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="ruler" /> {p.metros} m²</span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><Icon name="ruler" /> {p.area_m2 || p.area_lote} m²</span>
             </>
           )}
         </div>
@@ -129,14 +134,14 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)', marginBottom: 28 }}>
             {(p.tipo === 'lote' ? [
-              { num: String(p.metros||0) + ' m²', label: 'Área terreno' },
+              { num: String(p.area_lote || p.area_m2 || 0) + ' m²', label: 'Área terreno' },
               { num: ({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as any)[(p as any).topografia] || '—', label: 'Topografía' },
               { num: ({residencial:'Residencial',comercial:'Comercial',agricola:'Agrícola',mixto:'Mixto',forestal:'Forestal'} as any)[(p as any).uso_suelo] || '—', label: 'Uso de suelo' },
               { num: 'Venta', label: 'Operación' },
             ] : [
               { num: p.habitaciones, label: 'Habitaciones' },
               { num: p.banos, label: 'Baños' },
-              { num: String(p.metros) + ' m²', label: 'Área' },
+              { num: String(p.area_m2 || 0) + ' m²', label: 'Área' },
               { num: 'Venta', label: 'Operación' },
             ]).map((s, i) => (
               <div key={i} style={{ padding: '16px 0', paddingLeft: i > 0 ? 16 : 0, borderRight: i < 3 ? '1px solid var(--rule-soft)' : 'none' }}>
@@ -250,7 +255,7 @@ export default function Propiedades() {
   const cargar = () => {
     setLoading(true)
     supabase.from('propiedades').select('id,titulo,tipo,precio,zona,provincia,canton,distrito,fotos,habitaciones,banos,area_m2,area_lote,asesor_email,asesor_nombre,asesor_whatsapp,created_at').eq('disponible', true).eq('verificacion_estado', 'aprobada').then(({ data }) => {
-      setPropiedades(data || [])
+      setPropiedades((data || []) as unknown as Propiedad[])
       setLoading(false)
     })
   }

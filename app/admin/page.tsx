@@ -834,6 +834,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
   const [msgInterno, setMsgInterno] = useState('')
   const [asuntoInterno, setAsuntoInterno] = useState('')
   const [updating, setUpdating] = useState(false)
+  const [contratoLoadError, setContratoLoadError] = useState('')
 
   const sus = suscripciones.find((s:any) => s.correo === sel.correo && s.activo)
 
@@ -1152,10 +1153,12 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
 
         {/* Ver PDF contrato */}
         <div style={{ marginBottom:20 }}>
+          {contratoLoadError && <p style={{ color:'oklch(0.45 0.08 20)', fontSize:12, margin:'0 0 8px', padding:'8px 12px', background:'oklch(0.97 0.02 20)', borderRadius:8, border:'1px solid oklch(0.88 0.04 20)' }}>{contratoLoadError}</p>}
           <button onClick={async () => {
             const { data: { session } } = await supabase.auth.getSession()
             const res = await fetch('/api/contrato-pdf?correo='+sel.propietario_correo+'&tipo='+sel.tipo, { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
-            if (!res.ok) { alert('No se pudo cargar el contrato'); return }
+            if (!res.ok) { setContratoLoadError('No se pudo cargar el contrato.'); return }
+            setContratoLoadError('')
             const html = await res.text()
             const blob = new Blob([html], { type: 'text/html' })
             window.open(URL.createObjectURL(blob), '_blank')

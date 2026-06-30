@@ -38,7 +38,6 @@ export default function RegistroPropietario() {
       return
     }
     try {
-      const { data: { user } } = await supabase.auth.getUser()
       // Crear cuenta en Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.correo,
@@ -46,7 +45,7 @@ export default function RegistroPropietario() {
         options: { data: { nombre: form.nombre, tipo: 'propietario' } }
       })
       if (authError) { setError(authError.message.includes('already') || authError.message.includes('registered') ? 'Este correo ya está registrado. Intentá iniciar sesión.' : authError.message); setLoading(false); return }
-      
+
       // Forzar login inmediato para que el metadata quede activo
       await supabase.auth.signInWithPassword({ email: form.correo, password: form.contrasena })
       // Guardar tipo en localStorage para el wizard
@@ -74,7 +73,7 @@ export default function RegistroPropietario() {
         })
       ]).catch(console.error)
       await supabase.from('propietarios').upsert({
-        user_id: user?.id,
+        user_id: authData.user?.id,
         nombre: form.nombre,
         cedula: form.cedula,
         telefono: form.telefono,

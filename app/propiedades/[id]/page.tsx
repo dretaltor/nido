@@ -45,6 +45,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
   const [fav, setFav] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [imgError, setImgError] = useState(false)
   const [activeFoto, setActiveFoto] = useState(0)
   const [perfilAsesor, setPerfilAsesor] = useState<any>(null)
@@ -53,7 +54,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
   useEffect(() => {
 // Auth handled by AuthContext
     supabase.from('propiedades').select('id,titulo,descripcion,tipo,precio,zona,provincia,canton,distrito,disponible,fotos,habitaciones,banos,area_m2,area_lote,parqueos,amenidades,asesor_email,asesor_nombre,asesor_whatsapp,verificacion_estado,created_at').eq('id', id).single().then(({ data }) => {
-      setPropiedad(data)
+      setPropiedad(data as Propiedad | null)
       setLoading(false)
       if (data && data.asesor_email) {
         supabase.from('perfiles').select('correo,telefono,nombre,foto_url').eq('correo', data.asesor_email).maybeSingle()
@@ -105,6 +106,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
   return (
     <main style={{fontFamily:"'DM Sans',sans-serif",background:'var(--bg)',minHeight:'100vh',color:'var(--ink)'}}>
       <style>{CSS}</style>
+      {copied && <div style={{position:'fixed',bottom:24,left:'50%',transform:'translateX(-50%)',background:'var(--ink)',color:'white',padding:'10px 24px',borderRadius:999,fontSize:13,zIndex:1000,pointerEvents:'none'}}>¡Enlace copiado! Compartilo con tu cliente.</div>}
 
       <nav style={{position:'sticky',top:0,zIndex:50,background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--rule)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 40px',maxWidth:1200,margin:'0 auto'}}>
@@ -123,7 +125,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                   navigator.share({ title: propiedad.titulo, text: '¡Mirá esta propiedad en NIDO! ' + propiedad.titulo + ' - ' + propiedad.zona, url })
                 } else {
                   navigator.clipboard.writeText(url)
-                  alert('¡Enlace copiado! Compartilo con tu cliente.')
+                  setCopied(true); setTimeout(() => setCopied(false), 2500)
                 }
               }}
               title="Compartir ficha con cliente"

@@ -45,9 +45,9 @@ export default function EditarPropiedad() {
     if (!files) return
     const actuales = (p.fotos || []).length
     const disponibles = 15 - actuales
-    if (disponibles <= 0) { alert('Ya tenés el máximo de 15 fotos. Eliminá alguna para subir nuevas.'); e.target.value=''; return }
+    if (disponibles <= 0) { setMsg('Ya tenés el máximo de 15 fotos. Eliminá alguna para subir nuevas.'); e.target.value=''; return }
     const filesToUpload = Array.from(files).slice(0, disponibles)
-    if (files.length > disponibles) alert('Solo se subirán ' + disponibles + ' fotos (límite de 15 por propiedad).')
+    if (files.length > disponibles) setMsg('Solo se subirán ' + disponibles + ' fotos (límite de 15 por propiedad).')
     setUploadingPhoto(true)
     const nuevas: string[] = []
     for (let i = 0; i < filesToUpload.length; i++) {

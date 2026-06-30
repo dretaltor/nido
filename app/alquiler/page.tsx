@@ -1,20 +1,44 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../../lib/supabase'
 
-const RENTALS = [
-  { id:'r1', title:'Loft del Cafetal', loc:'Barrio Escalante, San José', price:1450, beds:1, baths:1, area:78, hue:200, term:'Largo plazo', furn:'Amueblado', badge:'Disponible ya', ai:'Coincide con tu rango' },
-  { id:'r2', title:'Aurora 502', loc:'Sabana Norte, San José', price:2400, beds:2, baths:2, area:110, hue:240, term:'Largo plazo', furn:'Sin muebles', badge:'Sin estrenar', ai:'Vista al parque' },
-  { id:'r3', title:'Casa del Mar', loc:'Tamarindo, Guanacaste', price:3800, beds:3, baths:3, area:220, hue:50, term:'Mensual', furn:'Amueblado', badge:'Pet friendly', ai:'300m a la playa' },
-  { id:'r4', title:'Estudio Cipresal', loc:'Heredia Centro', price:850, beds:1, baths:1, area:42, hue:130, term:'Largo plazo', furn:'Amueblado', badge:'Económico', ai:'Cerca del tren' },
-  { id:'r5', title:'Villa Pacífica', loc:'Santa Teresa', price:5200, beds:4, baths:4, area:300, hue:60, term:'Estacional', furn:'Amueblado', badge:'Con piscina', ai:'Reservada Dic-Mar' },
-  { id:'r6', title:'Apto Curridabat', loc:'Curridabat, San José', price:1650, beds:2, baths:2, area:95, hue:80, term:'Largo plazo', furn:'Semi', badge:'Coworking', ai:'Edificio nuevo' },
-]
+interface Propiedad {
+  id: string
+  titulo: string
+  tipo: string
+  provincia: string
+  canton?: string
+  precio: number
+  habitaciones?: number
+  banos?: number
+  area_m2?: number
+  fotos?: string[]
+  activa: boolean
+}
 
 export default function Alquiler() {
-  const [tab, setTab] = useState('Largo plazo')
-  const filtered = RENTALS.filter(r => tab==='Todos' || r.term===tab)
+  const [tab, setTab] = useState('Todos')
+  const [propiedades, setPropiedades] = useState<Propiedad[]>([])
+  const [cargando, setCargando] = useState(true)
+
+  useEffect(() => {
+    supabase
+      .from('propiedades')
+      .select('id,titulo,tipo,provincia,canton,precio,habitaciones,banos,area_m2,fotos,activa')
+      .eq('operacion', 'alquiler')
+      .eq('activa', true)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setPropiedades((data || []) as unknown as Propiedad[])
+        setCargando(false)
+      })
+  }, [])
+
+  const tiposDisponibles = ['Todos', ...Array.from(new Set(propiedades.map(p => p.tipo))).filter(Boolean)]
+  const filtered = propiedades.filter(p => tab === 'Todos' || p.tipo === tab)
+  const featured = propiedades[0] || null
   const fmt = (n: number) => '$' + n.toLocaleString('en-US')
-  const featured = RENTALS[2]
+  const hueForTipo = (tipo: string) => ({ 'casa':50, 'apartamento':200, 'lote':130, 'local':280 }[tipo] ?? 80)
 
   return (
     <main style={{fontFamily:"'DM Sans',sans-serif",background:'var(--bg)',minHeight:'100vh',color:'var(--ink)'}}>
@@ -48,7 +72,7 @@ export default function Alquiler() {
 
       <section className="sub-hero-grid" style={{maxWidth:1600,margin:'0 auto',padding:'64px 40px 32px',display:'grid',gridTemplateColumns:'1.3fr 1fr',gap:60,alignItems:'end',borderBottom:'1px solid var(--rule)'}}>
         <div>
-          <div style={{fontSize:12,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:16}}>Alquileres · 412 propiedades activas</div>
+          <div style={{fontSize:12,letterSpacing:'0.18em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:16}}>Alquileres · {cargando ? '...' : propiedades.length} propiedades activas</div>
           <h1 style={{fontFamily:'var(--serif)',fontSize:'clamp(48px,5.5vw,84px)',fontWeight:400,lineHeight:0.98,letterSpacing:'-0.012em',margin:0}}>
             Vivir <em style={{fontStyle:'italic',color:'var(--accent)'}}>liviano.</em><br/>Alquilar <em style={{fontStyle:'italic',color:'var(--accent)'}}>bien.</em>
           </h1>
@@ -59,64 +83,90 @@ export default function Alquiler() {
       <div className="section-pad" style={{maxWidth:1600,margin:'0 auto',padding:'56px 40px'}}>
         <div style={{display:'flex',gap:12,flexWrap:'wrap',alignItems:'center',paddingBottom:30,borderBottom:'1px solid var(--rule)',marginBottom:36}}>
           <div style={{display:'inline-flex',border:'1px solid var(--rule)',borderRadius:999,padding:4,background:'var(--bg-card)'}}>
-            {['Largo plazo','Mensual','Estacional','Todos'].map(t => (
-              <button key={t} onClick={() => setTab(t)} style={{padding:'10px 22px',border:0,background:tab===t?'var(--ink)':'transparent',color:tab===t?'var(--bg)':'var(--ink-2)',borderRadius:999,fontSize:13,cursor:'pointer',transition:'all 0.15s'}}>{t}</button>
+            {tiposDisponibles.map(t => (
+              <button key={t} onClick={() => setTab(t)} style={{padding:'10px 22px',border:0,background:tab===t?'var(--ink)':'transparent',color:tab===t?'var(--bg)':'var(--ink-2)',borderRadius:999,fontSize:13,cursor:'pointer',transition:'all 0.15s',textTransform:'capitalize'}}>{t}</button>
             ))}
           </div>
           <span style={{marginLeft:'auto',fontSize:13,color:'var(--ink-3)'}}>{filtered.length} resultados</span>
         </div>
 
-        <div className="featured-grid" style={{display:'grid',gridTemplateColumns:'1.4fr 1fr',border:'1px solid var(--rule)',borderRadius:10,overflow:'hidden',marginBottom:56,background:'var(--bg-card)'}}>
-          <div style={{aspectRatio:'4/3',background:`repeating-linear-gradient(135deg,oklch(0.84 0.014 200) 0,oklch(0.84 0.014 200) 16px,oklch(0.89 0.012 200) 16px,oklch(0.89 0.012 200) 32px)`,display:'grid',placeItems:'center'}}>
-            <span style={{fontFamily:'var(--mono)',fontSize:12,color:'oklch(0.40 0.03 200)',letterSpacing:'0.08em'}}>CASA DEL MAR · ESTACIONAL</span>
+        {cargando ? (
+          <div style={{border:'1px solid var(--rule)',borderRadius:10,overflow:'hidden',marginBottom:56,background:'var(--bg-card)',padding:40,textAlign:'center',color:'var(--ink-3)',fontSize:14}}>
+            Cargando propiedades…
           </div>
-          <div style={{padding:'36px 32px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
-            <div>
-              <div style={{fontSize:10,letterSpacing:'0.16em',textTransform:'uppercase',color:'var(--accent)',marginBottom:12}}>Destacado de la semana</div>
-              <h2 style={{fontFamily:'var(--serif)',fontSize:40,fontWeight:400,lineHeight:1.05,marginBottom:8}}>{featured.title}</h2>
-              <div style={{fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:16}}>{featured.loc}</div>
-              <p style={{fontSize:15,color:'var(--ink-2)',lineHeight:1.6,marginBottom:20}}>Casa frente al mar con piscina privada y acceso directo a la playa. Ideal para nómadas digitales y familias en temporada alta.</p>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',borderTop:'1px solid var(--rule)',paddingTop:16,gap:12}}>
-                {[{v:featured.beds,l:'Habs'},{v:featured.baths,l:'Baños'},{v:featured.area,l:'m²'},{v:'4.9 ★',l:'Rating'}].map((s,i) => (
-                  <div key={i}><div style={{fontFamily:'var(--serif)',fontSize:22}}>{s.v}</div><div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginTop:2}}>{s.l}</div></div>
-                ))}
+        ) : featured ? (
+          <div className="featured-grid" style={{display:'grid',gridTemplateColumns:'1.4fr 1fr',border:'1px solid var(--rule)',borderRadius:10,overflow:'hidden',marginBottom:56,background:'var(--bg-card)'}}>
+            <div style={{aspectRatio:'4/3',background: featured.fotos?.[0] ? `url(${featured.fotos[0]}) center/cover` : `repeating-linear-gradient(135deg,oklch(0.84 0.014 ${hueForTipo(featured.tipo)}) 0,oklch(0.84 0.014 ${hueForTipo(featured.tipo)}) 16px,oklch(0.89 0.012 ${hueForTipo(featured.tipo)}) 16px,oklch(0.89 0.012 ${hueForTipo(featured.tipo)}) 32px)`,display:'grid',placeItems:'center'}}>
+              {!featured.fotos?.[0] && <span style={{fontFamily:'var(--mono)',fontSize:12,color:`oklch(0.40 0.03 ${hueForTipo(featured.tipo)})`,letterSpacing:'0.08em'}}>{featured.titulo?.toUpperCase()} · {featured.tipo?.toUpperCase()}</span>}
+            </div>
+            <div style={{padding:'36px 32px',display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+              <div>
+                <div style={{fontSize:10,letterSpacing:'0.16em',textTransform:'uppercase',color:'var(--accent)',marginBottom:12}}>Destacado</div>
+                <h2 style={{fontFamily:'var(--serif)',fontSize:40,fontWeight:400,lineHeight:1.05,marginBottom:8}}>{featured.titulo}</h2>
+                <div style={{fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:16}}>{[featured.canton, featured.provincia].filter(Boolean).join(', ')}</div>
+                <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',borderTop:'1px solid var(--rule)',paddingTop:16,gap:12}}>
+                  {[{v:featured.habitaciones??'—',l:'Habs'},{v:featured.banos??'—',l:'Baños'},{v:featured.area_m2??'—',l:'m²'}].map((s,i) => (
+                    <div key={i}><div style={{fontFamily:'var(--serif)',fontSize:22}}>{s.v}</div><div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginTop:2}}>{s.l}</div></div>
+                  ))}
+                </div>
+              </div>
+              <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginTop:24,paddingTop:20,borderTop:'1px solid var(--rule)'}}>
+                <div style={{fontFamily:'var(--mono)',fontSize:24}}>{fmt(featured.precio)}<span style={{fontSize:12,color:'var(--ink-3)',marginLeft:4,fontFamily:'var(--sans)'}}>/mes</span></div>
+                <a href={`/propiedades/${featured.id}`} style={{background:'var(--ink)',color:'var(--bg)',padding:'10px 20px',borderRadius:999,fontSize:13}}>Ver propiedad →</a>
               </div>
             </div>
-            <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginTop:24,paddingTop:20,borderTop:'1px solid var(--rule)'}}>
-              <div style={{fontFamily:'var(--mono)',fontSize:24}}>{fmt(featured.price)}<span style={{fontSize:12,color:'var(--ink-3)',marginLeft:4,fontFamily:'var(--sans)'}}>/mes</span></div>
-              <a href="/contacto" style={{background:'var(--ink)',color:'var(--bg)',padding:'10px 20px',borderRadius:999,fontSize:13}}>Reservar visita →</a>
-            </div>
           </div>
-        </div>
+        ) : null}
 
         <h2 style={{fontFamily:'var(--serif)',fontSize:28,fontWeight:400,margin:'0 0 24px',borderBottom:'1px solid var(--rule)',paddingBottom:14}}>
-          Más alquileres en {tab.toLowerCase()}
+          {tab === 'Todos' ? 'Todos los alquileres' : tab.charAt(0).toUpperCase() + tab.slice(1) + 's en alquiler'}
         </h2>
 
-        <div className="rental-grid" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'32px 28px'}}>
-          {filtered.map(r => (
-            <article key={r.id} style={{cursor:'pointer',display:'flex',flexDirection:'column'}}>
-              <div style={{position:'relative',aspectRatio:'4/3',borderRadius:6,overflow:'hidden',background:`repeating-linear-gradient(135deg,oklch(0.86 0.012 ${r.hue}) 0,oklch(0.86 0.012 ${r.hue}) 14px,oklch(0.91 0.008 ${r.hue}) 14px,oklch(0.91 0.008 ${r.hue}) 28px)`,display:'grid',placeItems:'center'}}>
-                <span style={{fontFamily:'var(--mono)',fontSize:11,color:`oklch(0.42 0.02 ${r.hue})`,letterSpacing:'0.08em'}}>{r.title.toUpperCase()}</span>
-                <div style={{position:'absolute',top:12,left:12,display:'flex',gap:6}}>
-                  <span className="badge dark">{r.badge}</span>
-                  <span className="badge">{r.furn}</span>
+        {cargando ? (
+          <div className="rental-grid" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'32px 28px'}}>
+            {Array.from({length:6}).map((_,i) => (
+              <div key={i} style={{borderRadius:6,overflow:'hidden',opacity:0.5}}>
+                <div style={{aspectRatio:'4/3',background:'var(--rule-soft)',borderRadius:6}}/>
+                <div style={{padding:'16px 2px 0'}}>
+                  <div style={{height:11,background:'var(--rule-soft)',borderRadius:4,marginBottom:8,width:'60%'}}/>
+                  <div style={{height:20,background:'var(--rule-soft)',borderRadius:4,marginBottom:8}}/>
+                  <div style={{height:12,background:'var(--rule-soft)',borderRadius:4,width:'70%'}}/>
                 </div>
               </div>
-              <div style={{padding:'16px 2px 0'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
-                  <span style={{fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--ink-3)'}}>{r.loc}</span>
-                  <span style={{fontFamily:'var(--mono)',fontSize:13}}>{fmt(r.price)}<small style={{color:'var(--ink-3)',fontFamily:'var(--sans)',marginLeft:2}}>/mes</small></span>
-                </div>
-                <h3 style={{fontFamily:'var(--serif)',fontSize:22,lineHeight:1.15,fontWeight:400,margin:'6px 0 8px'}}>{r.title}</h3>
-                <div style={{display:'flex',gap:14,fontSize:12,color:'var(--ink-2)'}}>
-                  <span>🛏 {r.beds} hab</span><span>🛁 {r.baths} baños</span><span>◰ {r.area} m²</span>
-                </div>
-                <div className="ai-tag"><span className="ai-glyph">V</span>{r.ai}</div>
-              </div>
-            </article>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <p style={{color:'var(--ink-3)',fontSize:15,padding:'40px 0',textAlign:'center'}}>No hay propiedades disponibles en esta categoría.</p>
+        ) : (
+          <div className="rental-grid" style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:'32px 28px'}}>
+            {filtered.map(p => {
+              const hue = hueForTipo(p.tipo)
+              const loc = [p.canton, p.provincia].filter(Boolean).join(', ')
+              return (
+                <article key={p.id} onClick={() => window.location.href = `/propiedades/${p.id}`} style={{cursor:'pointer',display:'flex',flexDirection:'column'}}>
+                  <div style={{position:'relative',aspectRatio:'4/3',borderRadius:6,overflow:'hidden',background:p.fotos?.[0]?`url(${p.fotos[0]}) center/cover`:`repeating-linear-gradient(135deg,oklch(0.86 0.012 ${hue}) 0,oklch(0.86 0.012 ${hue}) 14px,oklch(0.91 0.008 ${hue}) 14px,oklch(0.91 0.008 ${hue}) 28px)`,display:'grid',placeItems:'center'}}>
+                    {!p.fotos?.[0] && <span style={{fontFamily:'var(--mono)',fontSize:11,color:`oklch(0.42 0.02 ${hue})`,letterSpacing:'0.08em'}}>{p.titulo?.toUpperCase()}</span>}
+                    <div style={{position:'absolute',top:12,left:12}}>
+                      <span className="badge dark" style={{textTransform:'capitalize'}}>{p.tipo}</span>
+                    </div>
+                  </div>
+                  <div style={{padding:'16px 2px 0'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
+                      <span style={{fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--ink-3)'}}>{loc}</span>
+                      <span style={{fontFamily:'var(--mono)',fontSize:13}}>{fmt(p.precio)}<small style={{color:'var(--ink-3)',fontFamily:'var(--sans)',marginLeft:2}}>/mes</small></span>
+                    </div>
+                    <h3 style={{fontFamily:'var(--serif)',fontSize:22,lineHeight:1.15,fontWeight:400,margin:'6px 0 8px'}}>{p.titulo}</h3>
+                    <div style={{display:'flex',gap:14,fontSize:12,color:'var(--ink-2)'}}>
+                      {p.habitaciones != null && <span>🛏 {p.habitaciones} hab</span>}
+                      {p.banos != null && <span>🛁 {p.banos} baños</span>}
+                      {p.area_m2 != null && <span>◰ {p.area_m2} m²</span>}
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <div style={{background:'var(--ink)',margin:'0 40px 40px',borderRadius:16,padding:'48px 48px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:48}}>

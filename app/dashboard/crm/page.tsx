@@ -6,8 +6,8 @@ import { getPlanConfig } from '../../../lib/planes'
 
 interface Lead {
   id: string; nombre: string; email: string; telefono: string
-  mensaje: string; zona_interes: string; presupuesto: string
-  tipo_busqueda: string; estado: string; created_at: string
+  mensaje: string; zona_interes?: string; presupuesto?: string
+  tipo_busqueda?: string; estado: string; created_at: string
   propiedad_id?: string; propiedad_titulo?: string; propiedad?: string
 }
 
@@ -49,6 +49,7 @@ export default function CRM() {
   const [filtro, setFiltro] = useState('todos')
   const [sel, setSel] = useState<Lead | null>(null)
   const [visitaOpen, setVisitaOpen] = useState(false)
+  const [toast, setToast] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiMensaje, setAiMensaje] = useState('')
   const [selVO, setSelVO] = useState<any>(null)
@@ -183,6 +184,7 @@ export default function CRM() {
   return (
     <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }}>
       <style>{CSS}</style>
+      {toast && <div style={{ position:'fixed', bottom:24, left:'50%', transform:'translateX(-50%)', background:'var(--ink)', color:'white', padding:'10px 24px', borderRadius:999, fontSize:13, zIndex:1000, pointerEvents:'none' }}>{toast}</div>}
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1400, margin:'0 auto' }}>
@@ -487,7 +489,7 @@ export default function CRM() {
               asesorEmail={userEmail}
               asesorWhatsapp={''}
               onClose={() => setVisitaOpen(false)}
-              onSuccess={() => { setVisitaOpen(false); alert('Visita agendada ✓') }}
+              onSuccess={() => { setVisitaOpen(false); setToast('Visita agendada ✓'); setTimeout(() => setToast(''), 3000) }}
             />
           </div>
         </>

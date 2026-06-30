@@ -5,12 +5,14 @@ interface PropiedadMapa {
   id: string
   titulo: string
   precio: number
-  operacion: string
+  operacion?: string
   zona: string
   distrito?: string
   provincia?: string
+  canton?: string
   habitaciones: number
-  metros: number
+  area_m2?: number
+  area_lote?: number
   tipo?: string
 }
 
@@ -107,7 +109,7 @@ export default function MapaInteractivo({ propiedades, onSelect }: Props) {
           })
           el.addEventListener('click', () => { if (onSelect) onSelect(p.id) })
 
-          const detalle = p.tipo === 'lote' ? (p.metros + 'm² terreno') : (p.habitaciones + ' hab · ' + p.metros + 'm²')
+          const detalle = p.tipo === 'lote' ? ((p.area_lote || p.area_m2 || 0) + 'm² terreno') : (p.habitaciones + ' hab · ' + (p.area_m2 || 0) + 'm²')
           const popup = new mapboxgl.Popup({ offset: 25, closeButton: false })
             .setHTML('<div style="font-family:DM Sans,sans-serif;padding:4px;min-width:150px"><div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#9CA3AF;margin-bottom:4px">' + p.zona + '</div><div style="font-weight:500;color:#1a1a1a;margin-bottom:4px">' + p.titulo + '</div><div style="font-size:12px;color:#6B7280">' + detalle + '</div></div>')
 

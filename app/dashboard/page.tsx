@@ -112,7 +112,7 @@ export default function Dashboard() {
         if (props && props.length > 0) {
           const propIds = props.map((p:any) => p.id)
           supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,relacion,created_at').in('propiedad_id', propIds).neq('asesor_email', user.email).order('created_at', { ascending: false })
-            .then(({ data, error }) => { console.log('ofertasRecibidas:', data, error); setOfertasRecibidas(data || []) })
+            .then(({ data }) => { setOfertasRecibidas(data || []) })
         }
         setPropiedades(props || [])
         setLeads(leadsData || [])

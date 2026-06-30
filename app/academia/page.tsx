@@ -22,6 +22,7 @@ const CSS = `
   :root { --bg:oklch(0.97 0.005 80);--bg-elev:oklch(0.985 0.004 80);--bg-card:oklch(0.99 0.003 80);--ink:oklch(0.20 0.005 80);--ink-2:oklch(0.42 0.005 80);--ink-3:oklch(0.60 0.005 80);--rule:oklch(0.88 0.006 80);--rule-soft:oklch(0.93 0.005 80);--accent:oklch(0.42 0.06 150);--accent-tint:oklch(0.95 0.02 150);--serif:"Cormorant Garamond",serif;--sans:"DM Sans",system-ui,sans-serif;--mono:"JetBrains Mono",monospace; }
   a{color:inherit;text-decoration:none} button{font:inherit;color:inherit;cursor:pointer}
   @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  @keyframes pulse{0%,100%{opacity:0.6}50%{opacity:0.9}}
   .chip{padding:7px 14px;border-radius:999px;border:1px solid var(--rule);font-size:12px;color:var(--ink-2);cursor:pointer;transition:all 0.15s;background:transparent}
   .chip:hover{border-color:var(--ink);color:var(--ink)}
   .chip.active{background:var(--ink);color:var(--bg);border-color:var(--ink)}
@@ -38,13 +39,15 @@ export default function Academia() {
   const [nivel, setNivel] = useState('Todos')
   const [sel, setSel] = useState<typeof CURSOS[0] | null>(null)
   const [planActivo, setPlanActivo] = useState<string | null>(null)
+  const [cargandoPlan, setCargandoPlan] = useState(true)
   const { bloqueado: trialBloqueado, checando: checandoTrial } = useTrial()
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user?.email) return
+      if (!user?.email) { setCargandoPlan(false); return }
       const { data } = await supabase.from('suscripciones').select('plan,activo').eq('correo', user.email).maybeSingle()
       if (data?.activo) setPlanActivo(data.plan)
+      setCargandoPlan(false)
     })
   }, [])
 
@@ -125,8 +128,19 @@ export default function Academia() {
 
         {/* Grid cursos */}
         <div className="cursos-grid" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:20, marginBottom:40 }}>
-          {filtrados.map(c => (
-            <div key={c.id} className="curso-card" onClick={() => { if(c.gratis || todoDesbloqueado) { window.location.href = '/academia/curso?id=' + c.id } else { setSel(c) } }}>
+          {(cargandoPlan || checandoTrial) ? (
+            Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, overflow:'hidden', animation:'pulse 1.5s ease-in-out infinite', opacity: 0.6 }}>
+                <div style={{ height:120, background:'var(--rule-soft)' }}/>
+                <div style={{ padding:'16px 18px' }}>
+                  <div style={{ height:12, background:'var(--rule-soft)', borderRadius:6, marginBottom:10, width:'40%' }}/>
+                  <div style={{ height:18, background:'var(--rule-soft)', borderRadius:6, marginBottom:8 }}/>
+                  <div style={{ height:14, background:'var(--rule-soft)', borderRadius:6, width:'80%' }}/>
+                </div>
+              </div>
+            ))
+          ) : filtrados.map(c => (
+            <div key={c.id} className="curso-card" onClick={() => { if(c.gratis || todoDesbloqueado) { window.location.href = '/academia/curso?id='+c.id } else { setSel(c) } }}>
               <div style={{ height:120, background:`oklch(0.88 0.03 ${c.hue})`, display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
                 <span style={{ fontSize:36 }}>{c.icon}</span>
                 {c.gratis && <span style={{ position:'absolute', top:10, right:10, background:'var(--accent)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em', fontWeight:500 }}>GRATIS</span>}
@@ -146,7 +160,8 @@ export default function Academia() {
                 </div>
               </div>
             </div>
-          ))}
+          ))
+          }
         </div>
 
         {/* Banner Pro */}
