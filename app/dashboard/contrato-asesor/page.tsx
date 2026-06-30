@@ -62,7 +62,7 @@ export default function ContratoAsesor() {
               <p style={{ marginBottom:16 }}>El Asesor actúa como corredor independiente afiliado a la plataforma NIDO, sin relación laboral ni de subordinación con NIDO. El Asesor es responsable de la veracidad de la información de las propiedades que publica.</p>
 
               <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>2. Comisión y pagos</h3>
-              <p style={{ marginBottom:16 }}>NIDO no participa en las comisiones de corretaje pactadas entre el Asesor y el Propietario, salvo que se indique lo contrario en un acuerdo específico por propiedad. Las suscripciones a planes Pro/Enterprise son independientes de las comisiones de venta.</p>
+              <p style={{ marginBottom:16 }}>Como regla general, NIDO no participa en las comisiones de corretaje pactadas entre el Asesor y el Propietario cuando el Asesor gestiona la negociación de forma independiente. Esto cambia en dos casos: (a) si el Asesor forma parte del Equipo NIDO, la comisión se reparte 50%/50% entre el Asesor y NIDO conforme al Addendum Equipo NIDO; y (b) si la propiedad está sujeta a un Contrato de Corretaje directo entre el Propietario y NIDO, NIDO cobra su comisión directamente del Propietario conforme a ese contrato, de forma independiente a cualquier comisión del Asesor. Las suscripciones a los planes Despega, Elite o Black son independientes de las comisiones de venta.</p>
 
               <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>3. Verificación de identidad</h3>
               <p style={{ marginBottom:16 }}>El Asesor declara que la información y documentos de verificación (KYC) suministrados son veraces y vigentes. NIDO puede suspender la cuenta ante inconsistencias.</p>
@@ -86,8 +86,20 @@ export default function ContratoAsesor() {
               <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>7. Responsabilidad y conducta profesional</h3>
               <p style={{ marginBottom:16 }}>El Asesor se compromete a actuar con honestidad ante propietarios, compradores y otros Asesores. NIDO puede suspender o dar de baja cuentas ante denuncias verificadas de fraude, suplantación de identidad, o incumplimiento reiterado de acuerdos de colaboración.</p>
 
-              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>8. Terminación</h3>
-              <p>Cualquiera de las partes puede terminar esta afiliación en cualquier momento. NIDO se reserva el derecho de suspender cuentas que incumplan estos términos.</p>
+              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>8. Confidencialidad</h3>
+              <p style={{ marginBottom:16 }}>El Asesor se compromete a mantener confidencial la información de leads, propietarios, compradores y demás datos a los que acceda a través del CRM de NIDO, y a no utilizarla para fines distintos a la gestión de las propiedades y negociaciones autorizadas por la plataforma. Esta obligación se mantiene vigente después de finalizada la afiliación.</p>
+
+              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>9. Protección de datos personales</h3>
+              <p style={{ marginBottom:16 }}>El tratamiento de los datos personales del Asesor y de los terceros que gestiona a través de NIDO (propietarios, compradores, leads) se rige por la Ley N° 8968 de Costa Rica y por la <a href="/privacidad" style={{ color:'oklch(0.42 0.06 150)' }}>Política de Privacidad</a> de NIDO. El Asesor se compromete a tratar los datos personales a los que accede conforme a esa misma ley y únicamente para los fines propios de su actividad en la plataforma.</p>
+
+              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>10. Terminación</h3>
+              <p style={{ marginBottom:16 }}>Cualquiera de las partes puede terminar esta afiliación en cualquier momento. NIDO se reserva el derecho de suspender cuentas que incumplan estos términos.</p>
+
+              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>11. Propiedades y leads al finalizar la afiliación</h3>
+              <p style={{ marginBottom:16 }}>Al terminar la afiliación, las propiedades publicadas por el Asesor permanecen visibles en el portal por un período razonable mientras se reasignan a otro Asesor o se coordina con el Propietario, salvo solicitud expresa de retiro inmediato por parte del Propietario. El Asesor pierde acceso al CRM y a los datos de contacto de los leads y propietarios desde el momento en que la afiliación termina.</p>
+
+              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>12. Validez de la aceptación electrónica</h3>
+              <p>La aceptación de este contrato mediante la casilla de verificación de abajo constituye una manifestación de voluntad válida y vinculante conforme a la Ley N° 8454 de Certificados, Firmas Digitales y Documentos Electrónicos de Costa Rica. NIDO conserva un registro electrónico de la fecha y hora de aceptación.</p>
             </div>
 
             <label style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:24, fontSize:14, cursor:'pointer' }}>

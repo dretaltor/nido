@@ -31,7 +31,7 @@ export default function Privacidad() {
             Política de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>privacidad.</em>
           </h1>
           <p style={{ fontSize:14, color:'var(--ink-3)' }}>
-            Última actualización: mayo 2026 · Rige bajo la <strong>Ley N° 8968</strong> de Protección de la Persona frente al tratamiento de sus Datos Personales de Costa Rica.
+            Última actualización: julio 2026 · Rige bajo la <strong>Ley N° 8968</strong> de Protección de la Persona frente al tratamiento de sus Datos Personales de Costa Rica.
           </p>
         </div>
 
@@ -63,7 +63,7 @@ export default function Privacidad() {
           </ul>
           <h3>2.3 Datos de terceros</h3>
           <ul>
-            <li>Información de pago procesada por Stripe (no almacenamos datos de tarjeta)</li>
+            <li>Comprobante o referencia de pago cuando activás un plan pago (la activación es manual; NIDO no almacena ni procesa datos de tarjetas de crédito o débito)</li>
             <li>Datos de autenticación gestionados por Supabase Auth</li>
           </ul>
         </div>
@@ -108,12 +108,13 @@ export default function Privacidad() {
           <p>NIDO no vende ni alquila tus datos personales. Podemos compartir información con:</p>
           <ul>
             <li><strong>Supabase:</strong> proveedor de base de datos e infraestructura (servidores en AWS).</li>
-            <li><strong>Stripe:</strong> procesamiento de pagos (certificado PCI DSS).</li>
             <li><strong>Resend:</strong> envío de correos electrónicos transaccionales.</li>
-            <li><strong>Anthropic:</strong> procesamiento de consultas a la IA Valeria (sin almacenamiento de datos de usuario).</li>
+            <li><strong>Anthropic:</strong> procesamiento de las conversaciones que mantenés con la IA Valeria, conforme a la política de retención y uso de datos de Anthropic para su API (no se usa para entrenar sus modelos salvo que la ley lo exija o exista abuso reportado). Consultá la política vigente de Anthropic para más detalle.</li>
             <li><strong>Vercel:</strong> hosting y despliegue de la plataforma.</li>
+            <li><strong>Mapbox:</strong> generación de mapas interactivos del portal de propiedades.</li>
             <li><strong>Autoridades competentes:</strong> cuando sea requerido por ley o resolución judicial.</li>
           </ul>
+          <p>Si en el futuro incorporamos un procesador de pagos de terceros (por ejemplo Stripe), actualizaremos esta sección antes de que ese proveedor reciba cualquier dato tuyo.</p>
           <p>Todos los proveedores cumplen con estándares internacionales de protección de datos.</p>
         </div>
 
@@ -142,7 +143,7 @@ export default function Privacidad() {
           <ul>
             <li>Cifrado en tránsito mediante TLS/HTTPS.</li>
             <li>Cifrado en reposo para datos sensibles.</li>
-            <li>Autenticación de dos factores disponible para cuentas.</li>
+            <li>Autenticación de dos factores: en desarrollo, próximamente disponible para todas las cuentas.</li>
             <li>Acceso restringido por roles — solo personal autorizado puede ver datos sensibles.</li>
             <li>Auditorías de seguridad periódicas.</li>
           </ul>

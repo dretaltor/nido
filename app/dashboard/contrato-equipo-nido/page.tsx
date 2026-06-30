@@ -98,7 +98,13 @@ export default function ContratoEquipoNido() {
               <p style={{ marginBottom:16 }}>Si el Asesor deja el Equipo NIDO con negociaciones activas iniciadas bajo este addendum, el reparto 50/50 se mantiene para esos cierres específicos ya en curso, salvo acuerdo distinto por escrito entre ambas partes.</p>
 
               <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>7. Terminación</h3>
-              <p>Cualquiera de las partes puede finalizar la participación en el Equipo NIDO en cualquier momento, con notificación previa. Al finalizar, el Asesor conserva su cuenta NIDO bajo el plan que corresponda según su suscripción individual (los beneficios del punto 3 cesan, incluyendo el acceso al inventario interno).</p>
+              <p style={{ marginBottom:16 }}>Cualquiera de las partes puede finalizar la participación en el Equipo NIDO en cualquier momento, con notificación previa. Al finalizar, el Asesor conserva su cuenta NIDO bajo el plan que corresponda según su suscripción individual (los beneficios del punto 3 cesan, incluyendo el acceso al inventario interno).</p>
+
+              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>8. Ley aplicable y jurisdicción</h3>
+              <p style={{ marginBottom:16 }}>Este addendum se rige por las leyes de la República de Costa Rica y se interpreta de forma conjunta con el Contrato de Afiliación de Asesor y los <a href="/terminos" style={{ color:'oklch(0.42 0.06 150)' }}>Términos de Uso</a> de NIDO. Cualquier disputa se resuelve conforme a la cláusula de resolución de disputas de los Términos de Uso.</p>
+
+              <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>9. Validez de la aceptación electrónica</h3>
+              <p>La aceptación de este addendum mediante la casilla de verificación de abajo constituye una manifestación de voluntad válida y vinculante conforme a la Ley N° 8454 de Certificados, Firmas Digitales y Documentos Electrónicos de Costa Rica.</p>
             </div>
 
             <label style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:24, fontSize:14, cursor:'pointer' }}>

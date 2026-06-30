@@ -29,7 +29,7 @@ export default function Terminos() {
             Términos de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>uso.</em>
           </h1>
           <p style={{ fontSize:14, color:'var(--ink-3)' }}>
-            Última actualización: mayo 2026 · Aplica para todos los usuarios de NIDO en Costa Rica.
+            Última actualización: julio 2026 · Aplica para todos los usuarios de NIDO en Costa Rica.
           </p>
         </div>
 
@@ -87,13 +87,15 @@ export default function Terminos() {
         <div className="section">
           <h2>6. Planes y pagos</h2>
           <h3>6.1 Planes disponibles</h3>
-          <p>NIDO ofrece planes Gratis, Pro ($49/mes) y Enterprise ($129/mes). Los precios pueden cambiar con 30 días de aviso previo.</p>
+          <p>NIDO ofrece los planes Despega (gratuito, hasta 5 propiedades), Elite ($59/mes) y Black ($149/mes). Los precios y características vigentes de cada plan se publican en <a href="/precios">nido-cr.com/precios</a> y prevalecen sobre cualquier monto mencionado en otro lugar. Los precios pueden cambiar con 30 días de aviso previo.</p>
           <h3>6.2 Facturación</h3>
-          <p>Los planes de pago se facturan mensual o anualmente según tu selección. El pago se procesa a través de Stripe con renovación automática.</p>
+          <p>Actualmente la activación y renovación de los planes de pago se gestiona de forma manual por el equipo de NIDO, tras confirmar el pago realizado por los medios que se te indiquen al momento de suscribirte (no se procesa mediante cobro automático recurrente con tarjeta en este momento). Si en el futuro NIDO incorpora un procesador de pagos automatizado, esta sección y la Política de Privacidad se actualizarán para reflejarlo antes de su entrada en vigencia.</p>
           <h3>6.3 Cancelación y reembolsos</h3>
-          <p>Podés cancelar tu suscripción en cualquier momento. No ofrecemos reembolsos por períodos parciales en planes mensuales. Los planes anuales no tienen reembolso una vez iniciado el período.</p>
+          <p>Podés cancelar tu suscripción en cualquier momento escribiendo a <a href="mailto:hola@nido-cr.com">hola@nido-cr.com</a>. No ofrecemos reembolsos por períodos parciales ya facturados, salvo que la ley costarricense aplicable disponga lo contrario.</p>
           <h3>6.4 Prueba gratuita</h3>
-          <p>Los planes Pro y Enterprise incluyen 7 días de prueba gratuita. Si cancelás antes del día 7, no se realiza ningún cobro.</p>
+          <p>Toda cuenta nueva de asesor inicia con 7 días de prueba gratuita del plan Black. Si no activás un plan de pago antes de que termine la prueba, tu cuenta pasa automáticamente al plan Despega (gratuito, con las limitaciones indicadas en /precios) sin que se realice ningún cobro.</p>
+          <h3>6.5 Participación de NIDO en comisiones de cierre</h3>
+          <p>Como regla general, NIDO no es parte en la comisión de corretaje pactada entre un Asesor independiente y el Propietario o comprador: esa comisión se negocia y se cobra directamente entre ellos, sin participación de NIDO. Existen dos excepciones en las que NIDO sí participa económicamente y gana comisión: (a) cuando el cierre lo gestiona un Asesor del Equipo NIDO, caso en el que la comisión se reparte 50%/50% entre el Asesor y NIDO conforme al Addendum Equipo NIDO; y (b) cuando el Propietario contrata directamente los servicios de corretaje de NIDO, caso en el que NIDO actúa como corredor y cobra la comisión pactada (actualmente 4% del precio de venta) conforme al Contrato de Corretaje con Propietarios. Fuera de esos dos escenarios, NIDO no recibe ninguna parte de la comisión de venta.</p>
         </div>
 
         <div className="section">
@@ -104,7 +106,7 @@ export default function Terminos() {
 
         <div className="section">
           <h2>8. Limitación de responsabilidad</h2>
-          <p>NIDO es una plataforma de intermediación. No somos parte en las transacciones inmobiliarias entre asesores, propietarios y compradores. No garantizamos:</p>
+          <p>NIDO opera como plataforma de intermediación tecnológica para la generalidad de las transacciones entre Asesores independientes, Propietarios y compradores, y no es parte en esas negociaciones. La excepción son los dos escenarios descritos en la Sección 6.5 (cierres gestionados por el Equipo NIDO y contratos de corretaje directo con Propietarios), en los que NIDO sí es parte interesada y beneficiaria económica de la comisión. Fuera de esos dos escenarios, NIDO no garantiza:</p>
           <ul>
             <li>La exactitud de la información publicada por terceros.</li>
             <li>El resultado de ninguna transacción inmobiliaria.</li>
@@ -127,12 +129,32 @@ export default function Terminos() {
         </div>
 
         <div className="section">
-          <h2>10. Resolución de disputas</h2>
+          <h2>10. Validez de la aceptación electrónica</h2>
+          <p>La aceptación de estos Términos mediante un clic, casilla de verificación o mecanismo electrónico equivalente constituye una manifestación de voluntad válida y vinculante, con la misma fuerza probatoria que una firma autógrafa, conforme a la Ley N° 8454 de Certificados, Firmas Digitales y Documentos Electrónicos de Costa Rica. NIDO conserva un registro electrónico de la fecha, hora y versión del documento aceptado por cada usuario.</p>
+        </div>
+
+        <div className="section">
+          <h2>11. Modificaciones a estos términos</h2>
+          <p>NIDO puede modificar estos Términos de Uso en cualquier momento. Los cambios sustanciales se notificarán por correo electrónico o aviso dentro de la plataforma con al menos 15 días de anticipación a su entrada en vigencia. El uso continuado de NIDO después de esa fecha implica la aceptación de los nuevos términos.</p>
+        </div>
+
+        <div className="section">
+          <h2>12. Fuerza mayor</h2>
+          <p>NIDO no será responsable por incumplimientos o retrasos causados por circunstancias fuera de su control razonable, incluyendo fallas de proveedores de infraestructura (hosting, base de datos, conectividad), desastres naturales, actos de autoridad, o interrupciones generalizadas de internet.</p>
+        </div>
+
+        <div className="section">
+          <h2>13. Divisibilidad y cesión</h2>
+          <p>Si alguna disposición de estos Términos fuera declarada inválida o inaplicable por un tribunal competente, las demás disposiciones permanecerán en pleno vigor. NIDO puede ceder estos Términos, en todo o en parte, en caso de fusión, adquisición o venta de activos, previo aviso al usuario. El usuario no puede ceder sus derechos u obligaciones bajo estos Términos sin autorización escrita de NIDO.</p>
+        </div>
+
+        <div className="section">
+          <h2>14. Resolución de disputas</h2>
           <p>Cualquier disputa derivada del uso de NIDO se resolverá preferiblemente de forma amigable. En caso de no llegar a un acuerdo, las partes se someten a la jurisdicción de los Tribunales de Justicia de la República de Costa Rica, con renuncia expresa a cualquier otro fuero.</p>
         </div>
 
         <div>
-          <h2>11. Contacto</h2>
+          <h2>15. Contacto</h2>
           <p>Para consultas sobre estos términos: <a href="mailto:legal@nido-cr.com">legal@nido-cr.com</a></p>
           <p>NIDO · San José, Costa Rica · <a href="/privacidad">Política de privacidad</a></p>
         </div>

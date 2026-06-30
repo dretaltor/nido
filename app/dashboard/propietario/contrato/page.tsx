@@ -351,12 +351,17 @@ export default function Contrato() {
                 </p>
 
                 <p style={{ marginBottom:12 }}><strong>{tipoContrato === 'exclusividad' ? 'CLÁUSULA OCTAVA' : 'CLÁUSULA SEXTA'} — RESOLUCIÓN DE DISPUTAS</strong></p>
-                <p style={{ marginBottom:24 }}>
+                <p style={{ marginBottom:20 }}>
                   Cualquier controversia derivada del presente contrato se resolverá preferiblemente de manera amigable. En caso de no alcanzarse un acuerdo, las partes se someten a la jurisdicción de los Tribunales de Justicia de la República de Costa Rica, con renuncia expresa a cualquier otro fuero.
                 </p>
 
+                <p style={{ marginBottom:12 }}><strong>{tipoContrato === 'exclusividad' ? 'CLÁUSULA NOVENA' : 'CLÁUSULA SÉTIMA'} — DESTINO DE LA PUBLICACIÓN AL FINALIZAR EL CONTRATO</strong></p>
+                <p style={{ marginBottom:24 }}>
+                  Al finalizar o terminar este contrato por cualquier causa, NIDO retira la publicación de la propiedad del portal público en un plazo máximo de 5 días hábiles, salvo que EL PROPIETARIO solicite su retiro inmediato. Las fotografías y datos de la propiedad se conservan conforme a los plazos indicados en la Política de Privacidad de NIDO, y pueden eliminarse antes a solicitud expresa de EL PROPIETARIO.
+                </p>
+
                 <div style={{ borderTop:'1px solid var(--rule)', paddingTop:20, marginTop:8 }}>
-                  <p style={{ fontSize:13, color:'var(--ink-3)', marginBottom:8 }}>Este contrato se celebra en San José, Costa Rica, el {fmtDate(hoy)} y tiene plena validez legal al ser firmado digitalmente o mediante firma física escaneada por ambas partes.</p>
+                  <p style={{ fontSize:13, color:'var(--ink-3)', marginBottom:8 }}>Este contrato se celebra en San José, Costa Rica, el {fmtDate(hoy)}. La firma digital con certificado GAUDI, aceptada a través de este formulario, tiene la misma validez y eficacia jurídica que una firma autógrafa, conforme al artículo 8 de la Ley N° 8454 de Certificados, Firmas Digitales y Documentos Electrónicos de Costa Rica. La firma física escaneada o fotografiada, aceptada como alternativa, constituye igualmente una manifestación de voluntad válida y vinculante entre las partes conforme a dicha ley, si bien —al no tratarse de una firma digital certificada— su fuerza probatoria ante un eventual conflicto depende de la valoración judicial de la prueba, junto con el registro electrónico de fecha, hora e identidad del firmante que NIDO conserva. Este documento es un contrato privado entre las partes y no constituye ni sustituye un instrumento público ni una autenticación notarial.</p>
                   <p style={{ fontSize:13, color:'var(--ink-3)' }}>NIDO · hola@nido-cr.com · www.nido-cr.com</p>
                 </div>
               </div>
