@@ -141,7 +141,7 @@ export default function DashboardPropietario() {
                   })
               })
             // Ofertas filtradas por propiedades del propietario
-            supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,valor_oferta,condiciones,estado,tipo_compra,relacion,propiedad_id,asesor_email,created_at').in('propiedad_id', pids)
+            supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,valor_oferta,condiciones,estado,tipo_compra,propiedad_id,asesor_email,created_at').in('propiedad_id', pids)
               .order('created_at', { ascending: false })
               .then(({ data: ofData }) => setOfertasReales(ofData || []))
             // Fetch visitas del propietario

@@ -82,7 +82,7 @@ export default function CRM() {
         .then(({ data }) => { setLeads(data || []); setLoading(false) })
       supabase.from('visitas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,propiedad_titulo,asesor_email,asesor_whatsapp,fecha,hora,tipo,notas,estado,created_at').eq('asesor_email', user.email).order('created_at', { ascending: false })
         .then(({ data }) => setVisitas(data || []))
-      supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,relacion,created_at').eq('asesor_email', user.email).order('created_at', { ascending: false })
+      supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,created_at').eq('asesor_email', user.email).order('created_at', { ascending: false })
         .then(({ data }) => setOfertas(data || []))
     })
   }, [])

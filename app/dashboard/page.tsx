@@ -106,12 +106,12 @@ export default function Dashboard() {
       Promise.all([
         supabase.from('propiedades').select('id,titulo,tipo,precio,zona,provincia,disponible,verificacion_estado,fotos,asesor_email,created_at').eq('asesor_email', user.email),
         supabase.from('leads').select('id,nombre,email,telefono,estado,propiedad_id,asesor_email,created_at').order('created_at', { ascending: false }),
-        supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,relacion,created_at').eq('asesor_email', user.email).order('created_at', { ascending: false }),
+        supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,created_at').eq('asesor_email', user.email).order('created_at', { ascending: false }),
       ]).then(([{ data: props }, { data: leadsData }, { data: ofertasData }]) => {
         // Load ofertas received on this asesor's properties
         if (props && props.length > 0) {
           const propIds = props.map((p:any) => p.id)
-          supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,relacion,created_at').in('propiedad_id', propIds).neq('asesor_email', user.email).order('created_at', { ascending: false })
+          supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,created_at').in('propiedad_id', propIds).neq('asesor_email', user.email).order('created_at', { ascending: false })
             .then(({ data }) => { setOfertasRecibidas(data || []) })
         }
         setPropiedades(props || [])

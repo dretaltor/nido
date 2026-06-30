@@ -29,7 +29,7 @@ export default function Contrato() {
       setUser(user)
       const [{ data: prop }, { data: props }, { data: contrato }] = await Promise.all([
         supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,created_at').eq('correo', user.email!).maybeSingle(),
-        supabase.from('Propiedades').select('id,titulo,zona,ref_id').eq('propietario_email', user.email!),
+        supabase.from('propiedades').select('id,titulo,zona,ref_id').eq('propietario_email', user.email!),
         supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,comision_porcentaje,created_at').eq('propietario_correo', user.email!).eq('estado', 'activo').maybeSingle()
       ])
       setPropietario(prop)

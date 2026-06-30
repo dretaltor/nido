@@ -23,7 +23,7 @@ export default function Propietario() {
   const buscarPropiedades = async () => {
     if (!email) { alert('Ingresa tu email'); return }
     setLoading(true)
-    const { data } = await supabase.from('Propiedades').select('*').ilike('asesor_email', email)
+    const { data } = await supabase.from('propiedades').select('*').ilike('asesor_email', email)
     setPropiedades(data || [])
     setBuscado(true)
     setLoading(false)
