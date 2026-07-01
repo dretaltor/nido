@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { StructuredDataOrg, StructuredDataWebsite } from '@/components/seo/StructuredData'
 import { AuthProvider } from '@/lib/context/AuthContext'
+import ChatWidgetComprador from '@/components/soporte/ChatWidgetComprador'
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -57,6 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <StructuredDataOrg/>
         <StructuredDataWebsite/>
         <AuthProvider>{children}</AuthProvider>
+        <ChatWidgetComprador/>
       </body>
     </html>
   )

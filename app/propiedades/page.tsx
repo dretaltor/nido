@@ -172,62 +172,6 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
   )
 }
 
-function AiAdvisor() {
-  const [open, setOpen] = useState(false)
-  const [thread, setThread] = useState([{ who: 'bot', text: 'Hola, soy Valeria. Puedo ayudarte a encontrar propiedades, comparar zonas o estimar tu pre-aprobación bancaria.' }])
-  const [draft, setDraft] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  const send = async (text: string) => {
-    if (!text.trim() || busy) return
-    const next = [...thread, { who: 'user', text }]
-    setThread(next); setDraft(''); setBusy(true)
-    try {
-      const res = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: next.map(m => ({ role: m.who === 'user' ? 'user' : 'assistant', content: m.text })) }) })
-      const data = await res.json()
-      setThread(t => [...t, { who: 'bot', text: data.message }])
-    } catch { setThread(t => [...t, { who: 'bot', text: 'Tuve un problema. Intenta de nuevo.' }]) }
-    setBusy(false)
-  }
-
-  if (!open) return (
-    <button onClick={() => setOpen(true)} style={{ position: 'fixed', bottom: 80, right: 20, background: 'var(--ink)', color: 'var(--bg)', border: 'none', borderRadius: 999, padding: '10px 18px', fontSize: 13, fontFamily: 'var(--sans)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, boxShadow: 'var(--shadow-lg)', zIndex: 50 }}>
-      <span style={{ fontFamily: 'var(--serif)', fontSize: 16, fontStyle: 'italic', color: 'var(--accent-2)' }}>V</span>
-      Valeria IA
-    </button>
-  )
-
-  return (
-    <div style={{ position: 'fixed', bottom: 80, right: 20, width: 'min(360px, calc(100vw - 32px))', background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 12, boxShadow: 'var(--shadow-lg)', zIndex: 50, display: 'flex', flexDirection: 'column', maxHeight: '60vh' }}>
-      <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--rule)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h3 style={{ fontFamily: 'var(--serif)', fontSize: 18, fontStyle: 'italic', fontWeight: 400, margin: 0 }}>Valeria</h3>
-          <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>Asesora IA · NIDO</div>
-        </div>
-        <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-3)' }}><Icon name="x" /></button>
-      </div>
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {thread.map((m, i) => (
-          <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: m.who === 'user' ? 'flex-end' : 'flex-start' }}>
-            {m.who === 'bot' && <div style={{ fontSize: 9, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginBottom: 3 }}>Valeria</div>}
-            <div style={{ maxWidth: '85%', padding: '8px 12px', borderRadius: m.who === 'user' ? '14px 4px 14px 14px' : '4px 14px 14px 14px', background: m.who === 'user' ? 'var(--ink)' : 'var(--bg-elev)', color: m.who === 'user' ? 'var(--bg)' : 'var(--ink)', fontSize: 13, lineHeight: 1.55 }}>{m.text}</div>
-          </div>
-        ))}
-        {busy && <div style={{ alignSelf: 'flex-start', padding: '8px 12px', borderRadius: '4px 14px 14px 14px', background: 'var(--bg-elev)', fontSize: 13, color: 'var(--ink-3)' }}>Escribiendo...</div>}
-      </div>
-      <div style={{ padding: '8px 10px', borderTop: '1px solid var(--rule)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-        {['Casa cerca del mar', 'Escazú vs Santa Ana', '¿Cuánto necesito?'].map(s => (
-          <button key={s} onClick={() => send(s)} style={{ background: 'var(--bg-elev)', border: '1px solid var(--rule)', borderRadius: 999, padding: '4px 8px', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--sans)', color: 'var(--ink-2)' }}>{s}</button>
-        ))}
-      </div>
-      <div style={{ padding: '6px 10px 12px', display: 'flex', gap: 6 }}>
-        <input value={draft} onChange={e => setDraft(e.target.value)} onKeyDown={e => e.key === 'Enter' && send(draft)} placeholder="Preguntale a Valeria…" style={{ flex: 1, background: 'var(--bg-elev)', border: '1px solid var(--rule)', borderRadius: 999, padding: '7px 12px', fontSize: 13, outline: 'none', fontFamily: 'var(--sans)', color: 'var(--ink)' }} />
-        <button onClick={() => send(draft)} disabled={!draft.trim() || busy} style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--ink)', border: 'none', color: 'var(--bg)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="send" /></button>
-      </div>
-    </div>
-  )
-}
-
 const ZONES = [
   { num: '01', name: 'Valle Central', meta: 'Escazú · Santa Ana · Curridabat', price: '$2,450 / m²', delta: '+6.2% YoY' },
   { num: '02', name: 'Pacífico Central', meta: 'Santa Teresa · Manuel Antonio · Jacó', price: '$3,180 / m²', delta: '+11.8% YoY' },
@@ -469,7 +413,7 @@ export default function Propiedades() {
         <a href="/propiedades" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--accent)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
           <span style={{ fontSize: 20 }}>🏠</span>PROPIEDADES
         </a>
-        <a href="/chat" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
+        <a href="/soporte" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
           <span style={{ fontSize: 20 }}>💬</span>VALERIA IA
         </a>
         <a href="/contacto" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
@@ -481,7 +425,6 @@ export default function Propiedades() {
       </div>
 
       {open && <Drawer p={open} fav={favs.has(open.id)} onFav={() => toggleFav(open.id)} onClose={() => setOpenId(null)} />}
-      <AiAdvisor />
     </main>
   )
 }
