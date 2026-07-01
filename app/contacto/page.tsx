@@ -34,7 +34,8 @@ export default function Contacto() {
       mensaje: form.mensaje,
       presupuesto: form.presupuesto,
       zona_interes: form.zona_interes,
-      estado: 'nuevo'
+      estado: 'nuevo',
+      fuente: 'contacto_general',
     })
     setExito(true)
     setLoading(false)

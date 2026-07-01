@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '@/lib/context/AuthContext'
+import { GuardarBusquedaModal } from '../../components/alertas/GuardarBusquedaModal'
 
 const MapaInteractivo = dynamic(() => import('../../components/MapaInteractivo'), { ssr: false })
 
@@ -195,6 +196,7 @@ export default function Propiedades() {
   const [favs, setFavs] = useState(new Set<string>())
   const [openId, setOpenId] = useState<string | null>(null)
   const [tipoFiltro, setTipoFiltro] = useState('')
+  const [guardarBusquedaOpen, setGuardarBusquedaOpen] = useState(false)
 
   const cargar = () => {
     setLoading(true)
@@ -343,6 +345,7 @@ export default function Propiedades() {
         
         <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
           <span>{filtered.length} resultados</span>
+          <button onClick={() => setGuardarBusquedaOpen(true)} style={{ background: 'transparent', border: '1px solid var(--rule)', borderRadius: 999, padding: '6px 14px', fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer' }}>🔔 Avisarme de nuevas propiedades</button>
           <select value={sort} onChange={e => setSort(e.target.value)} style={{ background: 'transparent', border: 0, borderBottom: '1px solid var(--ink)', fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink)', outline: 'none', cursor: 'pointer' }}>
             <option value="featured">Destacados</option>
             <option value="price-asc">Precio menor</option>
@@ -350,6 +353,18 @@ export default function Propiedades() {
           </select>
         </div>
       </div>
+
+      {guardarBusquedaOpen && (
+        <GuardarBusquedaModal
+          filtros={{
+            zona: query.location || undefined,
+            tipo: tipoFiltro || undefined,
+            operacion: query.op,
+            precioMax: query.budget !== 'any' ? parseInt(query.budget) * 1000 : null,
+          }}
+          onClose={() => setGuardarBusquedaOpen(false)}
+        />
+      )}
 
       <div className="split-grid" style={{ maxWidth: 1600, margin: '20px auto 0', padding: '0 40px 80px', display: 'grid', gridTemplateColumns: '7fr 5fr', gap: 24, alignItems: 'start' }}>
         <div>

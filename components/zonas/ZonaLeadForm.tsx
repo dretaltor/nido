@@ -20,6 +20,7 @@ export function ZonaLeadForm({ zona }: { zona: string }) {
       zona_interes: zona,
       tipo_busqueda: 'compra',
       estado: 'nuevo',
+      fuente: 'seo_zona',
     })
     if (err) { setError('No pudimos guardar tu solicitud. Intentá de nuevo.') }
     else { setEnviado(true) }

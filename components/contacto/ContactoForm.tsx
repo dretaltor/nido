@@ -35,6 +35,7 @@ export function ContactoForm({ propiedadId, propiedadTitulo, asesorEmail, asesor
       propiedad_id: propiedadId,
       asesor_email: asesorEmail,
       estado: 'nuevo',
+      fuente: 'ficha_propiedad',
     })
 
     const res = await fetch('/api/email', {

@@ -43,6 +43,7 @@ const MODULES = [
   { id:'mensajes', icon:'✉', label:'Mensajes internos' },
   { id:'soporte', icon:'🎫', label:'Soporte' },
   { id:'referidos', icon:'🤝', label:'Referidos' },
+  { id:'atribucion', icon:'📊', label:'Atribución' },
   { id:'kyc_propietarios', icon:'🏠', label:'KYC Propietarios' },
   { id:'contratos', icon:'📋', label:'Contratos' },
   { id:'comisiones', icon:'💰', label:'Comisiones' },
@@ -63,6 +64,7 @@ export default function AdminPanel() {
   const [suscripciones, setSuscripciones] = useState<any[]>([])
   const [tickets, setTickets] = useState<any[]>([])
   const [referidos, setReferidos] = useState<any[]>([])
+  const [leads, setLeads] = useState<any[]>([])
   const [sel, setSel] = useState<any>(null)
   const [filtro, setFiltro] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
@@ -80,16 +82,17 @@ export default function AdminPanel() {
   }, [])
 
   const loadAll = async () => {
-    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }] = await Promise.all([
+    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }, { data: lds }] = await Promise.all([
       supabase.from('admin_metricas').select('*').maybeSingle(),
-      supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at').order('created_at', { ascending: false }),
-      supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at').order('created_at', { ascending: false }),
+      supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at,referido_por').order('created_at', { ascending: false }),
+      supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at,referido_por').order('created_at', { ascending: false }),
       supabase.from('propiedades').select('id,titulo,tipo,precio,zona,provincia,disponible,verificacion_estado,verificacion_notas,verificado_at,verificado_por,asesor_email,asesor_nombre,asesor_whatsapp,fotos,created_at').order('created_at', { ascending: false }),
       supabase.from('suscripciones').select('id,correo,plan,activo,es_trial,trial_fin,created_at,updated_at').order('created_at', { ascending: false }),
       supabase.from('comisiones').select('*').order('created_at', { ascending: false }),
       supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,created_at').order('created_at', { ascending: false }),
       supabase.from('soporte_tickets').select('*').order('updated_at', { ascending: false }),
       supabase.from('referidos').select('*').order('created_at', { ascending: false }),
+      supabase.from('leads').select('id,nombre,zona_interes,fuente,estado,created_at').order('created_at', { ascending: false }),
     ])
     setMetricas(met)
     setAsesores(as || [])
@@ -100,6 +103,7 @@ export default function AdminPanel() {
     setContratos(cons || [])
     setTickets(tks || [])
     setReferidos(refs || [])
+    setLeads(lds || [])
     setLoading(false)
   }
 
@@ -116,7 +120,7 @@ export default function AdminPanel() {
   }
 
   const verificarPropiedad = async (id: string, aprobar: boolean, notas?: string) => {
-    const { data: prop } = await supabase.from('propiedades').select('titulo,asesor_email,asesor_nombre,asesor_whatsapp').eq('id', id).maybeSingle()
+    const { data: prop } = await supabase.from('propiedades').select('titulo,asesor_email,asesor_nombre,asesor_whatsapp,zona,tipo,operacion,precio').eq('id', id).maybeSingle()
     await supabase.from('propiedades').update({
       verificacion_estado: aprobar ? 'aprobada' : 'rechazada',
       verificacion_notas: notas || null,
@@ -131,6 +135,25 @@ export default function AdminPanel() {
         tipo: 'propiedad_aprobada',
         data: { asesor_nombre: prop.asesor_nombre, propiedad: prop.titulo, propiedad_id: id, asesor_telefono: prop.asesor_whatsapp }
       }) }).catch(() => {})
+    }
+    // Alertas de busqueda guardada: avisar a quien guardo una busqueda que coincide con esta propiedad
+    if (aprobar && prop) {
+      try {
+        const { data: matches } = await supabase.rpc('alertas_match_propiedad', {
+          p_zona: prop.zona, p_tipo: prop.tipo, p_operacion: prop.operacion, p_precio: prop.precio,
+        })
+        if (matches && matches.length > 0) {
+          const { data: { session: ses5 } } = await supabase.auth.getSession()
+          await Promise.all(matches.map((m: any) =>
+            fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+              to: m.email,
+              tipo: 'alerta_nueva_propiedad',
+              data: { titulo: prop.titulo, zona: prop.zona, precio: prop.precio, link: 'https://www.nido-cr.com/propiedades/'+id, bajaLink: 'https://www.nido-cr.com/alertas/baja/'+m.id }
+            }) }).catch(() => {})
+          ))
+          await supabase.from('alertas_busqueda').update({ ultima_notificacion_at: new Date().toISOString() }).in('id', matches.map((m: any) => m.id))
+        }
+      } catch {}
     }
     loadAll()
     setMsg(aprobar ? '✓ Propiedad aprobada y publicada' : '✓ Propiedad rechazada')
@@ -866,6 +889,93 @@ export default function AdminPanel() {
             </div>
           </div>
         )}
+
+        {modulo === 'atribucion' && (() => {
+          const FUENTE_LABEL: Record<string,string> = { seo_zona:'SEO por zona', ficha_propiedad:'Ficha de propiedad', contacto_general:'Contacto general' }
+          const porFuente: Record<string, number> = {}
+          leads.forEach(l => { const f = l.fuente || 'sin_clasificar'; porFuente[f] = (porFuente[f]||0)+1 })
+          const fuentesOrdenadas = Object.entries(porFuente).sort((a,b) => b[1]-a[1])
+          const totalLeads = leads.length || 1
+
+          const porZona: Record<string, number> = {}
+          leads.forEach(l => { if (l.zona_interes) porZona[l.zona_interes] = (porZona[l.zona_interes]||0)+1 })
+          const zonasOrdenadas = Object.entries(porZona).sort((a,b) => b[1]-a[1]).slice(0, 8)
+
+          const asesoresReferidos = asesores.filter((a:any) => a.referido_por).length
+          const propietariosReferidos = propietarios.filter((p:any) => p.referido_por).length
+          const totalCuentas = asesores.length + propietarios.length || 1
+          const totalReferidas = asesoresReferidos + propietariosReferidos
+
+          const referidosPorEstado: Record<string, number> = {}
+          referidos.forEach(r => { referidosPorEstado[r.estado] = (referidosPorEstado[r.estado]||0)+1 })
+
+          return (
+            <div style={{ animation:'fadeUp 0.4s ease' }}>
+              <div style={{ marginBottom:24 }}>
+                <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>De dónde viene el crecimiento</div>
+                <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Panel de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>atribución.</em></h1>
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16, marginBottom:24 }}>
+                <div className="card" style={{ padding:'20px 22px' }}>
+                  <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Leads totales</div>
+                  <div style={{ fontFamily:'var(--serif)', fontSize:32 }}>{leads.length}</div>
+                </div>
+                <div className="card" style={{ padding:'20px 22px' }}>
+                  <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Cuentas por referido</div>
+                  <div style={{ fontFamily:'var(--serif)', fontSize:32 }}>{totalReferidas} <span style={{ fontSize:15, color:'var(--ink-3)' }}>/ {totalCuentas}</span></div>
+                </div>
+                <div className="card" style={{ padding:'20px 22px' }}>
+                  <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Recompensas pagadas</div>
+                  <div style={{ fontFamily:'var(--serif)', fontSize:32 }}>{referidosPorEstado.pagado || 0}</div>
+                </div>
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+                <div className="card" style={{ padding:'24px 26px' }}>
+                  <div style={{ fontSize:14, fontWeight:500, marginBottom:16 }}>Leads por fuente</div>
+                  {fuentesOrdenadas.length === 0 ? (
+                    <div style={{ fontSize:13, color:'var(--ink-3)' }}>Todavía no hay leads registrados.</div>
+                  ) : fuentesOrdenadas.map(([fuente, n]) => (
+                    <div key={fuente} style={{ marginBottom:12 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, marginBottom:4 }}>
+                        <span>{FUENTE_LABEL[fuente] || (fuente==='sin_clasificar'?'Sin clasificar':fuente)}</span>
+                        <span style={{ color:'var(--ink-3)' }}>{n} ({Math.round(n/totalLeads*100)}%)</span>
+                      </div>
+                      <div style={{ height:6, borderRadius:999, background:'var(--rule-soft)', overflow:'hidden' }}>
+                        <div style={{ height:'100%', width:`${n/totalLeads*100}%`, background:'var(--accent)', borderRadius:999 }}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="card" style={{ padding:'24px 26px' }}>
+                  <div style={{ fontSize:14, fontWeight:500, marginBottom:16 }}>Top zonas por interés</div>
+                  {zonasOrdenadas.length === 0 ? (
+                    <div style={{ fontSize:13, color:'var(--ink-3)' }}>Todavía no hay leads con zona de interés.</div>
+                  ) : zonasOrdenadas.map(([zona, n]) => (
+                    <div key={zona} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+                      <span>{zona}</span>
+                      <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>{n}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding:'24px 26px', marginTop:20 }}>
+                <div style={{ fontSize:14, fontWeight:500, marginBottom:16 }}>Embudo del programa de referidos</div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+                  {['pendiente','aprobado','pagado','rechazado'].map(estado => (
+                    <div key={estado} style={{ textAlign:'center', padding:'16px 10px', background:'var(--bg)', borderRadius:10 }}>
+                      <div style={{ fontFamily:'var(--serif)', fontSize:26 }}>{referidosPorEstado[estado] || 0}</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:4 }}>{estado}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )
+        })()}
 
       </div>
 

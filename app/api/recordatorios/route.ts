@@ -86,5 +86,57 @@ export async function GET(req: NextRequest) {
     resenasSolicitadas++
   }
 
-  return NextResponse.json({ ok: true, enviados, resenasSolicitadas })
+  // Seguimiento de leads frios: leads 'nuevo' con mas de 2 dias sin contacto.
+  // Si tienen asesor asignado, se le avisa a el/ella; si no, se avisa al equipo NIDO para que los reparta.
+  const cortesia = new Date()
+  cortesia.setDate(cortesia.getDate() - 2)
+
+  const { data: leadsFrios } = await supabaseAdmin
+    .from('leads')
+    .select('id,nombre,zona_interes,asesor_email,created_at')
+    .eq('estado', 'nuevo')
+    .eq('seguimiento_enviado', false)
+    .lt('created_at', cortesia.toISOString())
+
+  let seguimientosEnviados = 0
+  const sinAsignar: any[] = []
+
+  for (const l of (leadsFrios || [])) {
+    if (l.asesor_email) {
+      const { data: asesor } = await supabaseAdmin.from('perfiles').select('nombre').eq('correo', l.asesor_email).maybeSingle()
+      if (process.env.RESEND_API_KEY) {
+        try {
+          await fetch(process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL + '/api/email' : 'https://www.nido-cr.com/api/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: l.asesor_email,
+              tipo: 'lead_sin_seguimiento',
+              data: { asesor_nombre: asesor?.nombre, lead_nombre: l.nombre, zona: l.zona_interes, dias: 2 },
+            }),
+          })
+        } catch {}
+      }
+    } else {
+      sinAsignar.push(l)
+    }
+    await supabaseAdmin.from('leads').update({ seguimiento_enviado: true }).eq('id', l.id)
+    seguimientosEnviados++
+  }
+
+  if (sinAsignar.length > 0 && process.env.RESEND_API_KEY) {
+    try {
+      await fetch(process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL + '/api/email' : 'https://www.nido-cr.com/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: 'davidretanaalvarez@gmail.com',
+          tipo: 'leads_sin_asignar',
+          data: { cantidad: sinAsignar.length, dias: 2 },
+        }),
+      })
+    } catch {}
+  }
+
+  return NextResponse.json({ ok: true, enviados, resenasSolicitadas, seguimientosEnviados })
 }

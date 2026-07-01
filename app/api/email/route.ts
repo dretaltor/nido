@@ -431,6 +431,88 @@ export async function POST(req: NextRequest) {
         </body>
         </html>`
       },
+      lead_sin_seguimiento: {
+        subject: '⏰ Lead sin seguimiento hace ' + (data?.dias || '2') + ' días · NIDO',
+        html: `
+        <html>
+        <body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h1 style="font-family:Georgia,serif;font-size:24px;font-weight:400;color:#0D1F15;margin:0 0 12px">Hola ${esc(data?.asesor_nombre || '')}, tenés un lead esperando</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 20px"><strong>${esc(data?.lead_nombre || 'Un interesado')}</strong> ${esc(data?.zona ? 'busca en ' + data.zona : '')} y todavía no tiene seguimiento después de ${esc(data?.dias || '2')} días. Los leads que se contactan rápido cierran más — no lo dejés enfriar.</p>
+            <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+              <a href="https://www.nido-cr.com/dashboard/crm" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ver en mi CRM →</a>
+            </td></tr></table>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:20px 40px;border-top:1px solid #E5E3DC;text-align:center">
+            <p style="font-size:11px;color:#9CA3AF;margin:0">NIDO · Plataforma Inmobiliaria de Costa Rica · © 2026</p>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body>
+        </html>`
+      },
+      leads_sin_asignar: {
+        subject: '📋 ' + (data?.cantidad || '1') + ' lead(s) sin asesor asignado · NIDO',
+        html: `
+        <html>
+        <body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h1 style="font-family:Georgia,serif;font-size:24px;font-weight:400;color:#0D1F15;margin:0 0 12px">Hay leads sin asignar</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 20px">${esc(data?.cantidad || '1')} lead(s) llevan más de ${esc(data?.dias || '2')} días sin un asesor asignado. Repartilos para no perder la oportunidad.</p>
+            <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+              <a href="https://www.nido-cr.com/admin" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ver en /admin →</a>
+            </td></tr></table>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:20px 40px;border-top:1px solid #E5E3DC;text-align:center">
+            <p style="font-size:11px;color:#9CA3AF;margin:0">NIDO · Plataforma Inmobiliaria de Costa Rica · © 2026</p>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body>
+        </html>`
+      },
+      alerta_nueva_propiedad: {
+        subject: '🏠 Nueva propiedad que coincide con tu búsqueda · NIDO',
+        html: `
+        <html>
+        <body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h1 style="font-family:Georgia,serif;font-size:24px;font-weight:400;color:#0D1F15;margin:0 0 12px">Encontramos algo para vos</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 20px">Se publicó una propiedad que coincide con tu búsqueda guardada: <strong>${esc(data?.titulo)}</strong> en ${esc(data?.zona)} — $${esc(data?.precio ? Number(data.precio).toLocaleString('en-US') : '')}.</p>
+            <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+              <a href="${esc(data?.link)}" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ver propiedad →</a>
+            </td></tr></table>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:20px 40px;border-top:1px solid #E5E3DC;text-align:center">
+            <p style="font-size:11px;color:#9CA3AF;margin:0 0 6px">NIDO · Plataforma Inmobiliaria de Costa Rica · © 2026</p>
+            <a href="${esc(data?.bajaLink)}" style="font-size:11px;color:#9CA3AF">Dejar de recibir estas alertas</a>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body>
+        </html>`
+      },
       nuevo_ticket_soporte: {
         subject: '🎫 Nuevo ticket de soporte · ' + (data?.usuario_tipo || 'usuario') + ' · ' + (data?.asunto || 'NIDO'),
         html: `
