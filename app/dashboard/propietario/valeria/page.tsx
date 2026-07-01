@@ -142,8 +142,8 @@ Si te preguntan algo fuera de tu alcance (legal complejo, fiscal, disputas), rec
           <div style={{ padding:'16px', flex:1 }}>
             <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'oklch(0.60 0.005 80)', marginBottom:10 }}>¿Necesitás algo más específico?</div>
             <p style={{ fontSize:12, color:'oklch(0.60 0.005 80)', lineHeight:1.6, marginBottom:12 }}>Valeria te orienta, pero para temas puntuales de tu propiedad el equipo NIDO puede ayudarte directamente.</p>
-            <a href="https://wa.me/50688226436?text=Hola%2C%20soy%20propietario%20en%20NIDO%20y%20tengo%20una%20consulta%20sobre%20mi%20propiedad." target="_blank" style={{ display:'block', padding:'9px 14px', background:'#22c55e', borderRadius:8, fontSize:12, color:'white', fontWeight:500, textDecoration:'none', textAlign:'center' }}>
-              💬 Contactar equipo NIDO
+            <a href="mailto:hola@nido-cr.com?subject=Consulta%20de%20propietario" style={{ display:'block', padding:'9px 14px', background:'oklch(0.20 0.005 80)', borderRadius:8, fontSize:12, color:'white', fontWeight:500, textDecoration:'none', textAlign:'center' }}>
+              ✉ Contactar equipo NIDO
             </a>
           </div>
         </aside>

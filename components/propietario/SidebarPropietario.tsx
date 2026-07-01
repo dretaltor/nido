@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import type { PlanSuscripcion } from '@/types/propietario'
 const NAV = [
   { section:'General', items:[{ href:'/dashboard/propietario', label:'Resumen', icon:'▦' },{ href:'/dashboard/nueva-propiedad', label:'Nueva propiedad', icon:'+' },{ href:'/dashboard/propietario/valeria', label:'Valeria IA', icon:'✦' }]},
-  { section:'Cuenta', items:[{ href:'/dashboard/propietario/perfil', label:'Mi perfil', icon:'▤' },{ href:'https://wa.me/50688226436?text=Hola%2C%20soy%20propietario%20en%20NIDO%20y%20tengo%20una%20consulta%20sobre%20mi%20propiedad.', label:'Contacto NIDO', icon:'💬', external:true }]},
+  { section:'Cuenta', items:[{ href:'/dashboard/propietario/perfil', label:'Mi perfil', icon:'▤' },{ href:'mailto:hola@nido-cr.com?subject=Consulta%20de%20propietario', label:'Contacto NIDO', icon:'✉', external:true }]},
 ]
 export function SidebarPropietario({ plan, nombreUsuario }: { plan:PlanSuscripcion|null, nombreUsuario:string }) {
   const pathname = usePathname()

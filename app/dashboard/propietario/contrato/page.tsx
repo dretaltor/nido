@@ -533,8 +533,8 @@ function Contrato() {
               <a href="/dashboard/propietario" style={{ padding:'12px 24px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>
                 Ir al panel →
               </a>
-              <a href={'https://wa.me/50688226436?text=Hola NIDO, acabo de firmar el contrato de '+(tipoContrato === 'exclusividad' ? 'exclusividad' : 'sin exclusividad')+'. Mi correo es '+user?.email} target="_blank" style={{ padding:'12px 24px', borderRadius:999, background:'#22c55e', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>
-                💬 Contactar asesor
+              <a href={'mailto:hola@nido-cr.com?subject=Firma%20de%20contrato%20de%20propietario&body=Hola%20NIDO%2C%20acabo%20de%20firmar%20el%20contrato%20de%20'+(tipoContrato === 'exclusividad' ? 'exclusividad' : 'sin%20exclusividad')+'.%20Mi%20correo%20es%20'+user?.email} style={{ padding:'12px 24px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', fontSize:14, fontWeight:500, textDecoration:'none' }}>
+                ✉ Contactar equipo NIDO
               </a>
             </div>
           </div>
