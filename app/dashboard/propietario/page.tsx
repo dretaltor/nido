@@ -66,6 +66,8 @@ export default function DashboardPropietario() {
   const [comparables, setComparables] = useState<any[]>([])
   const [loadingComparables, setLoadingComparables] = useState(true)
   const [feedbacksReales, setFeedbacksReales] = useState<any[]>([])
+  const [referidosReales, setReferidosReales] = useState<any[]>([])
+  const [refLinkCopiado, setRefLinkCopiado] = useState(false)
 
   const actualizarOferta = async (id: string, estado: string) => {
     setUpdatingOferta(id)
@@ -101,13 +103,16 @@ export default function DashboardPropietario() {
       setUser(user)
       setNombre(user.user_metadata?.nombre || user.email?.split('@')[0] || 'propietario')
       // Cargar perfil de propietario
-      supabase.from('propietarios').select('id,user_id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,cedula_frente_url,cedula_reverso_url,selfie_url,created_at').eq('correo', user.email!).maybeSingle()
+      supabase.from('propietarios').select('id,user_id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,cedula_frente_url,cedula_reverso_url,selfie_url,created_at,codigo_referido,referido_por').eq('correo', user.email!).maybeSingle()
         .then(({ data }) => {
           setPerfilPropietario(data)
           // Mostrar tour si es primera visita
           const tourVisto = localStorage.getItem('nido_tour_propietario')
           if (!tourVisto) { setTourActivo(true); localStorage.setItem('nido_tour_propietario', '1') }
         })
+      // Programa de referidos: quienes referi yo
+      supabase.from('referidos').select('*').eq('referidor_email', user.email!).order('created_at', { ascending: false })
+        .then(({ data }) => setReferidosReales(data || []))
       supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,comision_porcentaje,created_at').eq('propietario_correo', user.email!).in('estado', ['activo','pendiente']).order('created_at', { ascending: false }).limit(1).maybeSingle().then(({ data: c }) => { setContrato(c); setLoadingContrato(false) })
       // Fetch propiedades del propietario + leads + ofertas filtradas
       supabase.from('propiedades').select('id,titulo,zona,precio,disponible,tipo,ref_id,fotos,habitaciones,banos,metros,operacion')
@@ -181,6 +186,7 @@ export default function DashboardPropietario() {
     { id:'feedbacks', label:'Feedbacks' },
     { id:'ofertas', label:'Ofertas' },
     { id:'mercado', label:'Valor de Mercado' },
+    { id:'referidos', label:'Referidos' },
     { id:'contrato', label:'Contrato' },
     { id:'verificacion', label:'Verificación' },
     { id:'facturacion', label:'Facturación' },
@@ -762,6 +768,63 @@ export default function DashboardPropietario() {
               <div style={{ fontSize:12, color:'oklch(0.45 0.06 80)' }}>Un asesor NIDO lo contrafirmará pronto.</div>
             </div>
             <a href="mailto:hola@nido-cr.com?subject=Contrato en revisión" style={{ marginLeft:'auto', padding:'8px 14px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:12, fontWeight:500, textDecoration:'none', flexShrink:0 }}>✉ Escribirnos</a>
+          </div>
+        )}
+
+        {tab === 'referidos' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>Programa de referidos</h2>
+            <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6, marginBottom:24 }}>
+              Compartí tu link con otros propietarios o asesores. Cuando se registren en NIDO usando tu código, aparecen acá y el equipo NIDO revisa y aprueba la recompensa.
+            </p>
+            <div className="card card-pad" style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Tu código de referido</div>
+              <div style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
+                <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--accent)', letterSpacing:'0.04em' }}>{perfilPropietario?.codigo_referido || '—'}</div>
+                <button
+                  onClick={() => {
+                    if (!perfilPropietario?.codigo_referido) return
+                    navigator.clipboard.writeText('https://www.nido-cr.com/registro-propietario?ref=' + perfilPropietario.codigo_referido)
+                    setRefLinkCopiado(true)
+                    setTimeout(() => setRefLinkCopiado(false), 2500)
+                  }}
+                  style={{ padding:'8px 18px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, fontWeight:500, cursor:'pointer' }}
+                >
+                  {refLinkCopiado ? '✓ Copiado' : 'Copiar link para compartir'}
+                </button>
+              </div>
+              <p style={{ fontSize:12, color:'var(--ink-3)', marginTop:10 }}>
+                https://www.nido-cr.com/registro-propietario?ref={perfilPropietario?.codigo_referido || '...'}
+              </p>
+            </div>
+
+            <h3 style={{ fontFamily:'var(--serif)', fontSize:18, fontWeight:400, marginBottom:14 }}>Tus referidos</h3>
+            {referidosReales.length === 0 ? (
+              <div className="card card-pad" style={{ textAlign:'center', padding:'40px 20px', color:'var(--ink-3)', fontSize:14 }}>
+                Todavía no referiste a nadie. Compartí tu link para empezar a ganar recompensas.
+              </div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                {referidosReales.map(r => {
+                  const badgeStyle = r.estado==='pagado' ? { background:'var(--accent-tint)', color:'var(--accent)' }
+                    : r.estado==='aprobado' ? { background:'oklch(0.93 0.05 150)', color:'oklch(0.40 0.08 150)' }
+                    : r.estado==='rechazado' ? { background:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)' }
+                    : { background:'oklch(0.93 0.05 80)', color:'oklch(0.45 0.08 80)' }
+                  const estadoLabel: Record<string,string> = { pendiente:'Pendiente de revisión', aprobado:'Aprobado', rechazado:'Rechazado', pagado:'Recompensa pagada' }
+                  return (
+                    <div key={r.id} className="card card-pad" style={{ display:'flex', alignItems:'center', gap:14 }}>
+                      <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{(r.referido_nombre||r.referido_email)[0].toUpperCase()}</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:14, fontWeight:500 }}>{r.referido_nombre || r.referido_email}</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{r.referido_tipo === 'asesor' ? 'Asesor' : 'Propietario'} · {new Date(r.created_at).toLocaleDateString('es-CR')}</div>
+                      </div>
+                      {r.recompensa_monto ? <div style={{ fontSize:13, color:'var(--ink-2)', fontWeight:500 }}>${r.recompensa_monto}</div> : null}
+                      <span className="badge" style={badgeStyle}>{estadoLabel[r.estado] || r.estado}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 

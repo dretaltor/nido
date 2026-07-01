@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
 const RELACIONES = [
@@ -9,8 +9,10 @@ const RELACIONES = [
   { id:'empresa', label:'Empresa o sociedad', desc:'Propiedad a nombre de persona jurídica' },
 ]
 
-export default function RegistroPropietario() {
+function RegistroPropietarioInner() {
   const router = useRouter()
+  const params = useSearchParams()
+  const refCode = params.get('ref') || ''
   const [form, setForm] = useState({ nombre:'', cedula:'', telefono:'', correo:'', contrasena:'', relacion:'' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -81,6 +83,19 @@ export default function RegistroPropietario() {
         relacion: form.relacion,
         created_at: new Date().toISOString(),
       })
+
+      // Programa de referidos: si vino con un ?ref=CODIGO, registrar la referencia
+      if (refCode) {
+        try {
+          await supabase.rpc('registrar_referido', {
+            p_codigo: refCode,
+            p_referido_email: form.correo,
+            p_referido_tipo: 'propietario',
+            p_referido_nombre: form.nombre,
+          })
+        } catch {}
+      }
+
       router.push('/dashboard/nueva-propiedad?tipo=propietario')
     } catch {
       setError('Error al guardar. Intenta de nuevo.')
@@ -117,7 +132,7 @@ export default function RegistroPropietario() {
       <nav style={{ position:'relative', zIndex:10, display:'flex', justifyContent:'space-between', alignItems:'center', padding:'1.2rem 2rem', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>
         <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:'1.4rem', color:'white' }}>NIDO<span style={{ color:'oklch(0.85 0.06 80)' }}>.</span></div>
         <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-          <a href="/login-propietario" style={{ fontSize:'0.75rem', color:'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textDecoration:'none', border:'1px solid rgba(255,255,255,0.15)', padding:'6px 14px', borderRadius:999, transition:'all 0.2s' }}>Ya tengo cuenta →</a>
+          <a href={refCode ? `/login-propietario?ref=${refCode}` : '/login-propietario'} style={{ fontSize:'0.75rem', color:'rgba(255,255,255,0.5)', letterSpacing:'0.08em', textDecoration:'none', border:'1px solid rgba(255,255,255,0.15)', padding:'6px 14px', borderRadius:999, transition:'all 0.2s' }}>Ya tengo cuenta →</a>
           <button onClick={() => router.push('/bienvenida')} style={{ fontSize:'0.7rem', color:'rgba(255,255,255,0.25)', letterSpacing:'0.1em', background:'none', border:'none', cursor:'pointer' }}>← VOLVER</button>
         </div>
       </nav>
@@ -200,5 +215,13 @@ export default function RegistroPropietario() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function RegistroPropietario() {
+  return (
+    <Suspense fallback={<div style={{padding:40,fontFamily:'sans-serif',color:'#999'}}>Cargando...</div>}>
+      <RegistroPropietarioInner/>
+    </Suspense>
   )
 }

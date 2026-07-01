@@ -1,8 +1,11 @@
 'use client'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
 
-export default function LoginPropietario() {
+function LoginPropietarioInner() {
+  const params = useSearchParams()
+  const refCode = params.get('ref') || ''
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -116,7 +119,7 @@ export default function LoginPropietario() {
         )}
 
         <p style={{ textAlign:'center', marginTop:16, fontSize:13, color:'var(--ink-3)' }}>
-          ¿No tenés cuenta? <a href="/registro-propietario" style={{ color:'var(--accent)', fontWeight:500, textDecoration:'none' }}>Registrate aquí</a>
+          ¿No tenés cuenta? <a href={refCode ? `/registro-propietario?ref=${refCode}` : '/registro-propietario'} style={{ color:'var(--accent)', fontWeight:500, textDecoration:'none' }}>Registrate aquí</a>
         </p>
         <p style={{ textAlign:'center', marginTop:8, fontSize:12, color:'var(--ink-3)' }}>
           ¿Sos asesor? <a href="/login" style={{ color:'var(--ink-2)', textDecoration:'none' }}>Ingresar como asesor →</a>
@@ -156,5 +159,13 @@ export default function LoginPropietario() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function LoginPropietario() {
+  return (
+    <Suspense fallback={<div style={{padding:40,fontFamily:'sans-serif',color:'#999'}}>Cargando...</div>}>
+      <LoginPropietarioInner/>
+    </Suspense>
   )
 }

@@ -175,6 +175,9 @@ export default function BienvenidaComprador() {
         <button className="skip-lnk" onClick={() => router.push('/propiedades')} style={{ marginTop:'1.2rem', fontSize:'0.7rem', color:'rgba(255,255,255,0.35)', letterSpacing:'0.08em', background:'none', border:'none', cursor:'pointer', transition:'color 0.2s' }}>
           Prefiero explorar por mi cuenta →
         </button>
+        <button className="skip-lnk" onClick={() => router.push('/propiedades/zona')} style={{ marginTop:'0.6rem', fontSize:'0.7rem', color:'rgba(255,255,255,0.35)', letterSpacing:'0.08em', background:'none', border:'none', cursor:'pointer', transition:'color 0.2s' }}>
+          Explorá propiedades por zona →
+        </button>
       </div>
     </main>
   )

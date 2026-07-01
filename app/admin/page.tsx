@@ -42,6 +42,7 @@ const MODULES = [
   { id:'kyc', icon:'🪪', label:'Verificaciones KYC' },
   { id:'mensajes', icon:'✉', label:'Mensajes internos' },
   { id:'soporte', icon:'🎫', label:'Soporte' },
+  { id:'referidos', icon:'🤝', label:'Referidos' },
   { id:'kyc_propietarios', icon:'🏠', label:'KYC Propietarios' },
   { id:'contratos', icon:'📋', label:'Contratos' },
   { id:'comisiones', icon:'💰', label:'Comisiones' },
@@ -61,6 +62,7 @@ export default function AdminPanel() {
   const [propiedades, setPropiedades] = useState<any[]>([])
   const [suscripciones, setSuscripciones] = useState<any[]>([])
   const [tickets, setTickets] = useState<any[]>([])
+  const [referidos, setReferidos] = useState<any[]>([])
   const [sel, setSel] = useState<any>(null)
   const [filtro, setFiltro] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
@@ -78,7 +80,7 @@ export default function AdminPanel() {
   }, [])
 
   const loadAll = async () => {
-    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }] = await Promise.all([
+    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }] = await Promise.all([
       supabase.from('admin_metricas').select('*').maybeSingle(),
       supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at').order('created_at', { ascending: false }),
       supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at').order('created_at', { ascending: false }),
@@ -87,6 +89,7 @@ export default function AdminPanel() {
       supabase.from('comisiones').select('*').order('created_at', { ascending: false }),
       supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,created_at').order('created_at', { ascending: false }),
       supabase.from('soporte_tickets').select('*').order('updated_at', { ascending: false }),
+      supabase.from('referidos').select('*').order('created_at', { ascending: false }),
     ])
     setMetricas(met)
     setAsesores(as || [])
@@ -96,6 +99,7 @@ export default function AdminPanel() {
     setComisiones(coms || [])
     setContratos(cons || [])
     setTickets(tks || [])
+    setReferidos(refs || [])
     setLoading(false)
   }
 
@@ -179,6 +183,19 @@ export default function AdminPanel() {
         ? { nombre: asesor.nombre, asesor_telefono: asesor.telefono }
         : { nombre: asesor.nombre, asunto: 'Solicitud Equipo NIDO', mensaje: 'Gracias por tu interés en el Equipo NIDO. Por ahora no podemos avanzar con tu solicitud, pero podés seguir trabajando como asesor independiente en la plataforma.' }
     }) }).catch(() => {})
+  }
+
+  const actualizarReferido = async (id: string, estado: string, recompensaMonto?: number | null, notas?: string) => {
+    await supabase.from('referidos').update({
+      estado,
+      recompensa_monto: recompensaMonto ?? null,
+      notas_admin: notas || null,
+      updated_at: new Date().toISOString(),
+    }).eq('id', id)
+    loadAll()
+    setSel((p:any) => p ? {...p, estado, recompensa_monto: recompensaMonto ?? null, notas_admin: notas || null} : null)
+    setMsg('✓ Referido actualizado')
+    setTimeout(() => setMsg(''), 3000)
   }
 
   const enviarMensaje = async (correo: string, asunto: string, mensaje: string) => {
@@ -802,6 +819,54 @@ export default function AdminPanel() {
           </div>
         )}
 
+        {modulo === 'referidos' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Crecimiento</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Programa de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>referidos.</em></h1>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+              {['todos','pendiente','aprobado','rechazado','pagado'].map(f => (
+                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
+                  {f==='todos'?'Todos':f.charAt(0).toUpperCase()+f.slice(1)}
+                  <span style={{ marginLeft:6, opacity:0.6 }}>
+                    ({f==='todos'?referidos.length:referidos.filter(r=>r.estado===f).length})
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="card">
+              {referidos.filter(r => filtro==='todos'||r.estado===filtro).length === 0 && (
+                <div style={{ padding:'40px 20px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>No hay referidos en este estado.</div>
+              )}
+              {referidos
+                .filter(r => filtro==='todos'||r.estado===filtro)
+                .map(r => {
+                  const badgeStyle = r.estado==='pagado' ? { background:'var(--accent-tint)', color:'var(--accent)' }
+                    : r.estado==='aprobado' ? { background:'oklch(0.93 0.05 150)', color:'oklch(0.40 0.08 150)' }
+                    : r.estado==='rechazado' ? { background:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)' }
+                    : { background:'oklch(0.93 0.05 80)', color:'oklch(0.45 0.08 80)' }
+                  return (
+                    <div key={r.id} className="row" onClick={() => setSel({...r, _tipo:'referido'})}>
+                      <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{(r.referido_nombre||r.referido_email||'?')[0].toUpperCase()}</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{r.referido_nombre || r.referido_email} <span style={{ color:'var(--ink-3)', fontWeight:400 }}>· referido por {r.referidor_email}</span></div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{r.referido_tipo === 'asesor' ? 'Asesor' : 'Propietario'} · código {r.codigo_usado} · {new Date(r.created_at).toLocaleDateString('es-CR')}</div>
+                      </div>
+                      <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                        {r.recompensa_monto ? <span style={{ fontSize:13, color:'var(--ink-2)', fontWeight:500 }}>${r.recompensa_monto}</span> : null}
+                        <span className="badge" style={badgeStyle}>
+                          {r.estado==='pagado'?'Pagado':r.estado==='aprobado'?'Aprobado':r.estado==='rechazado'?'Rechazado':'Pendiente'}
+                        </span>
+                        <span style={{ color:'var(--ink-3)', fontSize:16 }}>›</span>
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ── DRAWER DETALLE ── */}
@@ -818,6 +883,7 @@ export default function AdminPanel() {
               onTogglePropiedad={togglePropiedad}
               onVerificarPropiedad={verificarPropiedad}
               onEnviarMensaje={enviarMensaje}
+              onActualizarReferido={actualizarReferido}
               onMsg={setMsg}
               onReload={loadAll}
             />
@@ -881,7 +947,7 @@ function MensajeForm({ asesores, propietarios, onSend }: any) {
 }
 
 // ── DRAWER DETALLE ──
-function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onMsg, onReload }: any) {
+function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onActualizarReferido, onMsg, onReload }: any) {
   const [nuevoPlan, setNuevoPlan] = useState('')
   const [notasKYC, setNotasKYC] = useState(sel?.verificacion_notas||'')
   const [msgInterno, setMsgInterno] = useState('')
@@ -1354,7 +1420,65 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
     <TicketDetalle ticket={sel} onClose={onClose} onReload={onReload} onMsg={onMsg}/>
   )
 
+  if (sel._tipo === 'referido') return (
+    <ReferidoDetalle referido={sel} onClose={onClose} onActualizar={onActualizarReferido}/>
+  )
+
   return null
+}
+
+// ── REFERIDO ──
+function ReferidoDetalle({ referido, onClose, onActualizar }: any) {
+  const [monto, setMonto] = useState(referido.recompensa_monto ? String(referido.recompensa_monto) : '')
+  const [notas, setNotas] = useState(referido.notas_admin || '')
+  const [guardando, setGuardando] = useState(false)
+
+  const cambiarEstado = async (estado: string) => {
+    setGuardando(true)
+    const montoNum = monto.trim() ? Number(monto) : null
+    await onActualizar(referido.id, estado, montoNum, notas)
+    setGuardando(false)
+  }
+
+  return (
+    <div>
+      <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--rule)', position:'sticky', top:0, background:'white', zIndex:1 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
+          <div>
+            <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--accent)', marginBottom:4 }}>Referido · {referido.referido_tipo === 'asesor' ? 'Asesor' : 'Propietario'}</div>
+            <div style={{ fontFamily:'var(--serif)', fontSize:20 }}>{referido.referido_nombre || referido.referido_email}</div>
+          </div>
+          <button onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, display:'grid', placeItems:'center', cursor:'pointer', flexShrink:0 }}>×</button>
+        </div>
+        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{referido.referido_email}</div>
+      </div>
+
+      <div style={{ padding:'20px 24px' }}>
+        <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:20, fontSize:13, color:'var(--ink-2)' }}>
+          <div><strong>Referido por:</strong> {referido.referidor_email} ({referido.referidor_tipo === 'asesor' ? 'Asesor' : 'Propietario'})</div>
+          <div><strong>Código usado:</strong> {referido.codigo_usado}</div>
+          <div><strong>Fecha:</strong> {new Date(referido.created_at).toLocaleDateString('es-CR')}</div>
+          <div><strong>Estado actual:</strong> {referido.estado}</div>
+        </div>
+
+        <div style={{ marginBottom:16 }}>
+          <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Monto de recompensa (opcional)</label>
+          <input type="number" className="field" placeholder="Ej: 50" value={monto} onChange={e => setMonto(e.target.value)}/>
+        </div>
+
+        <div style={{ marginBottom:20 }}>
+          <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Notas internas (opcional)</label>
+          <textarea className="field" rows={3} placeholder="Notas para el equipo NIDO" value={notas} onChange={e => setNotas(e.target.value)}/>
+        </div>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          <button className="btn" disabled={guardando} onClick={() => cambiarEstado('aprobado')} style={{ padding:'10px', background:'var(--accent)', color:'white', border:'none', borderRadius:8, fontSize:13, fontWeight:500, cursor:'pointer' }}>✓ Aprobar recompensa</button>
+          <button className="btn" disabled={guardando} onClick={() => cambiarEstado('pagado')} style={{ padding:'10px', background:'var(--ink)', color:'white', border:'none', borderRadius:8, fontSize:13, fontWeight:500, cursor:'pointer' }}>$ Marcar como pagado</button>
+          <button className="btn btn-outline" disabled={guardando} onClick={() => cambiarEstado('rechazado')} style={{ padding:'10px', background:'transparent', border:'1px solid var(--rule)', borderRadius:8, fontSize:13, cursor:'pointer' }}>Rechazar</button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ── TICKET DE SOPORTE ──

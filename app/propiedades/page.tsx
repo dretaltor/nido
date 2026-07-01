@@ -399,6 +399,16 @@ export default function Propiedades() {
         </div>
       </section>
 
+      <section style={{ maxWidth: 1600, margin: '0 auto', padding: '0 40px 60px' }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 12, padding: '32px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontFamily: 'var(--serif)', fontSize: 24, marginBottom: 6 }}>Explorá cantón por cantón</div>
+            <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>Buscá propiedades en las 7 provincias de Costa Rica, zona por zona.</p>
+          </div>
+          <a href="/propiedades/zona" style={{ padding: '12px 24px', borderRadius: 999, background: 'var(--ink)', color: 'white', fontSize: 13, fontWeight: 500, textDecoration: 'none', flexShrink: 0 }}>Ver todas las zonas →</a>
+        </div>
+      </section>
+
       <footer style={{ maxWidth: 1600, margin: '0 auto', borderTop: '1px solid var(--rule)' }}>
         <div className="footer-inner" style={{ padding: '32px 40px', fontSize: 12, color: 'var(--ink-3)', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between' }}>
           <span>© 2026 NIDO · Costa Rica</span>

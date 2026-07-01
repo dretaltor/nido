@@ -19,6 +19,7 @@ const PLANES_CARDS = [
 function RegistroInner() {
   const params = useSearchParams()
   const planInicial = params.get('plan') || 'gratis'
+  const refCode = params.get('ref') || ''
 
   const [plan, setPlan] = useState(planInicial)
   const [tipoTrabajo, setTipoTrabajo] = useState<'independiente' | 'compania' | 'equipo_nido'>('independiente')
@@ -65,6 +66,18 @@ function RegistroInner() {
           valeria_onboarding_completo: false,
           created_at: new Date().toISOString(),
         })
+
+        // Programa de referidos: si vino con un ?ref=CODIGO, registrar la referencia
+        if (refCode) {
+          try {
+            await supabase.rpc('registrar_referido', {
+              p_codigo: refCode,
+              p_referido_email: email,
+              p_referido_tipo: 'asesor',
+              p_referido_nombre: nombre,
+            })
+          } catch {}
+        }
 
         // Crear suscripcion inicial
         if (plan === 'gratis' && !cedulaYaUsada) {
