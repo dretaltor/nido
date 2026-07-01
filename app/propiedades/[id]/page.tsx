@@ -50,6 +50,8 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
   const [activeFoto, setActiveFoto] = useState(0)
   const [perfilAsesor, setPerfilAsesor] = useState<any>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [asesorStats, setAsesorStats] = useState<{promedio:number|null,total:number,cerradas:number,activas:number}>({promedio:null,total:0,cerradas:0,activas:0})
+  const [resenasPropiedad, setResenasPropiedad] = useState<any[]>([])
 
   useEffect(() => {
 // Auth handled by AuthContext
@@ -59,6 +61,16 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
       if (data && data.asesor_email) {
         supabase.from('perfiles').select('correo,telefono,nombre,foto_url').eq('correo', data.asesor_email).maybeSingle()
           .then(({ data: pf }) => setPerfilAsesor(pf))
+        supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', data.asesor_email).maybeSingle()
+          .then(({ data: rat }) => setAsesorStats(s => ({ ...s, promedio: rat?.promedio ?? null, total: rat?.total ?? 0 })))
+        supabase.from('comisiones').select('id', { count:'exact', head:true }).eq('asesor_email', data.asesor_email).eq('estado','cobrada')
+          .then(({ count }) => setAsesorStats(s => ({ ...s, cerradas: count || 0 })))
+        supabase.from('propiedades').select('id', { count:'exact', head:true }).eq('asesor_email', data.asesor_email).eq('disponible', true)
+          .then(({ count }) => setAsesorStats(s => ({ ...s, activas: count || 0 })))
+      }
+      if (data) {
+        supabase.from('calificaciones_publicas').select('calificador_nombre,calificacion,comentario,created_at').eq('propiedad_id', data.id).order('created_at', { ascending:false }).limit(6)
+          .then(({ data: res }) => setResenasPropiedad(res || []))
       }
       if (data) {
         setMessages([{ role:'assistant', content: 'Hola, soy Valeria. Veo que estás viendo ' + (data.titulo||'esta propiedad') + ' en ' + (data.zona||'Costa Rica') + '. ¿Tienes alguna pregunta? Puedo coordinar una visita, resolver dudas sobre la zona o ayudarte con la pre-aprobación bancaria.' }])
@@ -298,9 +310,9 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                 {/* Stats del asesor */}
                 <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',borderBottom:'1px solid var(--rule)'}}>
                   {[
-                    {val:'4.9★',label:'Calificación'},
-                    {val:'87%',label:'Resp. en 2h'},
-                    {val:'142',label:'Cierres'},
+                    {val: asesorStats.promedio ? asesorStats.promedio+'★' : '—', label: asesorStats.promedio ? asesorStats.total+' reseña'+(asesorStats.total===1?'':'s') : 'Sin reseñas aún'},
+                    {val:String(asesorStats.activas), label:'Activas'},
+                    {val:String(asesorStats.cerradas), label:'Cierres'},
                   ].map((s,i) => (
                     <div key={i} style={{padding:'14px 12px',textAlign:'center',borderRight:i<2?'1px solid var(--rule)':'none'}}>
                       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'var(--accent)',marginBottom:2}}>{s.val}</div>
@@ -373,16 +385,40 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                 </div>
 
                 {/* Valor para el comprador */}
-                <div style={{margin:'0 16px 16px',background:'var(--accent-tint)',border:'1px solid oklch(0.85 0.04 150)',borderRadius:10,padding:'12px 14px'}}>
-                  <div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--accent)',marginBottom:6,fontWeight:500}}>Valeria recomienda</div>
-                  <p style={{fontSize:12,color:'var(--ink-2)',lineHeight:1.6}}>
-                    Esta propiedad lleva menos de 30 dias en el mercado. Los inmuebles en {propiedad.zona||'esta zona'} se venden en promedio en 45 dias. Considera actuar pronto.
-                  </p>
-                </div>
+                {(() => {
+                  const dias = (propiedad as any)?.created_at ? Math.floor((Date.now() - new Date((propiedad as any).created_at).getTime())/(1000*60*60*24)) : null
+                  return (
+                    <div style={{margin:'0 16px 16px',background:'var(--accent-tint)',border:'1px solid oklch(0.85 0.04 150)',borderRadius:10,padding:'12px 14px'}}>
+                      <div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--accent)',marginBottom:6,fontWeight:500}}>Valeria recomienda</div>
+                      <p style={{fontSize:12,color:'var(--ink-2)',lineHeight:1.6}}>
+                        {dias !== null ? `Esta propiedad lleva ${dias} día${dias===1?'':'s'} publicada en NIDO.` : 'Esta propiedad está activa en NIDO.'} ¿Querés saber cómo se compara con otras en {propiedad.zona||'la zona'}? Preguntale a Valeria.
+                      </p>
+                    </div>
+                  )
+                })()}
               </div>
             )}
           </div>
         </div>
+
+        {resenasPropiedad.length > 0 && (
+          <div style={{maxWidth:800,margin:'0 auto',padding:'0 24px 48px'}}>
+            <h2 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:400,marginBottom:16}}>
+              Reseñas de visitantes {asesorStats.promedio && <span style={{color:'var(--accent)'}}>· {asesorStats.promedio}★</span>}
+            </h2>
+            <div style={{display:'flex',flexDirection:'column',gap:12}}>
+              {resenasPropiedad.map((r:any,i:number) => (
+                <div key={i} style={{background:'white',border:'1px solid var(--rule)',borderRadius:12,padding:'16px 20px'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
+                    <div style={{fontSize:13,fontWeight:500}}>{r.calificador_nombre || 'Visitante NIDO'}</div>
+                    <div style={{color:'oklch(0.62 0.10 75)',fontSize:13}}>{'★'.repeat(r.calificacion)}{'☆'.repeat(5-r.calificacion)}</div>
+                  </div>
+                  {r.comentario && <p style={{fontSize:13,color:'var(--ink-2)',lineHeight:1.6}}>{r.comentario}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     {ofertaOpen && propiedad && (
         <OfertaForm

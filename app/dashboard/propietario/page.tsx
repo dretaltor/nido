@@ -39,22 +39,8 @@ const VISITAS_MOCK = [
   { id:'2', nombre:'Ana Quesada', propiedad:'Apartamento Escazú', fecha:'Miércoles 14 mayo', hora:'3:00 PM', estado:'pendiente' },
 ]
 
-const FEEDBACKS_MOCK = [
-  { id:'1', nombre:'Laura Mora', propiedad:'Casa en Santa Ana', fecha:'30 abr', calificacion:4, comentario:'Muy bonita la propiedad, el jardín es excelente. Le falta un poco de pintura en la fachada.' },
-  { id:'2', nombre:'Diego Chaves', propiedad:'Apartamento Escazú', fecha:'28 abr', calificacion:5, comentario:'Perfecto el apartamento, exactamente lo que buscamos. Muy bien ubicado.' },
-]
 
 const OFERTAS_MOCK: any[] = []
-
-const MERCADO_DATA = {
-  precio_propiedad: 380000,
-  precio_mercado: 362000,
-  precio_m2_zona: 2400,
-  precio_m2_propiedad: 2380,
-  variacion_anual: 8.4,
-  demanda_zona: 'Alta',
-  tiempo_promedio_venta: 45,
-}
 
 export default function DashboardPropietario() {
   const router = useRouter()
@@ -77,6 +63,9 @@ export default function DashboardPropietario() {
   const [tourPaso, setTourPaso] = useState(0)
   const [loading, setLoading] = useState(true)
   const [nombre, setNombre] = useState('')
+  const [comparables, setComparables] = useState<any[]>([])
+  const [loadingComparables, setLoadingComparables] = useState(true)
+  const [feedbacksReales, setFeedbacksReales] = useState<any[]>([])
 
   const actualizarOferta = async (id: string, estado: string) => {
     setUpdatingOferta(id)
@@ -126,6 +115,19 @@ export default function DashboardPropietario() {
         .then(({ data: props }) => {
           const propsData = props || []
           setPropiedadesReales(propsData)
+          // Comparables reales de la zona (para la pestaña "Valor de mercado") — otras
+          // propiedades activas y aprobadas en la misma zona, sin importar quien las publico.
+          if (propsData[0]?.zona) {
+            supabase.from('propiedades').select('id,precio,metros,tipo,operacion,zona')
+              .eq('zona', propsData[0].zona)
+              .eq('disponible', true)
+              .eq('verificacion_estado', 'aprobada')
+              .neq('id', propsData[0].id)
+              .limit(60)
+              .then(({ data: comps }) => { setComparables(comps || []); setLoadingComparables(false) })
+          } else {
+            setLoadingComparables(false)
+          }
           if (propsData.length > 0) {
             const pids = propsData.map((p:any) => p.id)
             // Leads: solo campos no sensibles (sin email ni telefono)
@@ -150,6 +152,11 @@ export default function DashboardPropietario() {
             supabase.from('visitas').select('id,propiedad_id,propiedad_titulo,comprador_nombre,fecha,hora,estado')
               .in('propiedad_id', pids).order('fecha', { ascending: true })
               .then(({ data: vis }) => setVisitasReales(vis || []))
+            // Reseñas reales de visitantes sobre estas propiedades (vista publica segura)
+            supabase.from('calificaciones_publicas')
+              .select('calificador_nombre,calificacion,comentario,propiedad_id,created_at')
+              .in('propiedad_id', pids).order('created_at', { ascending: false })
+              .then(({ data: fb }) => setFeedbacksReales(fb || []))
           }
         })
       setLoading(false)
@@ -408,23 +415,36 @@ export default function DashboardPropietario() {
         {tab === 'feedbacks' && (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:20 }}>Feedbacks de visitas</h2>
-            <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
-              {FEEDBACKS_MOCK.map(f => (
-                <div key={f.id} className="card card-pad">
-                  <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
-                    <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{f.nombre[0]}</div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:14, fontWeight:500 }}>{f.nombre}</div>
-                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>{f.propiedad} · {f.fecha}</div>
+            {feedbacksReales.length === 0 ? (
+              <div className="card card-pad" style={{ textAlign:'center', padding:'40px 20px', color:'var(--ink-3)', fontSize:14 }}>
+                Todavía no tenés feedbacks de visitas. Cuando un comprador visite tu propiedad, le pedimos su opinión y aparecerá acá.
+              </div>
+            ) : (
+              <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+                {feedbacksReales.map((f, i) => {
+                  const prop = propiedadesReales.find((p:any) => p.id === f.propiedad_id)
+                  const nombre = f.calificador_nombre || 'Visitante anónimo'
+                  const fecha = f.created_at ? new Date(f.created_at).toLocaleDateString('es-CR', { day:'numeric', month:'short' }) : ''
+                  return (
+                    <div key={i} className="card card-pad">
+                      <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:12 }}>
+                        <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{nombre[0]}</div>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:14, fontWeight:500 }}>{nombre}</div>
+                          <div style={{ fontSize:12, color:'var(--ink-3)' }}>{prop?.titulo || 'Tu propiedad'} · {fecha}</div>
+                        </div>
+                        <div style={{ display:'flex', gap:2 }}>
+                          {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize:16, color:s<=f.calificacion?'#C8A96E':'var(--rule)' }}>★</span>)}
+                        </div>
+                      </div>
+                      {f.comentario && (
+                        <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.65, background:'var(--bg)', padding:'12px 14px', borderRadius:8, fontStyle:'italic' }}>"{f.comentario}"</p>
+                      )}
                     </div>
-                    <div style={{ display:'flex', gap:2 }}>
-                      {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize:16, color:s<=f.calificacion?'#C8A96E':'var(--rule)' }}>★</span>)}
-                    </div>
-                  </div>
-                  <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.65, background:'var(--bg)', padding:'12px 14px', borderRadius:8, fontStyle:'italic' }}>"{f.comentario}"</p>
-                </div>
-              ))}
-            </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
@@ -511,27 +531,52 @@ export default function DashboardPropietario() {
         )}
 
         {/* MERCADO */}
-        {tab === 'mercado' && (
+        {tab === 'mercado' && (() => {
+          const propia = propiedadesReales[0]
+          // Preferimos comparables del mismo tipo (casa/apartamento/etc); si hay muy pocos, usamos todos los de la zona.
+          const compsMismoTipo = propia?.tipo ? comparables.filter(c => c.tipo === propia.tipo) : comparables
+          const comps = compsMismoTipo.length >= 3 ? compsMismoTipo : comparables
+          const precios = comps.map((c:any) => c.precio).filter((p:any) => p > 0)
+          const precioMercado = precios.length ? Math.round(precios.reduce((a:number,b:number)=>a+b,0)/precios.length) : null
+          const precioM2s = comps.filter((c:any) => c.metros > 0).map((c:any) => c.precio / c.metros)
+          const precioM2Zona = precioM2s.length ? Math.round(precioM2s.reduce((a:number,b:number)=>a+b,0)/precioM2s.length) : null
+          const precioM2Propia = propia?.metros ? Math.round(propia.precio / propia.metros) : null
+          const minPrecio = precios.length ? Math.min(...precios) : null
+          const maxPrecio = precios.length ? Math.max(...precios) : null
+          const demanda = comps.length >= 6 ? 'Alta' : comps.length >= 2 ? 'Media' : 'Insuficiente'
+          const diffPct = precioMercado && propia?.precio ? Math.round(((propia.precio - precioMercado) / precioMercado) * 1000) / 10 : null
+
+          if (!propia) return (
+            <div style={{ animation:'fadeUp 0.4s ease' }}>
+              <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>Valor de mercado</h2>
+              <p style={{ fontSize:14, color:'var(--ink-3)' }}>Publicá tu propiedad para ver un análisis de mercado.</p>
+            </div>
+          )
+
+          return (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
-            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:20 }}>Valor de mercado</h2>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:4 }}>Valor de mercado</h2>
+            <p style={{ fontSize:12, color:'var(--ink-3)', marginBottom:20 }}>
+              {loadingComparables ? 'Calculando comparables...' : comps.length > 0 ? `Basado en ${comps.length} propiedad${comps.length===1?'':'es'} activa${comps.length===1?'':'s'} en ${propia.zona}` : `Todavía no hay suficientes propiedades comparables publicadas en ${propia.zona}`}
+            </p>
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20 }}>
               <div className="card card-pad">
                 <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Tu propiedad</div>
-                <div style={{ fontFamily:'var(--serif)', fontSize:48, color:'var(--accent)', marginBottom:4 }}>${MERCADO_DATA.precio_propiedad.toLocaleString()}</div>
+                <div style={{ fontFamily:'var(--serif)', fontSize:48, color:'var(--accent)', marginBottom:4 }}>${(propia.precio||0).toLocaleString()}</div>
                 <div style={{ fontSize:13, color:'var(--ink-3)' }}>Precio de lista actual</div>
               </div>
               <div className="card card-pad">
                 <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Promedio de zona</div>
-                <div style={{ fontFamily:'var(--serif)', fontSize:48, color:'var(--ink)', marginBottom:4 }}>${MERCADO_DATA.precio_mercado.toLocaleString()}</div>
-                <div style={{ fontSize:13, color:'var(--ink-3)' }}>Propiedades similares en {propiedadesReales[0]?.zona || 'tu zona'}</div>
+                <div style={{ fontFamily:'var(--serif)', fontSize:48, color:'var(--ink)', marginBottom:4 }}>{precioMercado ? '$'+precioMercado.toLocaleString() : '—'}</div>
+                <div style={{ fontSize:13, color:'var(--ink-3)' }}>Propiedades similares en {propia.zona || 'tu zona'}</div>
               </div>
             </div>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:20 }}>
               {[
-                { label:'Precio por m²', val:'$'+MERCADO_DATA.precio_m2_propiedad+' USD', sub:'Zona: $'+MERCADO_DATA.precio_m2_zona },
-                { label:'Variación anual', val:'+'+MERCADO_DATA.variacion_anual+'%', sub:'Últimos 12 meses' },
-                { label:'Demanda de zona', val:MERCADO_DATA.demanda_zona, sub:'Santa Ana · 2026' },
-                { label:'Tiempo promedio venta', val:MERCADO_DATA.tiempo_promedio_venta+'d', sub:'En tu zona' },
+                { label:'Precio por m²', val: precioM2Propia ? '$'+precioM2Propia.toLocaleString()+' USD' : '—', sub: precioM2Zona ? 'Zona: $'+precioM2Zona.toLocaleString() : 'Sin datos de m² en la zona' },
+                { label:'Diferencia vs. zona', val: diffPct !== null ? (diffPct>0?'+':'')+diffPct+'%' : '—', sub: diffPct !== null ? (diffPct>0?'Por encima del promedio':'Por debajo del promedio') : 'Sin comparables suficientes' },
+                { label:'Demanda de zona', val: demanda, sub: propia.zona+' · '+new Date().getFullYear() },
+                { label:'Rango de precios', val: minPrecio&&maxPrecio ? '$'+(minPrecio/1000).toFixed(0)+'k–$'+(maxPrecio/1000).toFixed(0)+'k' : '—', sub:'En comparables activos' },
               ].map((s,i) => (
                 <div key={i} className="card card-pad">
                   <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--accent)', marginBottom:4 }}>{s.val}</div>
@@ -543,14 +588,16 @@ export default function DashboardPropietario() {
             <div className="card card-pad" style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)' }}>
               <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:8 }}>
                 <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg,var(--accent),oklch(0.30 0.08 150))', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--serif)', fontSize:14, fontStyle:'italic', color:'oklch(0.85 0.06 80)' }}>V</div>
-                <div style={{ fontSize:13, fontWeight:500, color:'var(--accent)' }}>Análisis de Valeria IA</div>
+                <div style={{ fontSize:13, fontWeight:500, color:'var(--accent)' }}>¿Querés una lectura personalizada?</div>
               </div>
-              <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.65 }}>
-                Tu propiedad está tasada un 4.9% por encima del promedio de zona, lo que es razonable dado sus características. En el contexto actual de alta demanda en Santa Ana, te recomiendo mantener el precio. El mercado está absorbiendo propiedades similares en 38 días promedio.
+              <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.65, marginBottom:12 }}>
+                Estos números son un cálculo directo sobre las propiedades activas en tu zona — no un avalúo formal. Valeria puede darte una recomendación de precio y estrategia según tu caso específico.
               </p>
+              <a href="/dashboard/propietario/valeria" style={{ fontSize:13, color:'var(--accent)', fontWeight:500 }}>Hablar con Valeria →</a>
             </div>
           </div>
-        )}
+          )
+        })()}
 
         {/* TOUR GUIADO */}
       {tourActivo && (() => {

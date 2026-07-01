@@ -18,9 +18,17 @@ export default function Asesores() {
       .order('nombre')
       .then(async ({ data }) => {
         if (data) {
-          const conteos = await Promise.all(data.map((a:any) =>
-            supabase.from('propiedades').select('id', { count: 'exact', head: true }).eq('asesor_email', a.correo).eq('disponible', true)
-          ))
+          const [conteos, ratings, cerradas] = await Promise.all([
+            Promise.all(data.map((a:any) =>
+              supabase.from('propiedades').select('id', { count: 'exact', head: true }).eq('asesor_email', a.correo).eq('disponible', true)
+            )),
+            Promise.all(data.map((a:any) =>
+              supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', a.correo).maybeSingle()
+            )),
+            Promise.all(data.map((a:any) =>
+              supabase.from('comisiones').select('id', { count: 'exact', head: true }).eq('asesor_email', a.correo).eq('estado', 'cobrada')
+            )),
+          ])
           setAsesores(data.map((a:any, i:number) => {
             const vp = a.valeria_perfil || {}
             const zonas = (vp.zonas || 'Valle Central').split(',').map((z:string) => z.trim())
@@ -33,7 +41,9 @@ export default function Asesores() {
               region: zonas[0] || 'Valle Central',
               bio: vp.diferenciador || 'Asesor certificado NIDO con experiencia en el mercado costarricense.',
               listings: conteos[i]?.count || 0,
-              sold: 0,
+              sold: cerradas[i]?.count || 0,
+              rating: ratings[i]?.data?.promedio || null,
+              ratingTotal: ratings[i]?.data?.total || 0,
               langs: ['ES'],
               specs: vp.tipo_propiedades ? vp.tipo_propiedades.split(',').map((s:string)=>s.trim()) : ['Residencial'],
             }
@@ -120,7 +130,11 @@ export default function Asesores() {
                 <div style={{display:'flex',gap:24,fontSize:13}}>
                   <div><b style={{fontFamily:'var(--serif)',fontSize:18}}>{a.listings}</b> <span style={{color:'var(--ink-3)',fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase'}}>Activas</span></div>
                   <div><b style={{fontFamily:'var(--serif)',fontSize:18}}>{a.sold}</b> <span style={{color:'var(--ink-3)',fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase'}}>Cerradas</span></div>
-                  <div><b style={{fontFamily:'var(--serif)',fontSize:18}}>4.9</b> <span style={{color:'var(--ink-3)',fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase'}}>Rating</span></div>
+                  {a.rating ? (
+                    <div><b style={{fontFamily:'var(--serif)',fontSize:18}}>★ {a.rating}</b> <span style={{color:'var(--ink-3)',fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase'}}>{a.ratingTotal} reseña{a.ratingTotal===1?'':'s'}</span></div>
+                  ) : (
+                    <div><span style={{color:'var(--ink-3)',fontSize:11,letterSpacing:'0.08em',textTransform:'uppercase'}}>Sin reseñas aún</span></div>
+                  )}
                 </div>
               </div>
               <div className="arrow">→</div>
