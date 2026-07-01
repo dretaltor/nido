@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
+import { crearTicketSoporte } from '../../../../lib/soporte'
 
 const SUGERENCIAS = [
   { icon: '💰', texto: '¿Cuál es el valor de mercado actual de mi propiedad?' },
@@ -22,6 +23,8 @@ export default function ValeriaPropietario() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [mostrarSug, setMostrarSug] = useState(true)
+  const [escalando, setEscalando] = useState(false)
+  const [ticketAbierto, setTicketAbierto] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const initRef = useRef(false)
@@ -102,6 +105,27 @@ Si te preguntan algo fuera de tu alcance (legal complejo, fiscal, disputas), rec
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(input) }
   }
 
+  const escalar = async () => {
+    if (!user || escalando || ticketAbierto) return
+    setEscalando(true)
+    const nombreUsuario = user.user_metadata?.nombre || user.email?.split('@')[0] || 'propietario'
+    const asunto = 'Consulta de propietario vía Valeria — ' + (propiedades[0]?.titulo || nombreUsuario)
+    const res = await crearTicketSoporte({
+      usuario_email: user.email!,
+      usuario_nombre: nombreUsuario,
+      usuario_tipo: 'propietario',
+      asunto,
+      mensajes: msgs,
+    })
+    if (res.ok) {
+      setTicketAbierto(true)
+      setMsgs(prev => [...prev, { role: 'assistant', content: 'Listo — le avisé al equipo NIDO sobre tu consulta con el detalle de esta conversación. Te van a contactar por correo a ' + user.email + ' en las próximas 24 horas hábiles.' }])
+    } else {
+      setMsgs(prev => [...prev, { role: 'assistant', content: 'No pude escalar tu consulta automáticamente. Escribinos directamente a hola@nido-cr.com.' }])
+    }
+    setEscalando(false)
+  }
+
   const nombre = user?.email?.split('@')[0] || 'propietario'
 
   return (
@@ -142,9 +166,9 @@ Si te preguntan algo fuera de tu alcance (legal complejo, fiscal, disputas), rec
           <div style={{ padding:'16px', flex:1 }}>
             <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'oklch(0.60 0.005 80)', marginBottom:10 }}>¿Necesitás algo más específico?</div>
             <p style={{ fontSize:12, color:'oklch(0.60 0.005 80)', lineHeight:1.6, marginBottom:12 }}>Valeria te orienta, pero para temas puntuales de tu propiedad el equipo NIDO puede ayudarte directamente.</p>
-            <a href="mailto:hola@nido-cr.com?subject=Consulta%20de%20propietario" style={{ display:'block', padding:'9px 14px', background:'oklch(0.20 0.005 80)', borderRadius:8, fontSize:12, color:'white', fontWeight:500, textDecoration:'none', textAlign:'center' }}>
-              ✉ Contactar equipo NIDO
-            </a>
+            <button onClick={escalar} disabled={escalando || ticketAbierto || msgs.length===0} style={{ display:'block', width:'100%', padding:'9px 14px', background: ticketAbierto ? 'oklch(0.90 0.02 150)' : 'oklch(0.20 0.005 80)', color: ticketAbierto ? 'oklch(0.35 0.06 150)' : 'white', borderRadius:8, fontSize:12, fontWeight:500, textAlign:'center', border:'none', cursor: (escalando||ticketAbierto) ? 'default' : 'pointer', opacity: escalando ? 0.7 : 1 }}>
+              {ticketAbierto ? '✓ Equipo NIDO avisado' : escalando ? 'Enviando...' : '✉ Contactar equipo NIDO'}
+            </button>
           </div>
         </aside>
 

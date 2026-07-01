@@ -404,6 +404,48 @@ export async function POST(req: NextRequest) {
         </body>
         </html>`
       },
+      nuevo_ticket_soporte: {
+        subject: '🎫 Nuevo ticket de soporte · ' + (data?.usuario_tipo || 'usuario') + ' · ' + (data?.asunto || 'NIDO'),
+        html: `
+        <html>
+        <body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Nuevo Ticket de Soporte</p>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h1 style="font-family:Georgia,serif;font-size:24px;font-weight:400;color:#0D1F15;margin:0 0 16px">${esc(data?.asunto || 'Consulta de soporte')}</h1>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F7F3;border:1px solid #C8E6D4;border-radius:12px;margin-bottom:24px">
+            <tr><td style="padding:20px 24px">
+              <p style="font-size:12px;font-weight:600;color:#1B5E3B;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.08em">Datos del solicitante</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:120px">Nombre</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.usuario_nombre)}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Correo</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.usuario_email)}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Teléfono</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.usuario_telefono || '—')}</td></tr>
+                <tr><td style="padding:8px 0;font-size:13px;color:#6B7280">Tipo</td><td style="padding:8px 0;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.usuario_tipo)}</td></tr>
+              </table>
+            </td></tr>
+            </table>
+            ${data?.resumen ? `<div style="background:#FEF9F0;border:1px solid #F5E6C8;border-radius:10px;padding:16px 20px;margin-bottom:24px">
+              <p style="font-size:12px;font-weight:600;color:#92600A;margin:0 0 6px;text-transform:uppercase">Resumen de la conversación</p>
+              <p style="font-size:13px;color:#374151;line-height:1.6;margin:0;white-space:pre-wrap">${esc(data.resumen)}</p>
+            </div>` : ''}
+            <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+              <a href="https://www.nido-cr.com/admin" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Ver en bandeja de soporte →</a>
+            </td></tr></table>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:20px 40px;border-top:1px solid #E5E3DC;text-align:center">
+            <p style="font-size:11px;color:#9CA3AF;margin:0">NIDO · Backoffice Administrativo · © 2026</p>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body>
+        </html>`
+      },
       suscripcion_exitosa: {
         subject: 'Bienvenido a NIDO ' + (data?.plan || 'Pro') + ' · Tu suscripcion esta activa',
         html: `

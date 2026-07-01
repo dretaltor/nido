@@ -41,6 +41,7 @@ const MODULES = [
   { id:'suscripciones', icon:'💳', label:'Suscripciones' },
   { id:'kyc', icon:'🪪', label:'Verificaciones KYC' },
   { id:'mensajes', icon:'✉', label:'Mensajes internos' },
+  { id:'soporte', icon:'🎫', label:'Soporte' },
   { id:'kyc_propietarios', icon:'🏠', label:'KYC Propietarios' },
   { id:'contratos', icon:'📋', label:'Contratos' },
   { id:'comisiones', icon:'💰', label:'Comisiones' },
@@ -59,6 +60,7 @@ export default function AdminPanel() {
   const [resumenComisiones, setResumenComisiones] = useState<any[]>([])
   const [propiedades, setPropiedades] = useState<any[]>([])
   const [suscripciones, setSuscripciones] = useState<any[]>([])
+  const [tickets, setTickets] = useState<any[]>([])
   const [sel, setSel] = useState<any>(null)
   const [filtro, setFiltro] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
@@ -76,7 +78,7 @@ export default function AdminPanel() {
   }, [])
 
   const loadAll = async () => {
-    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }] = await Promise.all([
+    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }] = await Promise.all([
       supabase.from('admin_metricas').select('*').maybeSingle(),
       supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at').order('created_at', { ascending: false }),
       supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at').order('created_at', { ascending: false }),
@@ -84,6 +86,7 @@ export default function AdminPanel() {
       supabase.from('suscripciones').select('id,correo,plan,activo,es_trial,trial_fin,created_at,updated_at').order('created_at', { ascending: false }),
       supabase.from('comisiones').select('*').order('created_at', { ascending: false }),
       supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,created_at').order('created_at', { ascending: false }),
+      supabase.from('soporte_tickets').select('*').order('updated_at', { ascending: false }),
     ])
     setMetricas(met)
     setAsesores(as || [])
@@ -92,6 +95,7 @@ export default function AdminPanel() {
     setSuscripciones(sus || [])
     setComisiones(coms || [])
     setContratos(cons || [])
+    setTickets(tks || [])
     setLoading(false)
   }
 
@@ -749,6 +753,55 @@ export default function AdminPanel() {
           </div>
         )}
 
+        {/* ── SOPORTE (SAC) ── */}
+        {modulo === 'soporte' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Atención al cliente</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Tickets de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>soporte.</em></h1>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+              {['todos','abierto','en_progreso','resuelto'].map(f => (
+                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
+                  {f==='todos'?'Todos':f==='en_progreso'?'En progreso':f.charAt(0).toUpperCase()+f.slice(1)}
+                  <span style={{ marginLeft:6, opacity:0.6 }}>
+                    ({f==='todos'?tickets.length:tickets.filter(t=>t.estado===f).length})
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="card">
+              {tickets.filter(t => filtro==='todos'||t.estado===filtro).length === 0 && (
+                <div style={{ padding:'40px 20px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>No hay tickets en este estado.</div>
+              )}
+              {tickets
+                .filter(t => filtro==='todos'||t.estado===filtro)
+                .map(t => {
+                  const badgeStyle = t.estado==='resuelto'
+                    ? { background:'var(--accent-tint)', color:'var(--accent)' }
+                    : t.estado==='en_progreso'
+                    ? { background:'oklch(0.93 0.05 80)', color:'oklch(0.45 0.08 80)' }
+                    : { background:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)' }
+                  return (
+                    <div key={t.id} className="row" onClick={() => setSel({...t, _tipo:'ticket'})}>
+                      <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{(t.usuario_nombre||t.usuario_email||'?')[0].toUpperCase()}</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{t.asunto || 'Consulta de soporte'}</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{t.usuario_nombre || t.usuario_email} · {t.usuario_tipo} · {new Date(t.created_at).toLocaleDateString('es-CR')}</div>
+                      </div>
+                      <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                        <span className="badge" style={badgeStyle}>
+                          {t.estado==='resuelto'?'✓ Resuelto':t.estado==='en_progreso'?'En progreso':'Abierto'}
+                        </span>
+                        <span style={{ color:'var(--ink-3)', fontSize:16 }}>›</span>
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* ── DRAWER DETALLE ── */}
@@ -1297,5 +1350,95 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
     </div>
   )
 
+  if (sel._tipo === 'ticket') return (
+    <TicketDetalle ticket={sel} onClose={onClose} onReload={onReload} onMsg={onMsg}/>
+  )
+
   return null
+}
+
+// ── TICKET DE SOPORTE ──
+function TicketDetalle({ ticket, onClose, onReload, onMsg }: any) {
+  const [mensajes, setMensajes] = useState<any[]>([])
+  const [loadingMsgs, setLoadingMsgs] = useState(true)
+  const [respuesta, setRespuesta] = useState('')
+  const [enviando, setEnviando] = useState(false)
+
+  useEffect(() => {
+    supabase.from('soporte_mensajes').select('*').eq('ticket_id', ticket.id).order('created_at', { ascending: true })
+      .then(({ data }) => { setMensajes(data || []); setLoadingMsgs(false) })
+  }, [ticket.id])
+
+  const cambiarEstado = async (estado: string) => {
+    await supabase.from('soporte_tickets').update({ estado, updated_at: new Date().toISOString() }).eq('id', ticket.id)
+    onReload()
+    onMsg('✓ Ticket marcado como ' + (estado==='en_progreso'?'en progreso':estado))
+  }
+
+  const responder = async () => {
+    if (!respuesta.trim() || enviando) return
+    setEnviando(true)
+    await supabase.from('soporte_mensajes').insert({ ticket_id: ticket.id, remitente: 'admin', contenido: respuesta })
+    await supabase.from('soporte_tickets').update({ estado: 'en_progreso', updated_at: new Date().toISOString() }).eq('id', ticket.id)
+    const { data: { session } } = await supabase.auth.getSession()
+    await fetch('/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+      body: JSON.stringify({ to: ticket.usuario_email, tipo: 'mensaje_admin', data: { asunto: 'Re: ' + (ticket.asunto || 'Tu consulta con NIDO'), mensaje: respuesta } })
+    }).catch(() => {})
+    setMensajes(prev => [...prev, { remitente: 'admin', contenido: respuesta, created_at: new Date().toISOString() }])
+    setRespuesta('')
+    onReload()
+    setEnviando(false)
+  }
+
+  const remitenteLabel: Record<string,string> = { usuario:'Usuario', valeria:'Valeria IA', admin:'Equipo NIDO' }
+
+  return (
+    <div>
+      <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--rule)', position:'sticky', top:0, background:'white', zIndex:1 }}>
+        <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
+          <div>
+            <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--accent)', marginBottom:4 }}>Ticket de soporte · {ticket.usuario_tipo}</div>
+            <div style={{ fontFamily:'var(--serif)', fontSize:20 }}>{ticket.asunto || 'Consulta de soporte'}</div>
+          </div>
+          <button onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, display:'grid', placeItems:'center', cursor:'pointer', flexShrink:0 }}>×</button>
+        </div>
+        <div style={{ fontSize:12, color:'var(--ink-3)', marginBottom:12 }}>{ticket.usuario_nombre} · {ticket.usuario_email}{ticket.usuario_telefono ? ' · '+ticket.usuario_telefono : ''}</div>
+        <div style={{ display:'flex', gap:8 }}>
+          {['abierto','en_progreso','resuelto'].map(e => (
+            <button key={e} onClick={() => cambiarEstado(e)} className={'tab'+(ticket.estado===e?' active':'')} style={{ fontSize:11, padding:'5px 12px' }}>
+              {e==='en_progreso'?'En progreso':e.charAt(0).toUpperCase()+e.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding:'20px 24px' }}>
+        <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Conversación</div>
+        {loadingMsgs ? (
+          <p style={{ fontSize:13, color:'var(--ink-3)' }}>Cargando...</p>
+        ) : mensajes.length === 0 ? (
+          <p style={{ fontSize:13, color:'var(--ink-3)' }}>Sin mensajes registrados para este ticket.</p>
+        ) : (
+          <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:20 }}>
+            {mensajes.map((m, i) => (
+              <div key={m.id || i} style={{ padding:'10px 14px', borderRadius:10, background: m.remitente==='admin' ? 'var(--accent-tint)' : m.remitente==='valeria' ? 'var(--bg)' : 'white', border:'1px solid var(--rule-soft)' }}>
+                <div style={{ fontSize:10, letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:4 }}>{remitenteLabel[m.remitente] || m.remitente}</div>
+                <div style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6, whiteSpace:'pre-wrap' }}>{m.contenido}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{ marginBottom:8 }}>
+          <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:8 }}>Responder al usuario</label>
+          <textarea value={respuesta} onChange={e => setRespuesta(e.target.value)} rows={4} placeholder="Escribí tu respuesta — se envía por correo al usuario..." className="field" style={{ resize:'vertical', marginBottom:10 }}/>
+          <button onClick={responder} disabled={!respuesta.trim() || enviando} className="btn btn-primary" style={{ width:'100%', opacity:(!respuesta.trim()||enviando)?0.5:1 }}>
+            {enviando ? 'Enviando...' : 'Responder por email →'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
 }

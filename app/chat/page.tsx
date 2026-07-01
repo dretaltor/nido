@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
+import { crearTicketSoporte } from '../../lib/soporte'
 
 const SUGERENCIAS = [
   { icon: '📋', texto: '¿Qué tengo pendiente esta semana?' },
@@ -77,6 +78,8 @@ export default function Chat() {
   const [user, setUser] = useState<any>(null)
   const [mostrarSug, setMostrarSug] = useState(true)
   const [valeriaPerfil, setValeriaPerfil] = useState<any>(null)
+  const [escalando, setEscalando] = useState(false)
+  const [ticketAbierto, setTicketAbierto] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -131,6 +134,26 @@ export default function Chat() {
 
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(input) }
+  }
+
+  const escalar = async () => {
+    if (!user || escalando || ticketAbierto) return
+    setEscalando(true)
+    const nombreUsuario = valeriaPerfil?.nombre_asesor || user.email?.split('@')[0] || 'asesor'
+    const res = await crearTicketSoporte({
+      usuario_email: user.email!,
+      usuario_nombre: nombreUsuario,
+      usuario_tipo: 'asesor',
+      asunto: 'Consulta de asesor vía Valeria — ' + nombreUsuario,
+      mensajes: msgs,
+    })
+    if (res.ok) {
+      setTicketAbierto(true)
+      setMsgs(prev => [...prev, { role: 'assistant', content: 'Listo — le avisé al equipo NIDO sobre tu consulta con el detalle de esta conversación. Te van a contactar por correo a ' + user.email + ' en las próximas 24 horas hábiles.' }])
+    } else {
+      setMsgs(prev => [...prev, { role: 'assistant', content: 'No pude escalar tu consulta automáticamente. Escribinos directamente a hola@nido-cr.com.' }])
+    }
+    setEscalando(false)
   }
 
   const nombre = user?.email?.split('@')[0] || 'asesor'
@@ -210,6 +233,13 @@ export default function Chat() {
             <a href="/precios" style={{ display:'block', marginTop:16, padding:'9px 14px', background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:8, fontSize:12, color:'var(--accent)', fontWeight:500, textDecoration:'none', textAlign:'center' }}>
               Ver mi plan actual →
             </a>
+            <div style={{ marginTop:20, paddingTop:16, borderTop:'1px solid var(--rule)' }}>
+              <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>¿Necesitás algo más específico?</div>
+              <p style={{ fontSize:12, color:'var(--ink-3)', lineHeight:1.6, marginBottom:10 }}>Para temas puntuales de tu cuenta, el equipo NIDO puede ayudarte directamente.</p>
+              <button onClick={escalar} disabled={escalando || ticketAbierto || msgs.length===0} style={{ display:'block', width:'100%', padding:'9px 14px', background: ticketAbierto ? 'var(--accent-tint)' : 'var(--ink)', color: ticketAbierto ? 'var(--accent)' : 'white', borderRadius:8, fontSize:12, fontWeight:500, textAlign:'center', border:'none', cursor: (escalando||ticketAbierto) ? 'default' : 'pointer', opacity: escalando ? 0.7 : 1 }}>
+                {ticketAbierto ? '✓ Equipo NIDO avisado' : escalando ? 'Enviando...' : '✉ Contactar equipo NIDO'}
+              </button>
+            </div>
           </div>
         </aside>
 

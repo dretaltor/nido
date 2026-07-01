@@ -112,6 +112,10 @@ export default function Contacto() {
             {loading ? 'Enviando...' : 'Enviar mensaje →'}
           </button>
         </div>
+
+        <p style={{ textAlign:'center', fontSize:13, color:'var(--ink-3)', marginTop:24 }}>
+          ¿Tenés una duda de soporte en vez de buscar propiedad? <a href="/soporte" style={{ color:'var(--accent)', fontWeight:500 }}>Hablá con Valeria →</a>
+        </p>
       </div>
     </main>
   )
