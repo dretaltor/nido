@@ -177,6 +177,7 @@ export default function DashboardPropietario() {
     { id:'contrato', label:'Contrato' },
     { id:'verificacion', label:'Verificación' },
     { id:'facturacion', label:'Facturación' },
+    { id:'contacto', label:'Contacto NIDO' },
   ]
 
   return (
@@ -911,6 +912,38 @@ export default function DashboardPropietario() {
           </div>
         )}
 
+        {/* CONTACTO NIDO */}
+        {tab === 'contacto' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>Contacto con NIDO</h2>
+            <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.65, marginBottom:24, maxWidth:640 }}>
+              Una vez que publicás tu propiedad, queda a disposición del equipo NIDO para gestionar su venta: coordinamos visitas, calificamos leads, negociamos ofertas y te acompañamos hasta el cierre. Si tenés cualquier duda o necesitás resolver un detalle sobre tu propiedad, escribinos directamente.
+            </p>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20 }}>
+              <div className="card card-pad">
+                <div style={{ fontSize:28, marginBottom:10 }}>💬</div>
+                <div style={{ fontSize:15, fontWeight:500, marginBottom:6 }}>WhatsApp</div>
+                <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.6, marginBottom:16 }}>Respuesta más rápida — ideal para consultas puntuales sobre tu propiedad, visitas u ofertas.</p>
+                <a href="https://wa.me/50688226436?text=Hola%2C%20soy%20propietario%20en%20NIDO%20y%20tengo%20una%20consulta%20sobre%20mi%20propiedad." target="_blank" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:999, background:'#22c55e', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>
+                  💬 Escribir por WhatsApp
+                </a>
+              </div>
+              <div className="card card-pad">
+                <div style={{ fontSize:28, marginBottom:10 }}>✉️</div>
+                <div style={{ fontSize:15, fontWeight:500, marginBottom:6 }}>Correo electrónico</div>
+                <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.6, marginBottom:16 }}>Para consultas más detalladas o envío de documentación relacionada con tu propiedad.</p>
+                <a href="mailto:hola@nido-cr.com?subject=Consulta%20de%20propietario" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', fontSize:13, fontWeight:500, textDecoration:'none' }}>
+                  ✉ hola@nido-cr.com
+                </a>
+              </div>
+            </div>
+            <div className="card card-pad" style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)' }}>
+              <div style={{ fontSize:13, fontWeight:500, color:'var(--accent)', marginBottom:6 }}>¿Buscás una respuesta rápida sobre valor de mercado u otra duda general?</div>
+              <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6, marginBottom:12 }}>Valeria IA puede orientarte al instante sobre el valor de tu propiedad, tiempos de venta y el proceso con NIDO.</p>
+              <a href="/dashboard/propietario/valeria" style={{ fontSize:13, color:'var(--accent)', fontWeight:500 }}>Hablar con Valeria →</a>
+            </div>
+          </div>
+        )}
 
       {/* Modal contraoferta */}
       {contraModal && (
