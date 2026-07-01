@@ -1,10 +1,19 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useRef, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
 
-export default function Contrato() {
+export default function ContratoPage() {
+  return (
+    <Suspense fallback={<div style={{ padding:40, fontFamily:'sans-serif', color:'#999' }}>Cargando...</div>}>
+      <Contrato />
+    </Suspense>
+  )
+}
+
+function Contrato() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [user, setUser] = useState<any>(null)
   const [propietario, setPropietario] = useState<any>(null)
   const [propiedades, setPropiedades] = useState<any[]>([])
@@ -14,7 +23,11 @@ export default function Contrato() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [contratoExistente, setContratoExistente] = useState<any>(null)
-  const [tipoContrato, setTipoContrato] = useState<'exclusividad'|'mensual'>('exclusividad')
+  // NIDO solo opera con propietarios bajo el modelo de corretaje (comisión al cierre, nunca suscripción).
+  // Por defecto se firma con exclusividad de 90 días. La única otra modalidad es "sin exclusividad" —
+  // disponible exclusivamente como opción de renovación (Cláusula Quinta) cuando un dueño con contrato
+  // de exclusividad vencido no quiere renovarla, vía el enlace ?modo=no_exclusivo desde su panel.
+  const tipoContrato: 'exclusividad'|'no_exclusivo' = searchParams.get('modo') === 'no_exclusivo' ? 'no_exclusivo' : 'exclusividad'
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [drawing, setDrawing] = useState(false)
   const [firmaDigital, setFirmaDigital] = useState('')
@@ -102,12 +115,14 @@ export default function Contrato() {
     setSaving(true)
 
     const fechaInicio = new Date().toISOString().split('T')[0]
-    const fechaVenc = new Date()
+    let fechaVencStr: string | null = null
     if (tipoContrato === 'exclusividad') {
+      const fechaVenc = new Date()
       fechaVenc.setDate(fechaVenc.getDate() + 90)
-    } else {
-      fechaVenc.setMonth(fechaVenc.getMonth() + 1)
+      fechaVencStr = fechaVenc.toISOString().split('T')[0]
     }
+    // 'no_exclusivo' no tiene fecha de vencimiento fija: se mantiene vigente hasta que
+    // cualquiera de las partes lo termine, con 5 días hábiles de aviso (Cláusula Primera).
 
     await supabase.from('contratos').insert({
       propietario_correo: user.email,
@@ -116,9 +131,9 @@ export default function Contrato() {
       tipo: tipoContrato,
       estado: 'pendiente',
       fecha_inicio: fechaInicio,
-      fecha_vencimiento: fechaVenc.toISOString().split('T')[0],
-      periodo_dias: tipoContrato === 'exclusividad' ? 90 : 30,
-      precio_mensual: tipoContrato === 'mensual' ? 39.99 : null,
+      fecha_vencimiento: fechaVencStr,
+      periodo_dias: tipoContrato === 'exclusividad' ? 90 : null,
+      precio_mensual: null,
       firma_tipo: firmaTipo,
       firma_url: firmaTipo === 'digital' ? firmaDigital : firmaFisicaUrl,
       firmado_propietario: true,
@@ -177,7 +192,7 @@ export default function Contrato() {
           <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:14, padding:'24px 28px', marginBottom:32 }}>
             <div style={{ fontSize:14, fontWeight:500, color:'var(--accent)', marginBottom:8 }}>✓ Tenés un contrato activo con NIDO</div>
             <div style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.7 }}>
-              Tipo: {contratoExistente.tipo === 'exclusividad' ? 'Exclusividad 90 días' : 'Mensual $39.99'} ·
+              Tipo: Exclusividad 90 días ·
               Vence: {new Date(contratoExistente.fecha_vencimiento).toLocaleDateString('es-CR')} ·
               Estado: {contratoExistente.estado}
             </div>
@@ -197,7 +212,7 @@ export default function Contrato() {
 
         {/* Progress */}
         <div style={{ display:'flex', gap:8, marginBottom:32 }}>
-          {['Tipo de contrato', 'Revisar contrato', 'Firma', 'Confirmación'].map((s, i) => (
+          {['Cómo funciona', 'Revisar contrato', 'Firma', 'Confirmación'].map((s, i) => (
             <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', gap:6 }}>
               <div style={{ height:4, borderRadius:999, background:i+1<=step?'var(--accent)':'var(--rule)', transition:'background 0.3s' }}/>
               <div style={{ fontSize:11, color:i+1<=step?'var(--accent)':'var(--ink-3)' }}>{s}</div>
@@ -205,52 +220,56 @@ export default function Contrato() {
           ))}
         </div>
 
-        {/* STEP 1 — Tipo */}
+        {/* STEP 1 — Cómo funciona */}
         {step === 1 && (
           <div style={{ animation:'fadeUp 0.3s ease' }}>
-            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>Elegí el tipo de contrato</h2>
-            <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, marginBottom:24 }}>Ambas opciones incluyen todos los servicios NIDO. La diferencia está en el período y la comisión.</p>
+            <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>
+              {tipoContrato === 'exclusividad' ? 'Así funciona el contrato con NIDO' : 'Continuar sin exclusividad'}
+            </h2>
+            <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, marginBottom:24 }}>NIDO trabaja como corredor de tu propiedad: no pagás ninguna suscripción mensual, solo una comisión cuando se concreta la venta.</p>
 
             <div style={{ display:'flex', flexDirection:'column', gap:14, marginBottom:28 }}>
-              <div className={'option-card'+(tipoContrato==='exclusividad'?' selected':'')} onClick={() => setTipoContrato('exclusividad')}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
-                  <div>
-                    <div style={{ fontSize:16, fontWeight:500, marginBottom:4 }}>Contrato de exclusividad · 90 días</div>
-                    <div style={{ fontSize:13, color:'var(--ink-3)' }}>Recomendado · Sin costo mensual</div>
-                  </div>
-                  <div style={{ textAlign:'right' }}>
-                    <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--accent)' }}>4%</div>
-                    <div style={{ fontSize:11, color:'var(--ink-3)' }}>solo al cerrar</div>
-                  </div>
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                  {['Sin costo previo — pagás solo si vendés','Exclusividad de 90 días con NIDO','Campaña de marketing incluida','Fotografía profesional básica incluida','Asesor dedicado + asesoría legal completa','Si no vendemos en 90 días, podés renovar o salir sin penalización'].map(b => (
-                    <div key={b} style={{ display:'flex', gap:8, fontSize:13, color:'var(--ink-2)' }}>
-                      <span style={{ color:'var(--accent)', flexShrink:0 }}>✓</span> {b}
+              {tipoContrato === 'exclusividad' ? (
+                <div className="option-card selected">
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
+                    <div>
+                      <div style={{ fontSize:16, fontWeight:500, marginBottom:4 }}>Contrato de exclusividad · 90 días</div>
+                      <div style={{ fontSize:13, color:'var(--ink-3)' }}>Recomendado · Sin costo mensual</div>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className={'option-card'+(tipoContrato==='mensual'?' selected':'')} onClick={() => setTipoContrato('mensual')}>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
-                  <div>
-                    <div style={{ fontSize:16, fontWeight:500, marginBottom:4 }}>Plan mensual · $39.99/mes</div>
-                    <div style={{ fontSize:13, color:'var(--ink-3)' }}>Para propietarios con contrato vencido o sin exclusividad</div>
-                  </div>
-                  <div style={{ textAlign:'right' }}>
-                    <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--ink)' }}>$39.99</div>
-                    <div style={{ fontSize:11, color:'var(--ink-3)' }}>por mes</div>
-                  </div>
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                  {['Acceso completo al dashboard y leads','Publicación activa en el portal NIDO','Valeria IA y estadísticas en tiempo real','Sin exclusividad — podés cancelar cuando quieras','Comisión de venta aplica si cerramos con NIDO'].map(b => (
-                    <div key={b} style={{ display:'flex', gap:8, fontSize:13, color:'var(--ink-2)' }}>
-                      <span style={{ color:'var(--ink-3)', flexShrink:0 }}>✓</span> {b}
+                    <div style={{ textAlign:'right' }}>
+                      <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--accent)' }}>4%</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)' }}>solo al cerrar</div>
                     </div>
-                  ))}
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {['Sin costo previo — pagás solo si vendés','Exclusividad de 90 días con NIDO','Campaña de marketing incluida','Fotografía profesional básica incluida','Asesor dedicado + asesoría legal completa','Si no vendemos en 90 días, podés renovar o continuar sin exclusividad'].map(b => (
+                      <div key={b} style={{ display:'flex', gap:8, fontSize:13, color:'var(--ink-2)' }}>
+                        <span style={{ color:'var(--accent)', flexShrink:0 }}>✓</span> {b}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="option-card selected">
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
+                    <div>
+                      <div style={{ fontSize:16, fontWeight:500, marginBottom:4 }}>Continuación sin exclusividad · push de venta</div>
+                      <div style={{ fontSize:13, color:'var(--ink-3)' }}>Para quien no quiere renovar la exclusividad · Sin costo mensual</div>
+                    </div>
+                    <div style={{ textAlign:'right' }}>
+                      <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--accent)' }}>4%</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)' }}>solo si vendemos</div>
+                    </div>
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                    {['Sin costo de suscripción — nunca pagás por mes','Sin exclusividad — podés vender por otros canales en paralelo','NIDO sigue promocionando tu propiedad como push de venta','Acceso al dashboard y leads se mantiene activo','Terminá cuando quieras, con 5 días hábiles de aviso'].map(b => (
+                      <div key={b} style={{ display:'flex', gap:8, fontSize:13, color:'var(--ink-2)' }}>
+                        <span style={{ color:'var(--accent)', flexShrink:0 }}>✓</span> {b}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div style={{ display:'flex', justifyContent:'flex-end' }}>
@@ -270,7 +289,7 @@ export default function Contrato() {
                 <div style={{ fontFamily:'var(--serif)', fontSize:28, marginBottom:4 }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></div>
                 <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)' }}>Plataforma Inmobiliaria · Costa Rica</div>
                 <div style={{ fontFamily:'var(--serif)', fontSize:20, marginTop:16, fontWeight:400 }}>
-                  {tipoContrato === 'exclusividad' ? 'Contrato de Corretaje con Exclusividad' : 'Contrato de Servicios Inmobiliarios Mensual'}
+                  {tipoContrato === 'exclusividad' ? 'Contrato de Corretaje con Exclusividad' : 'Contrato de Corretaje sin Exclusividad'}
                 </div>
                 <div style={{ fontSize:13, color:'var(--ink-3)', marginTop:4 }}>San José, Costa Rica · {fmtDate(hoy)}</div>
               </div>
@@ -288,8 +307,8 @@ export default function Contrato() {
                 <p style={{ marginBottom:12 }}><strong>CLÁUSULA PRIMERA — OBJETO DEL CONTRATO</strong></p>
                 <p style={{ marginBottom:20 }}>
                   {tipoContrato === 'exclusividad'
-                    ? 'EL PROPIETARIO otorga a NIDO la exclusividad para gestionar la venta de su propiedad por un período de noventa (90) días calendario contados a partir de la firma del presente contrato, es decir desde el ' + fmtDate(hoy) + ' hasta el ' + fmtDate(vencimiento) + '. Durante este período, NIDO será el único canal autorizado para gestionar, promocionar y negociar la venta de la propiedad.'
-                    : 'EL PROPIETARIO contrata los servicios de gestión inmobiliaria de NIDO en modalidad mensual, con un costo de $39.99 USD por mes, sin exclusividad. El contrato se renueva automáticamente cada mes hasta que cualquiera de las partes notifique su cancelación con al menos 5 días de anticipación.'}
+                    ? <>EL PROPIETARIO otorga a NIDO la exclusividad para gestionar la venta de su propiedad por un período de noventa (90) días calendario contados a partir de la firma del presente contrato, es decir desde el {fmtDate(hoy)} hasta el {fmtDate(vencimiento)}. Durante este período, NIDO será el único canal autorizado para gestionar, promocionar y negociar la venta de la propiedad.</>
+                    : 'EL PROPIETARIO contrata a NIDO para la promoción y venta de su propiedad sin exclusividad, como complemento de venta ("push de venta"). EL PROPIETARIO puede comercializar la propiedad simultáneamente por cualquier otro canal, agencia o corredor. Este contrato no tiene plazo fijo de vencimiento y se mantiene vigente hasta que cualquiera de las partes lo dé por terminado, con al menos 5 días hábiles de aviso previo y sin penalización alguna.'}
                 </p>
 
                 <p style={{ marginBottom:12 }}><strong>CLÁUSULA SEGUNDA — SERVICIOS INCLUIDOS</strong></p>
@@ -312,10 +331,10 @@ export default function Contrato() {
                 <p style={{ marginBottom:8 }}>
                   {tipoContrato === 'exclusividad'
                     ? 'La comisión de NIDO por la venta exitosa de la propiedad será del cuatro por ciento (4%) sobre el precio final de venta acordado entre las partes. Esta comisión se devengará y será exigible únicamente al momento del cierre notarial. Si la venta no se concreta durante el período de exclusividad, NIDO no tendrá derecho a cobrar comisión alguna.'
-                    : 'EL PROPIETARIO pagará a NIDO la suma de $39.99 USD mensuales por los servicios descritos en la Cláusula Segunda. En caso de que se concrete una venta a través de NIDO, se aplicará adicionalmente una comisión del cuatro por ciento (4%) sobre el precio final de venta.'}
+                    : 'La comisión de NIDO será del cuatro por ciento (4%) sobre el precio final de venta, exigible únicamente si la venta se concreta a través de la gestión de NIDO. Si EL PROPIETARIO vende la propiedad por su cuenta o mediante otro canal, agencia o corredor, NIDO no tendrá derecho a cobrar comisión alguna.'}
                 </p>
                 <p style={{ marginBottom:20, fontWeight:500, color:'var(--ink)' }}>
-                  NIDO aplica el principio de "no venta, no comisión": si no logramos vender la propiedad durante la vigencia del contrato de exclusividad, no se cobra ningún honorario.
+                  NIDO aplica el principio de "no venta, no comisión": si no logramos vender la propiedad, no se cobra ningún honorario. NIDO no ofrece ni opera ningún plan de suscripción para propietarios: el único modelo de servicio es el corretaje descrito en esta cláusula.
                 </p>
 
                 {tipoContrato === 'exclusividad' && <>
@@ -328,7 +347,7 @@ export default function Contrato() {
                   <p style={{ marginBottom:8 }}>Al vencimiento del período de exclusividad, EL PROPIETARIO podrá elegir entre:</p>
                   <div style={{ marginBottom:20, paddingLeft:16 }}>
                     <div style={{ marginBottom:4 }}>a) Renovar el contrato de exclusividad por un nuevo período de 90 días bajo las mismas condiciones.</div>
-                    <div style={{ marginBottom:4 }}>b) Mantener los servicios de NIDO sin exclusividad mediante el plan mensual de $39.99 USD/mes.</div>
+                    <div style={{ marginBottom:4 }}>b) Continuar con NIDO en modalidad sin exclusividad, como complemento de venta ("push de venta"): la propiedad permanece publicada y promocionada por NIDO sin costo de suscripción, EL PROPIETARIO puede comercializarla simultáneamente por otros canales, y la comisión del 4% aplica únicamente si la venta se concreta a través de NIDO.</div>
                     <div style={{ marginBottom:4 }}>c) Dar por terminado el contrato sin penalización alguna.</div>
                   </div>
                 </>}
@@ -475,7 +494,7 @@ export default function Contrato() {
                 {aceptaTerminos && <span style={{ color:'white', fontSize:12, fontWeight:700 }}>✓</span>}
               </div>
               <div style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65 }}>
-                He leído y acepto el contrato de {tipoContrato === 'exclusividad' ? 'corretaje con exclusividad de 90 días' : 'servicios inmobiliarios mensual'} de NIDO. Entiendo que al firmar autorizo a NIDO a gestionar mi propiedad según los términos descritos.
+                He leído y acepto el contrato de corretaje {tipoContrato === 'exclusividad' ? 'con exclusividad de 90 días' : 'sin exclusividad'} de NIDO. Entiendo que al firmar autorizo a NIDO a gestionar mi propiedad según los términos descritos.
               </div>
             </div>
 
@@ -514,7 +533,7 @@ export default function Contrato() {
               <a href="/dashboard/propietario" style={{ padding:'12px 24px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>
                 Ir al panel →
               </a>
-              <a href={'https://wa.me/50688226436?text=Hola NIDO, acabo de firmar el contrato de '+tipoContrato+'. Mi correo es '+user?.email} target="_blank" style={{ padding:'12px 24px', borderRadius:999, background:'#22c55e', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>
+              <a href={'https://wa.me/50688226436?text=Hola NIDO, acabo de firmar el contrato de '+(tipoContrato === 'exclusividad' ? 'exclusividad' : 'sin exclusividad')+'. Mi correo es '+user?.email} target="_blank" style={{ padding:'12px 24px', borderRadius:999, background:'#22c55e', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>
                 💬 Contactar asesor
               </a>
             </div>

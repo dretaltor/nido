@@ -768,19 +768,20 @@ export default function DashboardPropietario() {
                     <div>
                       <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--accent)', marginBottom:8 }}>✓ Contrato activo</div>
                       <div style={{ fontFamily:'var(--serif)', fontSize:22, fontWeight:400, marginBottom:6 }}>
-                        {contrato.tipo === 'exclusividad' ? 'Exclusividad 90 días' : 'Plan mensual $39.99'}
+                        {contrato.tipo === 'no_exclusivo' ? 'Sin exclusividad · push de venta' : 'Exclusividad 90 días'}
                       </div>
                       <div style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.7 }}>
-                        Inicio: {contrato.fecha_inicio ? new Date(contrato.fecha_inicio).toLocaleDateString('es-CR') : '—'} ·
-                        Vence: {contrato.fecha_vencimiento ? new Date(contrato.fecha_vencimiento).toLocaleDateString('es-CR') : '—'}
+                        {contrato.tipo === 'no_exclusivo'
+                          ? <>Inicio: {contrato.fecha_inicio ? new Date(contrato.fecha_inicio).toLocaleDateString('es-CR') : '—'} · Sin fecha de vencimiento</>
+                          : <>Inicio: {contrato.fecha_inicio ? new Date(contrato.fecha_inicio).toLocaleDateString('es-CR') : '—'} · Vence: {contrato.fecha_vencimiento ? new Date(contrato.fecha_vencimiento).toLocaleDateString('es-CR') : '—'}</>}
                       </div>
                     </div>
                     <div style={{ textAlign:'right' }}>
                       <div style={{ fontFamily:'var(--serif)', fontSize:36, color:'var(--accent)' }}>
-                        {contrato.tipo === 'exclusividad' ? '4%' : '$39.99'}
+                        4%
                       </div>
                       <div style={{ fontSize:12, color:'var(--ink-3)' }}>
-                        {contrato.tipo === 'exclusividad' ? 'comisión al cierre' : 'por mes'}
+                        comisión al cierre
                       </div>
                     </div>
                   </div>
@@ -788,7 +789,7 @@ export default function DashboardPropietario() {
 
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
                   {[
-                    { l:'Tipo de contrato', v:contrato.tipo === 'exclusividad' ? 'Exclusividad 90 días' : 'Mensual' },
+                    { l:'Tipo de contrato', v: contrato.tipo === 'no_exclusivo' ? 'Sin exclusividad · push de venta' : 'Exclusividad 90 días' },
                     { l:'Estado', v:'Activo ✓' },
                     { l:'Comisión', v:contrato.comision_porcentaje+'% al cierre' },
                     { l:'Firma', v:contrato.firma_tipo === 'digital' ? 'Digital' : 'Física escaneada' },
@@ -801,23 +802,30 @@ export default function DashboardPropietario() {
                 </div>
 
                 <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'20px 24px' }}>
-                  <div style={{ fontSize:13, fontWeight:500, marginBottom:12 }}>Al vencer el contrato podés:</div>
+                  <div style={{ fontSize:13, fontWeight:500, marginBottom:12 }}>
+                    {contrato.tipo === 'no_exclusivo' ? 'Podés en cualquier momento:' : 'Al vencer el contrato podés:'}
+                  </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     <a href="/dashboard/propietario/contrato" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', transition:'all 0.2s' }}>
                       <div>
-                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>Renovar exclusividad 90 días</div>
+                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>
+                          {contrato.tipo === 'no_exclusivo' ? 'Volver a exclusividad 90 días' : 'Renovar exclusividad 90 días'}
+                        </div>
                         <div style={{ fontSize:12, color:'var(--ink-3)' }}>Mismas condiciones · 4% solo al cierre</div>
                       </div>
                       <span style={{ color:'var(--accent)' }}>→</span>
                     </a>
-                    <a href="/dashboard/propietario/contrato" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)' }}>
-                      <div>
-                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>Plan mensual $39.99</div>
-                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>Sin exclusividad · Cancelá cuando quieras</div>
-                      </div>
-                      <span style={{ color:'var(--ink-3)' }}>→</span>
-                    </a>
+                    {contrato.tipo !== 'no_exclusivo' && (
+                      <a href="/dashboard/propietario/contrato?modo=no_exclusivo" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', transition:'all 0.2s' }}>
+                        <div>
+                          <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>Continuar sin exclusividad (push de venta)</div>
+                          <div style={{ fontSize:12, color:'var(--ink-3)' }}>Sin costo de suscripción · 4% solo si vendemos nosotros</div>
+                        </div>
+                        <span style={{ color:'var(--accent)' }}>→</span>
+                      </a>
+                    )}
                   </div>
+                  <p style={{ fontSize:12, color:'var(--ink-3)', marginTop:12 }}>NIDO no ofrece planes de suscripción para propietarios — el único modelo es el corretaje con comisión al cierre.</p>
                 </div>
               </div>
             )}
@@ -844,7 +852,7 @@ export default function DashboardPropietario() {
               const venc = contrato.fecha_vencimiento ? new Date(contrato.fecha_vencimiento+'T12:00:00') : null
               const hoy = new Date()
               const diasRestantes = venc ? Math.max(0, Math.ceil((venc.getTime()-hoy.getTime())/(1000*3600*24))) : null
-              const totalDias = contrato.periodo_dias || (contrato.tipo==='exclusividad' ? 90 : 30)
+              const totalDias = contrato.periodo_dias || 90
               const progreso = diasRestantes !== null ? Math.round(((totalDias-diasRestantes)/totalDias)*100) : 0
               return (
                 <div>
@@ -853,7 +861,7 @@ export default function DashboardPropietario() {
                       <div>
                         <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--ink-3)', marginBottom:4 }}>Tipo de contrato</div>
                         <div style={{ fontFamily:'var(--serif)', fontSize:22, fontWeight:400, color:'var(--ink)' }}>
-                          {contrato.tipo === 'exclusividad' ? 'Exclusividad 90 días' : 'Mensual'}
+                          {contrato.tipo === 'no_exclusivo' ? 'Sin exclusividad · push de venta' : 'Exclusividad 90 días'}
                         </div>
                       </div>
                       <span style={{ padding:'6px 16px', borderRadius:999, fontSize:12, fontWeight:500, background:contrato.estado==='activo'?'var(--accent-tint)':'oklch(0.93 0.05 80)', color:contrato.estado==='activo'?'var(--accent)':'oklch(0.45 0.08 80)' }}>
@@ -895,12 +903,6 @@ export default function DashboardPropietario() {
                       <a href={contrato.firma_url} target="_blank" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>
                         📄 Ver documento
                       </a>
-                    </div>
-                  )}
-                  {contrato.tipo === 'mensual' && contrato.precio_mensual && (
-                    <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.88 0.04 150)', borderRadius:12, padding:'18px 24px', marginTop:12 }}>
-                      <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--accent)', marginBottom:4 }}>Suscripción mensual</div>
-                      <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--accent)' }}>${contrato.precio_mensual}<span style={{ fontSize:14, fontWeight:400 }}>/mes</span></div>
                     </div>
                   )}
                 </div>

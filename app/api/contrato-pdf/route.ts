@@ -21,7 +21,11 @@ function esc(v: any): string {
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const correo = searchParams.get('correo') || ''
-  const tipo = searchParams.get('tipo') || 'exclusividad'
+  // NIDO ya no ofrece un plan de suscripción mensual para propietarios. Los únicos dos modelos
+  // son corretaje con exclusividad (por defecto) y corretaje sin exclusividad ("push de venta"),
+  // esta última disponible solo como opción de renovación (Cláusula Quinta) cuando vence la exclusividad.
+  const tipo = searchParams.get('tipo') === 'no_exclusivo' ? 'no_exclusivo' : 'exclusividad'
+  const esExclusividad = tipo === 'exclusividad'
 
   // Verificar sesion real — antes cualquiera podia pedir el contrato de cualquier correo sin login
   const authHeader = req.headers.get('authorization')
@@ -46,15 +50,13 @@ export async function GET(req: NextRequest) {
   vencimiento.setDate(vencimiento.getDate() + 90)
   const fmtDate = (d: Date) => d.toLocaleDateString('es-CR', { year:'numeric', month:'long', day:'numeric' })
 
-  const esExclusividad = tipo === 'exclusividad'
-
   const clausulaObjeto = esExclusividad
     ? 'EL PROPIETARIO otorga a NIDO la exclusividad para gestionar la venta de su propiedad por un período de noventa (90) días calendario contados a partir de la firma del presente contrato, es decir desde el ' + fmtDate(hoy) + ' hasta el ' + fmtDate(vencimiento) + '. Durante este período, NIDO será el único canal autorizado para gestionar, promocionar y negociar la venta de la propiedad.'
-    : 'EL PROPIETARIO contrata los servicios de gestión inmobiliaria de NIDO en modalidad mensual, con un costo de $39.99 USD por mes, sin exclusividad. El contrato se renueva automáticamente cada mes hasta que cualquiera de las partes notifique su cancelación con al menos 5 días de anticipación.'
+    : 'EL PROPIETARIO contrata a NIDO para la promoción y venta de su propiedad sin exclusividad, como complemento de venta ("push de venta"). EL PROPIETARIO puede comercializar la propiedad simultáneamente por cualquier otro canal, agencia o corredor. Este contrato no tiene plazo fijo de vencimiento y se mantiene vigente hasta que cualquiera de las partes lo dé por terminado, con al menos 5 días hábiles de aviso previo y sin penalización alguna.'
 
   const clausulaComision = esExclusividad
-    ? 'La comisión de NIDO por la venta exitosa de la propiedad será del cuatro por ciento (4%) sobre el precio final de venta acordado entre las partes. Esta comisión se devengará y será exigible únicamente al momento del cierre notarial. Si la venta no se concreta durante el período de exclusividad, NIDO no tendrá derecho a cobrar comisión alguna.'
-    : 'EL PROPIETARIO pagará a NIDO la suma de $39.99 USD mensuales por los servicios descritos. En caso de que se concrete una venta a través de NIDO, se aplicará adicionalmente una comisión del cuatro por ciento (4%) sobre el precio final de venta.'
+    ? 'La comisión de NIDO por la venta exitosa de la propiedad será del cuatro por ciento (4%) sobre el precio final de venta acordado entre las partes. Esta comisión se devengará y será exigible únicamente al momento del cierre notarial. Si la venta no se concreta durante el período de exclusividad, NIDO no tendrá derecho a cobrar comisión alguna. NIDO no ofrece ni opera ningún plan de suscripción para propietarios: el único modelo de servicio es el corretaje aquí descrito.'
+    : 'La comisión de NIDO será del cuatro por ciento (4%) sobre el precio final de venta, exigible únicamente si la venta se concreta a través de la gestión de NIDO. Si EL PROPIETARIO vende la propiedad por su cuenta o mediante otro canal, agencia o corredor, NIDO no tendrá derecho a cobrar comisión alguna. NIDO no ofrece ni opera ningún plan de suscripción para propietarios: el único modelo de servicio es el corretaje aquí descrito.'
 
   const clausulaExclusividad = esExclusividad ? `
 <h3>Cláusula Cuarta — Exclusividad</h3>
@@ -63,7 +65,7 @@ export async function GET(req: NextRequest) {
 <p>Al vencimiento del período de exclusividad, EL PROPIETARIO podrá elegir entre:</p>
 <ul>
   <li>a) Renovar el contrato de exclusividad por un nuevo período de 90 días.</li>
-  <li>b) Mantener los servicios de NIDO sin exclusividad mediante el plan mensual de $39.99 USD/mes.</li>
+  <li>b) Continuar con NIDO en modalidad sin exclusividad, como complemento de venta ("push de venta"), sin costo de suscripción y con comisión del 4% aplicable únicamente si la venta se concreta a través de NIDO.</li>
   <li>c) Dar por terminado el contrato sin penalización alguna.</li>
 </ul>` : ''
 
@@ -107,7 +109,7 @@ export async function GET(req: NextRequest) {
 <div class="header">
   <div class="logo">NIDO<span>.</span></div>
   <div class="tagline">Plataforma Inmobiliaria · Costa Rica</div>
-  <div class="contrato-title">${esExclusividad ? 'Contrato de Corretaje con Exclusividad' : 'Contrato de Servicios Inmobiliarios Mensual'}</div>
+  <div class="contrato-title">${esExclusividad ? 'Contrato de Corretaje con Exclusividad' : 'Contrato de Corretaje sin Exclusividad'}</div>
   <div class="fecha">San José, Costa Rica · ${fmtDate(hoy)}</div>
 </div>
 
