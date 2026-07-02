@@ -45,7 +45,7 @@ export async function generateMetadata({ params }: { params: Promise<{ zona: str
     title,
     description,
     keywords: [`propiedades en ${zona.nombre}`, `casas en venta ${zona.nombre}`, `bienes raices ${zona.nombre}`, `real estate ${zona.nombre} Costa Rica`],
-    openGraph: { title, description, url, images: [{ url: '/og-propiedades.png', width: 1200, height: 630 }] },
+    openGraph: { title, description, url },
     alternates: { canonical: url },
   }
 }

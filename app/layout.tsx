@@ -29,13 +29,13 @@ export const metadata: Metadata = {
     siteName: 'NIDO · Inmobiliaria Costa Rica',
     title: 'NIDO · Propiedades en Costa Rica con IA',
     description: 'El portal inmobiliario más inteligente de Costa Rica. Comprá, alquilá o vendé con Valeria IA.',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'NIDO · Propiedades en Costa Rica' }],
+    // Sin "images" explicito: Next.js usa automaticamente app/opengraph-image.tsx como
+    // imagen por defecto para cualquier ruta que no tenga una mas especifica.
   },
   twitter: {
     card: 'summary_large_image',
     title: 'NIDO · Propiedades en Costa Rica con IA',
     description: 'El portal inmobiliario más inteligente de Costa Rica.',
-    images: ['/og-image.png'],
   },
   robots: {
     index: true,

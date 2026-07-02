@@ -8,7 +8,8 @@ export const metadata: Metadata = {
     title: 'Propiedades en Venta y Alquiler · Costa Rica · NIDO',
     description: 'Portal inmobiliario con mapa interactivo, filtros y Valeria IA para encontrar tu propiedad ideal.',
     url: 'https://www.nido-cr.com/propiedades',
-    images: [{ url: '/og-propiedades.png', width: 1200, height: 630 }],
+    // Sin "images" explicito: Next.js usa automaticamente opengraph-image.tsx de este
+    // mismo segmento de ruta (antes apuntaba a /og-propiedades.png, que no existe).
   },
   alternates: { canonical: 'https://www.nido-cr.com/propiedades' },
 }
