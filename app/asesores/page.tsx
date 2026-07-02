@@ -14,7 +14,7 @@ export default function Asesores() {
   const [spec, setSpec] = useState('Todas')
   useEffect(() => {
     supabase.from('asesores_publicos')
-      .select('id,nombre,correo,foto_url,valeria_perfil')
+      .select('id,nombre,correo,foto_url,valeria_perfil,equipo_nido_estado')
       .order('nombre')
       .then(async ({ data }) => {
         if (data) {
@@ -32,14 +32,15 @@ export default function Asesores() {
           setAsesores(data.map((a:any, i:number) => {
             const vp = a.valeria_perfil || {}
             const zonas = (vp.zonas || 'Valle Central').split(',').map((z:string) => z.trim())
+            const esEquipoNido = a.equipo_nido_estado === 'aprobado'
             return {
               ...a,
               name: a.nombre,
-              role: 'Asesor NIDO Certificado',
+              role: esEquipoNido ? 'Asesor NIDO' : 'Asesor afiliado a NIDO',
               initial: (a.nombre || 'A')[0].toUpperCase(),
               hue: 80,
               region: zonas[0] || 'Valle Central',
-              bio: vp.diferenciador || 'Asesor certificado NIDO con experiencia en el mercado costarricense.',
+              bio: vp.diferenciador || (esEquipoNido ? 'Asesor del equipo interno de NIDO con experiencia en el mercado costarricense.' : 'Asesor afiliado a NIDO con experiencia en el mercado costarricense.'),
               listings: conteos[i]?.count || 0,
               sold: cerradas[i]?.count || 0,
               rating: ratings[i]?.data?.promedio || null,

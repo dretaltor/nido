@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
             <tr><td style="padding:20px 24px">
               <p style="font-size:13px;color:#374151;margin:0 0 8px"><strong>Propietario:</strong> ${esc(data?.nombre)}</p>
               <p style="font-size:13px;color:#374151;margin:0 0 8px"><strong>Correo:</strong> ${esc(data?.correo)}</p>
-              <p style="font-size:13px;color:#374151;margin:0 0 8px"><strong>Tipo:</strong> ${data?.tipo === 'exclusividad' ? 'Exclusividad 90 días' : 'Mensual $39.99'}</p>
+              <p style="font-size:13px;color:#374151;margin:0 0 8px"><strong>Tipo:</strong> ${data?.tipo === 'exclusividad' ? 'Exclusividad' : data?.tipo === 'no_exclusivo' ? 'No exclusivo (push de venta)' : data?.tipo === 'mensual' ? 'Mensual (legado)' : esc(data?.tipo)}</p>
               <p style="font-size:13px;color:#374151;margin:0"><strong>Firma:</strong> ${data?.firma === 'digital' ? 'Digital (canvas)' : 'Física escaneada'}</p>
             </td></tr>
             </table>

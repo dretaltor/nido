@@ -3,6 +3,7 @@
 
 export interface PlanConfig {
   nombrePublico: string
+  precioMensual: number // USD/mes, referencia sin facturación anual (0 = gratis)
   maxPropiedades: number // Infinity = ilimitado
   valeriaIA: boolean
   academiaCompleta: boolean
@@ -13,6 +14,7 @@ export interface PlanConfig {
 export const PLANES: Record<string, PlanConfig> = {
   gratis: {
     nombrePublico: 'Despega',
+    precioMensual: 0,
     maxPropiedades: 5,
     valeriaIA: false,
     academiaCompleta: false,
@@ -21,6 +23,7 @@ export const PLANES: Record<string, PlanConfig> = {
   },
   pro: {
     nombrePublico: 'Elite',
+    precioMensual: 59,
     maxPropiedades: 15,
     valeriaIA: true,
     academiaCompleta: true,
@@ -29,6 +32,7 @@ export const PLANES: Record<string, PlanConfig> = {
   },
   enterprise: {
     nombrePublico: 'Black',
+    precioMensual: 149,
     maxPropiedades: Infinity,
     valeriaIA: true,
     academiaCompleta: true,

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import { getPlanConfig } from '../../lib/planes'
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
@@ -35,7 +36,7 @@ const CSS = `
 
 const MODULES = [
   { id:'dashboard', icon:'◈', label:'Dashboard' },
-  { id:'asesores', icon:'👥', label:'Asesores' },
+  { id:'asesores', icon:'👥', label:'Asesores afiliados' },
   { id:'propietarios', icon:'🏠', label:'Propietarios' },
   { id:'propiedades', icon:'🗂', label:'Propiedades' },
   { id:'suscripciones', icon:'💳', label:'Suscripciones' },
@@ -48,6 +49,8 @@ const MODULES = [
   { id:'contratos', icon:'📋', label:'Contratos' },
   { id:'comisiones', icon:'💰', label:'Comisiones' },
   { id:'equipo_nido', icon:'⭐', label:'Equipo NIDO' },
+  { id:'actividad', icon:'🕐', label:'Actividad' },
+  { id:'administradores', icon:'🔑', label:'Administradores' },
 ]
 
 export default function AdminPanel() {
@@ -65,9 +68,14 @@ export default function AdminPanel() {
   const [tickets, setTickets] = useState<any[]>([])
   const [referidos, setReferidos] = useState<any[]>([])
   const [leads, setLeads] = useState<any[]>([])
+  const [auditoria, setAuditoria] = useState<any[]>([])
+  const [admins, setAdmins] = useState<any[]>([])
   const [sel, setSel] = useState<any>(null)
   const [filtro, setFiltro] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
+  const [busquedaGlobal, setBusquedaGlobal] = useState('')
+  const [kycSeleccionados, setKycSeleccionados] = useState<string[]>([])
+  const [aprobandoLote, setAprobandoLote] = useState(false)
   const [msg, setMsg] = useState('')
   const [adminUser, setAdminUser] = useState<any>(null)
 
@@ -82,17 +90,19 @@ export default function AdminPanel() {
   }, [])
 
   const loadAll = async () => {
-    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }, { data: lds }] = await Promise.all([
+    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }, { data: lds }, { data: audit }, { data: adms }] = await Promise.all([
       supabase.from('admin_metricas').select('*').maybeSingle(),
-      supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at,referido_por').order('created_at', { ascending: false }),
-      supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at,referido_por').order('created_at', { ascending: false }),
-      supabase.from('propiedades').select('id,titulo,tipo,precio,zona,provincia,disponible,verificacion_estado,verificacion_notas,verificado_at,verificado_por,asesor_email,asesor_nombre,asesor_whatsapp,fotos,created_at').order('created_at', { ascending: false }),
+      supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at,referido_por,suspendido').order('created_at', { ascending: false }),
+      supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at,referido_por,suspendido').order('created_at', { ascending: false }),
+      supabase.from('propiedades').select('id,ref_id,titulo,descripcion,tipo,precio,precio_anterior,zona,provincia,canton,distrito,direccion,disponible,verificacion_estado,verificacion_notas,verificado_at,verificado_por,asesor_email,asesor_nombre,asesor_whatsapp,acepta_colaboracion,propietario_email,habitaciones,banos,metros,lote_m2,estacionamientos,numero_finca,numero_plano,naturaleza,area_registral,colindancias,gravamenes,anotaciones,libre_gravamenes,fotos,created_at').order('created_at', { ascending: false }),
       supabase.from('suscripciones').select('id,correo,plan,activo,es_trial,trial_fin,created_at,updated_at').order('created_at', { ascending: false }),
       supabase.from('comisiones').select('*').order('created_at', { ascending: false }),
       supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,created_at').order('created_at', { ascending: false }),
       supabase.from('soporte_tickets').select('*').order('updated_at', { ascending: false }),
       supabase.from('referidos').select('*').order('created_at', { ascending: false }),
       supabase.from('leads').select('id,nombre,zona_interes,fuente,estado,created_at').order('created_at', { ascending: false }),
+      supabase.from('admin_audit_log').select('*').order('created_at', { ascending: false }).limit(200),
+      supabase.from('admins').select('*').order('created_at', { ascending: false }),
     ])
     setMetricas(met)
     setAsesores(as || [])
@@ -104,11 +114,21 @@ export default function AdminPanel() {
     setTickets(tks || [])
     setReferidos(refs || [])
     setLeads(lds || [])
+    setAuditoria(audit || [])
+    setAdmins(adms || [])
     setLoading(false)
+  }
+
+  const logAccion = async (accion: string, entidadTipo?: string, entidadId?: string, detalle?: string) => {
+    await supabase.from('admin_audit_log').insert({
+      admin_email: adminUser?.email || 'desconocido',
+      accion, entidad_tipo: entidadTipo || null, entidad_id: entidadId || null, detalle: detalle || null,
+    }).then(() => {}, () => {})
   }
 
   const cambiarPlan = async (correo: string, plan: string) => {
     await supabase.from('suscripciones').upsert({ correo, plan, activo: true, updated_at: new Date().toISOString() }, { onConflict: 'correo' })
+    logAccion('Cambió plan', 'suscripcion', correo, 'Nuevo plan: ' + plan)
     loadAll()
     setMsg('✓ Plan actualizado a ' + plan)
     setTimeout(() => setMsg(''), 3000)
@@ -116,6 +136,7 @@ export default function AdminPanel() {
 
   const togglePropiedad = async (id: string, disponible: boolean) => {
     await supabase.from('propiedades').update({ disponible: !disponible }).eq('id', id)
+    logAccion(disponible ? 'Ocultó propiedad' : 'Publicó propiedad', 'propiedad', id)
     loadAll()
   }
 
@@ -128,6 +149,7 @@ export default function AdminPanel() {
       verificado_por: adminUser?.email,
       verificado_at: new Date().toISOString(),
     }).eq('id', id)
+    logAccion(aprobar ? 'Aprobó propiedad' : 'Rechazó propiedad', 'propiedad', id, prop?.titulo)
     if (aprobar && prop?.asesor_email) {
       const { data: { session: ses1 } } = await supabase.auth.getSession()
       fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+ses1?.access_token}, body: JSON.stringify({
@@ -176,6 +198,7 @@ export default function AdminPanel() {
         data: { nombre: asesorRow.nombre, asesor_telefono: asesorRow.telefono }
       }) }).catch(() => {})
     }
+    logAccion(aprobar ? 'Aprobó KYC' : 'Rechazó KYC', 'asesor', id, asesorRow?.correo)
     loadAll()
     setSel((p:any) => p ? {...p, verificado: aprobar, verificacion_estado: aprobar ? 'aprobado' : 'rechazado'} : null)
   }
@@ -184,6 +207,7 @@ export default function AdminPanel() {
     await supabase.from('perfiles').update({
       equipo_nido_estado: aprobar ? 'aprobado' : 'rechazado',
     }).eq('id', asesor.id)
+    logAccion(aprobar ? 'Aprobó en Equipo NIDO' : 'Rechazó de Equipo NIDO', 'asesor', asesor.id, asesor.correo)
 
     // Si se aprueba, activar automaticamente plan Black (enterprise) gratis
     if (aprobar) {
@@ -208,6 +232,46 @@ export default function AdminPanel() {
     }) }).catch(() => {})
   }
 
+  const suspenderCuenta = async (tabla: 'perfiles'|'propietarios', id: string, correo: string, suspender: boolean) => {
+    await supabase.from(tabla).update({ suspendido: suspender }).eq('id', id)
+    logAccion(suspender ? 'Suspendió cuenta' : 'Reactivó cuenta', tabla==='perfiles'?'asesor':'propietario', id, correo)
+    if (tabla === 'perfiles') setAsesores(prev => prev.map((a:any) => a.id===id ? {...a, suspendido: suspender} : a))
+    else setPropietarios(prev => prev.map((p:any) => p.id===id ? {...p, suspendido: suspender} : p))
+    setSel((p:any) => p ? {...p, suspendido: suspender} : null)
+    setMsg(suspender ? '✓ Cuenta suspendida' : '✓ Cuenta reactivada')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  const aprobarKYCLote = async (ids: string[]) => {
+    setAprobandoLote(true)
+    for (const id of ids) {
+      await aprobarKYC(id, true)
+    }
+    logAccion('Aprobó KYC en lote', 'asesor', undefined, ids.length + ' asesores')
+    setKycSeleccionados([])
+    setAprobandoLote(false)
+    setMsg('✓ ' + ids.length + ' asesor' + (ids.length>1?'es':'') + ' aprobado' + (ids.length>1?'s':''))
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  const editarPropiedad = async (id: string, patch: any) => {
+    await supabase.from('propiedades').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)
+    logAccion('Editó propiedad', 'propiedad', id, Object.keys(patch).join(', '))
+    loadAll()
+    setSel((p:any) => p ? {...p, ...patch} : null)
+    setMsg('✓ Propiedad actualizada')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  const actualizarComision = async (id: string, patch: any) => {
+    await supabase.from('comisiones').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)
+    logAccion('Actualizó comisión', 'comision', id, JSON.stringify(patch))
+    loadAll()
+    setSel((p:any) => p ? {...p, ...patch} : null)
+    setMsg('✓ Comisión actualizada')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
   const actualizarReferido = async (id: string, estado: string, recompensaMonto?: number | null, notas?: string) => {
     await supabase.from('referidos').update({
       estado,
@@ -215,6 +279,7 @@ export default function AdminPanel() {
       notas_admin: notas || null,
       updated_at: new Date().toISOString(),
     }).eq('id', id)
+    logAccion('Actualizó referido', 'referido', id, 'Estado: ' + estado)
     loadAll()
     setSel((p:any) => p ? {...p, estado, recompensa_monto: recompensaMonto ?? null, notas_admin: notas || null} : null)
     setMsg('✓ Referido actualizado')
@@ -234,9 +299,17 @@ export default function AdminPanel() {
 
   if (loading) return <div style={{minHeight:'100vh',background:'#060D08',display:'flex',alignItems:'center',justifyContent:'center',color:'rgba(255,255,255,0.3)',fontFamily:'sans-serif'}}>Cargando backoffice...</div>
 
-  const mrrPro = suscripciones.filter(s => s.activo && s.plan === 'pro' && s.periodo === 'mensual').length * 49
-  const mrrEnterprise = suscripciones.filter(s => s.activo && s.plan === 'enterprise' && s.periodo === 'mensual').length * 129
+  const mrrPro = suscripciones.filter(s => s.activo && s.plan === 'pro' && s.periodo === 'mensual').length * getPlanConfig('pro').precioMensual
+  const mrrEnterprise = suscripciones.filter(s => s.activo && s.plan === 'enterprise' && s.periodo === 'mensual').length * getPlanConfig('enterprise').precioMensual
   const mrr = mrrPro + mrrEnterprise
+
+  const q = busquedaGlobal.trim().toLowerCase()
+  const resultadosGlobal = q.length < 2 ? [] : [
+    ...asesores.filter((a:any) => (a.nombre||'').toLowerCase().includes(q) || (a.correo||'').toLowerCase().includes(q)).slice(0,5).map((a:any) => ({ tipo:'Asesor', label:a.nombre||a.correo, sub:a.correo, onClick:() => { setModulo(a.equipo_nido_estado==='aprobado'?'equipo_nido':'asesores'); setSel({...a,_tipo:'asesor'}) } })),
+    ...propietarios.filter((p:any) => (p.nombre||'').toLowerCase().includes(q) || (p.correo||'').toLowerCase().includes(q)).slice(0,5).map((p:any) => ({ tipo:'Propietario', label:p.nombre||p.correo, sub:p.correo, onClick:() => { setModulo('propietarios'); setSel({...p,_tipo:'propietario'}) } })),
+    ...propiedades.filter((p:any) => (p.titulo||'').toLowerCase().includes(q) || (p.zona||'').toLowerCase().includes(q) || (p.asesor_email||'').toLowerCase().includes(q)).slice(0,5).map((p:any) => ({ tipo:'Propiedad', label:p.titulo, sub:p.zona, onClick:() => { setModulo('propiedades'); setSel({...p,_tipo:'propiedad'}) } })),
+    ...tickets.filter((t:any) => (t.asunto||'').toLowerCase().includes(q) || (t.usuario_email||'').toLowerCase().includes(q) || (t.usuario_nombre||'').toLowerCase().includes(q)).slice(0,5).map((t:any) => ({ tipo:'Ticket', label:t.asunto||'Consulta de soporte', sub:t.usuario_email, onClick:() => { setModulo('soporte'); setSel({...t,_tipo:'ticket'}) } })),
+  ]
 
   return (
     <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', color:'var(--ink)', display:'flex' }}>
@@ -269,6 +342,32 @@ export default function AdminPanel() {
 
         {msg && <div style={{ position:'fixed', top:20, right:20, background:'var(--accent)', color:'white', padding:'10px 20px', borderRadius:999, fontSize:13, fontWeight:500, zIndex:300, boxShadow:'0 4px 20px rgba(27,94,59,0.3)' }}>{msg}</div>}
 
+        {/* ── BÚSQUEDA GLOBAL ── */}
+        <div style={{ position:'relative', maxWidth:420, marginBottom:24, marginLeft:'auto' }}>
+          <input
+            value={busquedaGlobal}
+            onChange={e => setBusquedaGlobal(e.target.value)}
+            placeholder="🔍 Buscar asesor, propietario, propiedad, ticket..."
+            className="field"
+          />
+          {resultadosGlobal.length > 0 && (
+            <div style={{ position:'absolute', top:'calc(100% + 6px)', left:0, right:0, background:'white', border:'1px solid var(--rule)', borderRadius:10, boxShadow:'0 8px 24px rgba(0,0,0,0.1)', zIndex:250, overflow:'hidden' }}>
+              {resultadosGlobal.map((r, i) => (
+                <div key={i} className="row" style={{ padding:'10px 16px' }} onClick={() => { r.onClick(); setBusquedaGlobal('') }}>
+                  <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)', flexShrink:0 }}>{r.tipo}</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:13, fontWeight:500, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{r.label}</div>
+                    <div style={{ fontSize:11, color:'var(--ink-3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{r.sub}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {q.length >= 2 && resultadosGlobal.length === 0 && (
+            <div style={{ position:'absolute', top:'calc(100% + 6px)', left:0, right:0, background:'white', border:'1px solid var(--rule)', borderRadius:10, padding:'14px 16px', fontSize:13, color:'var(--ink-3)', zIndex:250 }}>Sin resultados.</div>
+          )}
+        </div>
+
         {/* ── DASHBOARD ── */}
         {modulo === 'dashboard' && (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
@@ -281,8 +380,8 @@ export default function AdminPanel() {
             <div style={{ background:'var(--ink)', borderRadius:16, padding:'28px 32px', marginBottom:20, display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:24 }}>
               {[
                 { label:'MRR Total', val:'$'+mrr.toLocaleString(), sub:'Ingresos recurrentes mensuales', big:true },
-                { label:'MRR Pro', val:'$'+mrrPro.toLocaleString(), sub:suscripciones.filter(s=>s.activo&&s.plan==='pro').length+' asesores Pro' },
-                { label:'MRR Enterprise', val:'$'+mrrEnterprise.toLocaleString(), sub:suscripciones.filter(s=>s.activo&&s.plan==='enterprise').length+' asesores Enterprise' },
+                { label:'MRR '+getPlanConfig('pro').nombrePublico, val:'$'+mrrPro.toLocaleString(), sub:suscripciones.filter(s=>s.activo&&s.plan==='pro').length+' asesores '+getPlanConfig('pro').nombrePublico },
+                { label:'MRR '+getPlanConfig('enterprise').nombrePublico, val:'$'+mrrEnterprise.toLocaleString(), sub:suscripciones.filter(s=>s.activo&&s.plan==='enterprise').length+' asesores '+getPlanConfig('enterprise').nombrePublico },
               ].map((s,i) => (
                 <div key={i} style={{ borderLeft: i>0?'1px solid rgba(255,255,255,0.08)':'none', paddingLeft: i>0?24:0 }}>
                   <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', marginBottom:8 }}>{s.label}</div>
@@ -291,6 +390,36 @@ export default function AdminPanel() {
                 </div>
               ))}
             </div>
+
+            {/* Pendientes de atención */}
+            {(() => {
+              const pendientes = [
+                { n:asesores.filter((a:any)=>!a.verificado && [a.cedula_frente_url,a.cedula_reverso_url,a.selfie_url].filter(Boolean).length>0).length, label:'KYC de asesores por revisar', modulo:'kyc' },
+                { n:propietarios.filter((p:any)=>!p.verificado && [p.cedula_frente_url,p.cedula_reverso_url,p.selfie_url].filter(Boolean).length>0).length, label:'KYC de propietarios por revisar', modulo:'kyc_propietarios' },
+                { n:propiedades.filter((p:any)=>p.verificacion_estado==='pendiente_verificacion').length, label:'Propiedades por verificar', modulo:'propiedades' },
+                { n:tickets.filter((t:any)=>t.estado==='abierto').length, label:'Tickets de soporte abiertos', modulo:'soporte' },
+                { n:asesores.filter((a:any)=>a.solicita_equipo_nido && a.equipo_nido_estado!=='aprobado' && a.equipo_nido_estado!=='rechazado').length, label:'Solicitudes de Equipo NIDO', modulo:'equipo_nido' },
+                { n:contratos.filter((c:any)=>c.estado==='pendiente').length, label:'Contratos por contrafirmar', modulo:'contratos' },
+              ].filter(p => p.n > 0)
+              if (pendientes.length === 0) return (
+                <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:14, padding:'18px 22px', marginBottom:20, fontSize:13, color:'var(--accent)', fontWeight:500 }}>
+                  ✓ Todo al día — no hay nada pendiente de atención.
+                </div>
+              )
+              return (
+                <div style={{ marginBottom:20 }}>
+                  <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Pendientes de atención</div>
+                  <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:10 }}>
+                    {pendientes.map(p => (
+                      <button key={p.label} onClick={() => setModulo(p.modulo)} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'14px 16px', background:'oklch(0.97 0.03 50)', border:'1px solid oklch(0.88 0.05 50)', borderRadius:10, cursor:'pointer', textAlign:'left' }}>
+                        <span style={{ fontSize:13, color:'oklch(0.40 0.06 50)', fontWeight:500 }}>{p.label}</span>
+                        <span style={{ fontFamily:'var(--serif)', fontSize:22, color:'oklch(0.45 0.08 50)' }}>{p.n}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
 
             <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:20 }}>
               {[
@@ -338,8 +467,8 @@ export default function AdminPanel() {
                       <div style={{ fontSize:13, fontWeight:500 }}>{s.correo}</div>
                       <div style={{ fontSize:11, color:'var(--ink-3)' }}>{s.periodo}</div>
                     </div>
-                    <span className="badge" style={{ background:s.plan==='enterprise'?'oklch(0.93 0.03 240)':'var(--accent-tint)', color:s.plan==='enterprise'?'oklch(0.35 0.08 240)':'var(--accent)', textTransform:'uppercase' }}>{s.plan}</span>
-                    <span style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)', marginLeft:8 }}>${s.plan==='pro'?49:129}/mes</span>
+                    <span className="badge" style={{ background:s.plan==='enterprise'?'oklch(0.93 0.03 240)':'var(--accent-tint)', color:s.plan==='enterprise'?'oklch(0.35 0.08 240)':'var(--accent)', textTransform:'uppercase' }}>{getPlanConfig(s.plan).nombrePublico}</span>
+                    <span style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)', marginLeft:8 }}>${getPlanConfig(s.plan).precioMensual}/mes</span>
                   </div>
                 ))}
               </div>
@@ -354,6 +483,7 @@ export default function AdminPanel() {
               <div>
                 <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Gestión</div>
                 <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Asesores <em style={{ fontStyle:'italic', color:'var(--accent)' }}>afiliados.</em></h1>
+                <p style={{ fontSize:13, color:'var(--ink-3)', marginTop:6 }}>Asesores independientes. Los miembros de Equipo NIDO viven en su propio apartado →</p>
               </div>
               <div style={{ display:'flex', gap:10, alignItems:'center' }}>
                 <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar asesor..." className="field" style={{ width:220 }}/>
@@ -370,6 +500,7 @@ export default function AdminPanel() {
 
             <div className="card">
               {asesores
+                .filter(a => a.equipo_nido_estado !== 'aprobado')
                 .filter(a => filtro==='todos' || (filtro==='verificado'?a.verificado:a.verificacion_estado===filtro||(!a.verificacion_estado&&filtro==='pendiente')))
                 .filter(a => !busqueda || (a.nombre||'').toLowerCase().includes(busqueda.toLowerCase()) || (a.correo||'').toLowerCase().includes(busqueda.toLowerCase()))
                 .map(a => {
@@ -384,10 +515,11 @@ export default function AdminPanel() {
                         <div style={{ fontSize:12, color:'var(--ink-3)' }}>{a.correo} {a.telefono?'· '+a.telefono:''}</div>
                       </div>
                       <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
-                        {sus && <span className="badge" style={{ background:sus.plan==='enterprise'?'oklch(0.93 0.03 240)':'var(--accent-tint)', color:sus.plan==='enterprise'?'oklch(0.35 0.08 240)':'var(--accent)', textTransform:'uppercase' }}>{sus.plan}</span>}
+                        {sus && <span className="badge" style={{ background:sus.plan==='enterprise'?'oklch(0.93 0.03 240)':'var(--accent-tint)', color:sus.plan==='enterprise'?'oklch(0.35 0.08 240)':'var(--accent)', textTransform:'uppercase' }}>{getPlanConfig(sus.plan).nombrePublico}</span>}
                         <span className="badge" style={{ background:a.verificado?'var(--accent-tint)':'oklch(0.93 0.005 80)', color:a.verificado?'var(--accent)':'var(--ink-3)' }}>
                           {a.verificado?'✓ Verificado':a.verificacion_estado||'Pendiente'}
                         </span>
+                        {a.suspendido && <span className="badge" style={{ background:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)' }}>⛔</span>}
                         <span style={{ color:'var(--ink-3)', fontSize:16 }}>›</span>
                       </div>
                     </div>
@@ -482,8 +614,8 @@ export default function AdminPanel() {
                     <div style={{ fontSize:12, color:'var(--ink-3)' }}>{s.periodo} · {new Date(s.created_at).toLocaleDateString('es-CR')}</div>
                   </div>
                   <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
-                    <span style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)' }}>${s.plan==='pro'?49:s.plan==='enterprise'?129:0}/mes</span>
-                    <span className="badge" style={{ background:s.plan==='enterprise'?'oklch(0.93 0.03 240)':'var(--accent-tint)', color:s.plan==='enterprise'?'oklch(0.35 0.08 240)':'var(--accent)', textTransform:'uppercase' }}>{s.plan}</span>
+                    <span style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)' }}>${getPlanConfig(s.plan).precioMensual}/mes</span>
+                    <span className="badge" style={{ background:s.plan==='enterprise'?'oklch(0.93 0.03 240)':'var(--accent-tint)', color:s.plan==='enterprise'?'oklch(0.35 0.08 240)':'var(--accent)', textTransform:'uppercase' }}>{getPlanConfig(s.plan).nombrePublico}</span>
                     <span className="badge" style={{ background:s.activo?'var(--accent-tint)':'oklch(0.93 0.005 80)', color:s.activo?'var(--accent)':'var(--ink-3)' }}>{s.activo?'Activa':'Inactiva'}</span>
                   </div>
                 </div>
@@ -499,23 +631,41 @@ export default function AdminPanel() {
               <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Identidad</div>
               <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Verificaciones <em style={{ fontStyle:'italic', color:'var(--accent)' }}>KYC.</em></h1>
             </div>
-            <div style={{ display:'flex', gap:8, marginBottom:20 }}>
-              {['todos','en_revision','pendiente','aprobado','rechazado'].map(f => (
-                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
-                  {f==='todos'?'Todos':f==='en_revision'?'En revisión':f.charAt(0).toUpperCase()+f.slice(1)}
-                  <span style={{ marginLeft:6, opacity:0.6 }}>
-                    ({f==='todos'?asesores.length:asesores.filter(a=>f==='en_revision'?a.verificacion_estado==='en_revision':f==='pendiente'?(!a.verificacion_estado||a.verificacion_estado==='pendiente'):a.verificacion_estado===f).length})
-                  </span>
+            <div style={{ display:'flex', gap:8, marginBottom:20, justifyContent:'space-between', flexWrap:'wrap' }}>
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                {['todos','en_revision','pendiente','aprobado','rechazado'].map(f => (
+                  <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => { setFiltro(f); setKycSeleccionados([]) }}>
+                    {f==='todos'?'Todos':f==='en_revision'?'En revisión':f.charAt(0).toUpperCase()+f.slice(1)}
+                    <span style={{ marginLeft:6, opacity:0.6 }}>
+                      ({f==='todos'?asesores.length:asesores.filter(a=>f==='en_revision'?a.verificacion_estado==='en_revision':f==='pendiente'?(!a.verificacion_estado||a.verificacion_estado==='pendiente'):a.verificacion_estado===f).length})
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {kycSeleccionados.length > 0 && (
+                <button onClick={() => aprobarKYCLote(kycSeleccionados)} disabled={aprobandoLote} className="btn btn-primary" style={{ opacity:aprobandoLote?0.6:1 }}>
+                  {aprobandoLote ? 'Aprobando...' : '✓ Aprobar ' + kycSeleccionados.length + ' seleccionado' + (kycSeleccionados.length>1?'s':'')}
                 </button>
-              ))}
+              )}
             </div>
             <div className="card">
               {asesores
                 .filter(a => filtro==='todos'||(filtro==='en_revision'?a.verificacion_estado==='en_revision':filtro==='pendiente'?(!a.verificacion_estado||a.verificacion_estado==='pendiente'):a.verificacion_estado===filtro))
                 .map(a => {
                   const docs = [a.cedula_frente_url,a.cedula_reverso_url,a.selfie_url].filter(Boolean).length
+                  const completo = docs === 3 && !a.verificado
+                  const marcado = kycSeleccionados.includes(a.id)
                   return (
                     <div key={a.id} className="row" onClick={() => setSel({...a, _tipo:'kyc'})}>
+                      {completo && (
+                        <input
+                          type="checkbox"
+                          checked={marcado}
+                          onClick={e => e.stopPropagation()}
+                          onChange={() => setKycSeleccionados(prev => marcado ? prev.filter(id => id!==a.id) : [...prev, a.id])}
+                          style={{ width:16, height:16, flexShrink:0 }}
+                        />
+                      )}
                       <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{(a.nombre||'?')[0]}</div>
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{a.nombre||'Sin nombre'}</div>
@@ -586,7 +736,7 @@ export default function AdminPanel() {
                         <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{c.propietario_nombre || c.propietario_correo}</div>
                         <div style={{ fontSize:12, color:'var(--ink-3)' }}>{c.propietario_correo}</div>
                       </div>
-                      <div style={{ fontSize:13, color:'var(--ink-2)' }}>{c.tipo === 'exclusividad' ? '90 días' : 'Mensual'}</div>
+                      <div style={{ fontSize:13, color:'var(--ink-2)' }}>{c.tipo === 'exclusividad' ? 'Exclusividad' : c.tipo === 'no_exclusivo' ? 'No exclusivo' : c.tipo === 'mensual' ? 'Mensual (legado)' : (c.tipo || '—')}</div>
                       <div style={{ fontSize:13, color:'var(--ink-2)' }}>{c.firma_tipo === 'digital' ? '🔐 GAUDI' : '📄 Física'}</div>
                       <div style={{ fontSize:12, color:'var(--ink-3)' }}>{c.fecha_vencimiento ? new Date(c.fecha_vencimiento).toLocaleDateString('es-CR') : '—'}</div>
                       <span style={{ padding:'3px 10px', borderRadius:999, fontSize:11, fontWeight:500, background:est.bg, color:est.color }}>{est.label}</span>
@@ -745,41 +895,102 @@ export default function AdminPanel() {
         )}
 
         {/* ── EQUIPO NIDO ── */}
-        {modulo === 'equipo_nido' && (
+        {modulo === 'equipo_nido' && (() => {
+          const miembros = asesores.filter((a:any) => a.equipo_nido_estado === 'aprobado')
+          const pendientes = asesores.filter((a:any) => a.solicita_equipo_nido && a.equipo_nido_estado !== 'aprobado' && a.equipo_nido_estado !== 'rechazado')
+          const rechazados = asesores.filter((a:any) => a.equipo_nido_estado === 'rechazado')
+          return (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <div style={{ marginBottom:24 }}>
-              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Incorporaciones</div>
-              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Solicitudes <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Equipo NIDO.</em></h1>
-              <p style={{ fontSize:14, color:'var(--ink-3)', marginTop:6 }}>Asesores que aplicaron a unirse al equipo interno de NIDO al registrarse.</p>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Equipo interno</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Equipo <em style={{ fontStyle:'italic', color:'var(--accent)' }}>NIDO.</em></h1>
+              <p style={{ fontSize:14, color:'var(--ink-3)', marginTop:6 }}>Asesores internos de NIDO, aparte de la red de afiliados independientes.</p>
             </div>
-            <div className="card">
-              {asesores.filter((a:any) => a.solicita_equipo_nido).length === 0 ? (
-                <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>
-                  No hay solicitudes de Equipo NIDO por el momento.
-                </div>
-              ) : asesores.filter((a:any) => a.solicita_equipo_nido).map((a:any) => (
-                <div key={a.id} className="row" style={{ alignItems:'center' }}>
-                  <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0, overflow:'hidden' }}>
-                    {a.foto_url ? <img src={a.foto_url} alt={a.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (a.nombre||'?')[0]}
-                  </div>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{a.nombre||'Sin nombre'}</div>
-                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{a.correo} · {a.telefono||'sin teléfono'}</div>
-                  </div>
-                  {a.equipo_nido_estado === 'aprobado' ? (
-                    <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>✓ Aprobado</span>
-                  ) : a.equipo_nido_estado === 'rechazado' ? (
-                    <span className="badge" style={{ background:'oklch(0.93 0.005 80)', color:'var(--ink-3)' }}>Rechazado</span>
-                  ) : (
+
+            <div style={{ marginBottom:28 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Miembros activos ({miembros.length})</div>
+              <div className="card">
+                {miembros.length === 0 ? (
+                  <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>Todavía no hay asesores formalizados en Equipo NIDO.</div>
+                ) : miembros.map((a:any) => {
+                  const sus = suscripciones.find(s => s.correo === a.correo && s.activo)
+                  return (
+                    <div key={a.id} className="row" onClick={() => setSel({...a, _tipo:'asesor', _sus:sus})}>
+                      <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0, overflow:'hidden' }}>
+                        {a.foto_url ? <img src={a.foto_url} alt={a.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (a.nombre||'?')[0]}
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{a.nombre||'Sin nombre'}</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{a.correo} {a.telefono?'· '+a.telefono:''}</div>
+                      </div>
+                      <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
+                        {sus && <span className="badge" style={{ background:'oklch(0.93 0.03 240)', color:'oklch(0.35 0.08 240)', textTransform:'uppercase' }}>{getPlanConfig(sus.plan).nombrePublico}</span>}
+                        <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>⭐ Equipo NIDO</span>
+                        <span style={{ color:'var(--ink-3)', fontSize:16 }}>›</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Solicitudes pendientes ({pendientes.length})</div>
+              <div className="card">
+                {pendientes.length === 0 ? (
+                  <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay solicitudes de Equipo NIDO por el momento.</div>
+                ) : pendientes.map((a:any) => (
+                  <div key={a.id} className="row" style={{ alignItems:'center' }}>
+                    <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0, overflow:'hidden' }}>
+                      {a.foto_url ? <img src={a.foto_url} alt={a.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (a.nombre||'?')[0]}
+                    </div>
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{a.nombre||'Sin nombre'}</div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>{a.correo} · {a.telefono||'sin teléfono'}</div>
+                    </div>
                     <div style={{ display:'flex', gap:8 }}>
                       <button onClick={() => responderEquipoNido(a, true)} className="btn-dark" style={{ padding:'7px 16px', borderRadius:999, fontSize:12, border:'none', cursor:'pointer' }}>Aprobar</button>
                       <button onClick={() => responderEquipoNido(a, false)} className="btn-outline" style={{ padding:'7px 16px', borderRadius:999, fontSize:12, cursor:'pointer' }}>Rechazar</button>
                     </div>
-                  )}
+                  </div>
+                ))}
+                {rechazados.length > 0 && (
+                  <div style={{ padding:'12px 20px', fontSize:12, color:'var(--ink-3)' }}>{rechazados.length} solicitud{rechazados.length>1?'es':''} rechazada{rechazados.length>1?'s':''} anteriormente.</div>
+                )}
+              </div>
+            </div>
+          </div>
+          )
+        })()}
+
+        {/* ── ACTIVIDAD ── */}
+        {modulo === 'actividad' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Bitácora</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Actividad <em style={{ fontStyle:'italic', color:'var(--accent)' }}>del equipo.</em></h1>
+              <p style={{ fontSize:14, color:'var(--ink-3)', marginTop:6 }}>Últimas {auditoria.length} acciones tomadas por administradores en el sistema.</p>
+            </div>
+            <div className="card">
+              {auditoria.length === 0 ? (
+                <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>Todavía no hay actividad registrada.</div>
+              ) : auditoria.map((a:any) => (
+                <div key={a.id} className="row" style={{ cursor:'default' }}>
+                  <div style={{ width:32, height:32, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontSize:14, flexShrink:0 }}>🕐</div>
+                  <div style={{ flex:1 }}>
+                    <div style={{ fontSize:13, fontWeight:500, marginBottom:2 }}>{a.accion}{a.entidad_tipo ? ' · ' + a.entidad_tipo : ''}</div>
+                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{a.admin_email} {a.detalle ? '· ' + a.detalle : ''}</div>
+                  </div>
+                  <div style={{ fontSize:11, color:'var(--ink-3)', flexShrink:0 }}>{new Date(a.created_at).toLocaleString('es-CR')}</div>
                 </div>
               ))}
             </div>
           </div>
+        )}
+
+        {/* ── ADMINISTRADORES ── */}
+        {modulo === 'administradores' && (
+          <AdministradoresPanel admins={admins} adminUser={adminUser} onReload={loadAll} onLog={logAccion} onMsg={setMsg}/>
         )}
 
         {/* ── MENSAJES ── */}
@@ -995,6 +1206,10 @@ export default function AdminPanel() {
               onEnviarMensaje={enviarMensaje}
               onActualizarReferido={actualizarReferido}
               onResponderEquipoNido={responderEquipoNido}
+              onSuspender={suspenderCuenta}
+              onActualizarComision={actualizarComision}
+              onEditarPropiedad={editarPropiedad}
+              onLog={logAccion}
               onMsg={setMsg}
               onReload={loadAll}
             />
@@ -1006,6 +1221,75 @@ export default function AdminPanel() {
 }
 
 // ── MENSAJE FORM ──
+// ── ADMINISTRADORES ──
+function AdministradoresPanel({ admins, adminUser, onReload, onLog, onMsg }: any) {
+  const [correo, setCorreo] = useState('')
+  const [nombre, setNombre] = useState('')
+  const [agregando, setAgregando] = useState(false)
+
+  const agregar = async () => {
+    if (!correo.trim()) return
+    setAgregando(true)
+    const { error } = await supabase.from('admins').insert({ correo: correo.trim().toLowerCase(), nombre: nombre.trim() || null })
+    if (error) {
+      onMsg('✗ No se pudo agregar (' + error.message + ')')
+    } else {
+      onLog && onLog('Agregó administrador', 'admin', correo.trim().toLowerCase())
+      onMsg('✓ Administrador agregado')
+      setCorreo(''); setNombre('')
+      onReload()
+    }
+    setAgregando(false)
+    setTimeout(() => onMsg(''), 3000)
+  }
+
+  const quitar = async (a: any) => {
+    if (a.correo === adminUser?.email) { onMsg('✗ No podés quitarte a vos mismo'); setTimeout(() => onMsg(''), 3000); return }
+    if (!window.confirm('¿Quitar acceso de admin a ' + a.correo + '?')) return
+    await supabase.from('admins').delete().eq('id', a.id)
+    onLog && onLog('Quitó administrador', 'admin', a.correo)
+    onMsg('✓ Acceso removido')
+    setTimeout(() => onMsg(''), 3000)
+    onReload()
+  }
+
+  return (
+    <div style={{ animation:'fadeUp 0.4s ease' }}>
+      <div style={{ marginBottom:24 }}>
+        <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Acceso al backoffice</div>
+        <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Administradores <em style={{ fontStyle:'italic', color:'var(--accent)' }}>NIDO.</em></h1>
+        <p style={{ fontSize:14, color:'var(--ink-3)', marginTop:6 }}>Quienes tienen acceso completo a este panel. El correo debe tener ya una cuenta NIDO para poder iniciar sesión en /admin/login.</p>
+      </div>
+
+      <div className="card card-pad" style={{ marginBottom:20 }}>
+        <div style={{ fontSize:13, fontWeight:500, marginBottom:14 }}>Agregar administrador</div>
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto', gap:8 }}>
+          <input value={correo} onChange={e => setCorreo(e.target.value)} placeholder="correo@ejemplo.com" className="field"/>
+          <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre (opcional)" className="field"/>
+          <button onClick={agregar} disabled={agregando||!correo.trim()} className="btn btn-dark" style={{ opacity:agregando||!correo.trim()?0.5:1 }}>Agregar</button>
+        </div>
+      </div>
+
+      <div className="card">
+        {admins.length === 0 ? (
+          <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay administradores registrados.</div>
+        ) : admins.map((a:any) => (
+          <div key={a.id} className="row" style={{ cursor:'default' }}>
+            <div style={{ width:36, height:36, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:15, color:'var(--accent)', flexShrink:0 }}>{(a.nombre||a.correo||'?')[0].toUpperCase()}</div>
+            <div style={{ flex:1 }}>
+              <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{a.nombre||'Sin nombre'} {a.correo===adminUser?.email && <span style={{ fontSize:11, color:'var(--accent)' }}>(vos)</span>}</div>
+              <div style={{ fontSize:12, color:'var(--ink-3)' }}>{a.correo}</div>
+            </div>
+            <button onClick={() => quitar(a)} disabled={a.correo===adminUser?.email} style={{ fontSize:12, color:a.correo===adminUser?.email?'var(--ink-3)':'oklch(0.45 0.08 20)', background:'none', border:'none', cursor:a.correo===adminUser?.email?'default':'pointer' }}>
+              Quitar acceso
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function MensajeForm({ asesores, propietarios, onSend }: any) {
   const [destinatario, setDestinatario] = useState('')
   const [asunto, setAsunto] = useState('')
@@ -1058,13 +1342,16 @@ function MensajeForm({ asesores, propietarios, onSend }: any) {
 }
 
 // ── DRAWER DETALLE ──
-function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onActualizarReferido, onResponderEquipoNido, onMsg, onReload }: any) {
+function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onActualizarReferido, onResponderEquipoNido, onSuspender, onActualizarComision, onEditarPropiedad, onLog, onMsg, onReload }: any) {
   const [nuevoPlan, setNuevoPlan] = useState('')
   const [notasKYC, setNotasKYC] = useState(sel?.verificacion_notas||'')
   const [msgInterno, setMsgInterno] = useState('')
   const [asuntoInterno, setAsuntoInterno] = useState('')
   const [updating, setUpdating] = useState(false)
   const [contratoLoadError, setContratoLoadError] = useState('')
+  const [notasComision, setNotasComision] = useState(sel?.notas||'')
+  const [editandoProp, setEditandoProp] = useState(false)
+  const [propEdit, setPropEdit] = useState<any>(null)
 
   const sus = suscripciones.find((s:any) => s.correo === sel.correo && s.activo)
 
@@ -1088,7 +1375,8 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
             <div style={{ fontSize:15, fontWeight:500, marginBottom:4 }}>{sel.nombre||'Sin nombre'}</div>
             <div style={{ display:'flex', gap:8 }}>
               {sel.verificado && <span className="badge" style={{ background:'var(--accent)', color:'white' }}>✓ Verificado</span>}
-              {sus && <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)', textTransform:'uppercase' }}>{sus.plan}</span>}
+              {sus && <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)', textTransform:'uppercase' }}>{getPlanConfig(sus.plan).nombrePublico}</span>}
+              {sel.suspendido && <span className="badge" style={{ background:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)' }}>⛔ Suspendido</span>}
             </div>
           </div>
         </div>
@@ -1115,6 +1403,14 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               ⭐ Agregar a Equipo NIDO
             </button>
           )}
+          <button
+            onClick={async () => { setUpdating(true); await onSuspender('perfiles', sel.id, sel.correo, !sel.suspendido); setUpdating(false) }}
+            disabled={updating}
+            className="btn"
+            style={{ background:sel.suspendido?'var(--accent-tint)':'transparent', color:sel.suspendido?'var(--accent)':'oklch(0.45 0.08 20)', border:'1px solid '+(sel.suspendido?'oklch(0.85 0.04 150)':'oklch(0.85 0.06 20)'), opacity:updating?0.6:1 }}
+          >
+            {sel.suspendido ? '↺ Reactivar cuenta' : '⛔ Suspender cuenta'}
+          </button>
         </div>
 
         {/* Datos */}
@@ -1175,9 +1471,9 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
           <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:8 }}>
             <select value={nuevoPlan} onChange={e => setNuevoPlan(e.target.value)} className="field" style={{ appearance:'none' }}>
               <option value="">Seleccionar plan...</option>
-              <option value="gratis">Gratis</option>
-              <option value="pro">Pro — $49/mes</option>
-              <option value="enterprise">Enterprise — $129/mes</option>
+              <option value="gratis">{getPlanConfig('gratis').nombrePublico} — Gratis</option>
+              <option value="pro">{getPlanConfig('pro').nombrePublico} — ${getPlanConfig('pro').precioMensual}/mes</option>
+              <option value="enterprise">{getPlanConfig('enterprise').nombrePublico} — ${getPlanConfig('enterprise').precioMensual}/mes</option>
             </select>
             <button onClick={async () => { if (!nuevoPlan) return; await onCambiarPlan(sel.correo, nuevoPlan); onMsg('✓ Plan cambiado a '+nuevoPlan) }} disabled={!nuevoPlan} className="btn btn-dark" style={{ opacity:!nuevoPlan?0.5:1 }}>
               Aplicar
@@ -1203,7 +1499,10 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
       <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--rule)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', top:0, background:'white', zIndex:1 }}>
         <div>
           <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'oklch(0.35 0.08 240)', marginBottom:4 }}>Propietario</div>
-          <div style={{ fontFamily:'var(--serif)', fontSize:20 }}>{sel.nombre}</div>
+          <div style={{ fontFamily:'var(--serif)', fontSize:20, display:'flex', alignItems:'center', gap:8 }}>
+            {sel.nombre}
+            {sel.suspendido && <span className="badge" style={{ background:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)' }}>⛔ Suspendido</span>}
+          </div>
         </div>
         <button onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, display:'grid', placeItems:'center', cursor:'pointer' }}>×</button>
       </div>
@@ -1221,6 +1520,14 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
             <span style={{ fontWeight:500 }}>{f.v}</span>
           </div>
         ))}
+        <button
+          onClick={async () => { setUpdating(true); await onSuspender('propietarios', sel.id, sel.correo, !sel.suspendido); setUpdating(false) }}
+          disabled={updating}
+          className="btn"
+          style={{ width:'100%', marginTop:16, background:sel.suspendido?'var(--accent-tint)':'transparent', color:sel.suspendido?'var(--accent)':'oklch(0.45 0.08 20)', border:'1px solid '+(sel.suspendido?'oklch(0.85 0.04 150)':'oklch(0.85 0.06 20)'), opacity:updating?0.6:1 }}
+        >
+          {sel.suspendido ? '↺ Reactivar cuenta' : '⛔ Suspender cuenta'}
+        </button>
         <div style={{ marginTop:16 }}>
           <input value={asuntoInterno} onChange={e => setAsuntoInterno(e.target.value)} placeholder="Asunto" className="field" style={{ marginBottom:8 }}/>
           <textarea value={msgInterno} onChange={e => setMsgInterno(e.target.value)} rows={3} placeholder="Mensaje para el propietario..." className="field" style={{ marginBottom:8, resize:'vertical' }}/>
@@ -1252,14 +1559,62 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
 
         {/* Datos generales */}
         <div style={{ marginBottom:16 }}>
-          <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Datos generales</div>
-          {[
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+            <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)' }}>Datos generales</div>
+            <button
+              onClick={() => { if (!editandoProp) setPropEdit({ titulo:sel.titulo||'', precio:sel.precio||0, descripcion:sel.descripcion||'', habitaciones:sel.habitaciones||0, banos:sel.banos||0, metros:sel.metros||0, estacionamientos:sel.estacionamientos||0 }); setEditandoProp(!editandoProp) }}
+              style={{ fontSize:12, color:'var(--accent)', background:'none', border:'none', cursor:'pointer' }}
+            >
+              {editandoProp ? 'Cancelar' : '✎ Editar'}
+            </button>
+          </div>
+
+          {editandoProp && propEdit ? (
+            <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:10 }}>
+              <div>
+                <label style={{ fontSize:11, color:'var(--ink-3)', display:'block', marginBottom:4 }}>Título</label>
+                <input className="field" value={propEdit.titulo} onChange={e => setPropEdit({...propEdit, titulo:e.target.value})}/>
+              </div>
+              <div>
+                <label style={{ fontSize:11, color:'var(--ink-3)', display:'block', marginBottom:4 }}>Precio (USD)</label>
+                <input type="number" className="field" value={propEdit.precio} onChange={e => setPropEdit({...propEdit, precio:parseInt(e.target.value)||0})}/>
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
+                <div>
+                  <label style={{ fontSize:11, color:'var(--ink-3)', display:'block', marginBottom:4 }}>Hab.</label>
+                  <input type="number" className="field" value={propEdit.habitaciones} onChange={e => setPropEdit({...propEdit, habitaciones:parseInt(e.target.value)||0})}/>
+                </div>
+                <div>
+                  <label style={{ fontSize:11, color:'var(--ink-3)', display:'block', marginBottom:4 }}>Baños</label>
+                  <input type="number" className="field" value={propEdit.banos} onChange={e => setPropEdit({...propEdit, banos:parseInt(e.target.value)||0})}/>
+                </div>
+                <div>
+                  <label style={{ fontSize:11, color:'var(--ink-3)', display:'block', marginBottom:4 }}>m²</label>
+                  <input type="number" className="field" value={propEdit.metros} onChange={e => setPropEdit({...propEdit, metros:parseInt(e.target.value)||0})}/>
+                </div>
+              </div>
+              <div>
+                <label style={{ fontSize:11, color:'var(--ink-3)', display:'block', marginBottom:4 }}>Descripción</label>
+                <textarea className="field" rows={4} style={{ resize:'vertical' }} value={propEdit.descripcion} onChange={e => setPropEdit({...propEdit, descripcion:e.target.value})}/>
+              </div>
+              <button
+                onClick={async () => { setUpdating(true); await onEditarPropiedad(sel.id, propEdit); setUpdating(false); setEditandoProp(false) }}
+                disabled={updating}
+                className="btn btn-primary"
+                style={{ opacity:updating?0.5:1 }}
+              >
+                Guardar cambios
+              </button>
+            </div>
+          ) : [
             { l:'Título', v:sel.titulo },
             { l:'Zona', v:sel.zona||'—' },
-            { l:'Precio', v:'$'+Number(sel.precio||0).toLocaleString()+' USD' },
+            { l:'Precio', v:'$'+Number(sel.precio||0).toLocaleString()+' USD'+(sel.precio_anterior?' (antes $'+Number(sel.precio_anterior).toLocaleString()+')':'') },
             { l:'Tipo', v:sel.tipo||'—' },
             { l:'Operación', v:sel.operacion||'—' },
+            { l:'Hab. / Baños / m²', v:(sel.habitaciones??'—')+' / '+(sel.banos??'—')+' / '+(sel.metros||sel.lote_m2||'—') },
             { l:'Asesor/Propietario', v:sel.asesor_email||'—' },
+            { l:'Colaboración 50/50', v:sel.acepta_colaboracion===false?'✗ No, el asesor la maneja solo':'✓ Abierta a otros asesores' },
             { l:'Publicada', v:new Date(sel.created_at).toLocaleDateString('es-CR') },
           ].map(f => (
             <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
@@ -1376,7 +1731,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
           {[
             { l:'Propietario', v:sel.propietario_nombre||'—' },
             { l:'Correo', v:sel.propietario_correo },
-            { l:'Tipo', v:sel.tipo==='exclusividad'?'Exclusividad 90 días':'Mensual $39.99' },
+            { l:'Tipo', v:sel.tipo==='exclusividad'?'Exclusividad':sel.tipo==='no_exclusivo'?'No exclusivo (push de venta)':sel.tipo==='mensual'?'Mensual (legado)':sel.tipo },
             { l:'Estado', v:sel.estado },
             { l:'Firma', v:sel.firma_tipo==='digital'?'Digital GAUDI':'Física escaneada' },
             { l:'Inicio', v:sel.fecha_inicio?new Date(sel.fecha_inicio).toLocaleDateString('es-CR'):'—' },
@@ -1433,6 +1788,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
                 await supabase.from('contratos').update({ estado:'activo', firmado_nido:true, firmado_at: new Date().toISOString() }).eq('id', sel.id)
                 // Notify propietario
                 fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: sel.propietario_correo, tipo:'contrato_aprobado', data:{ nombre: sel.propietario_nombre, tipo: sel.tipo } }) }).catch(()=>{})
+                onLog && onLog('Contrafirmó contrato', 'contrato', sel.id, sel.propietario_correo)
                 onReload(); onMsg('✓ Contrato activado'); onClose()
                 setUpdating(false)
               }} disabled={updating} className="btn btn-primary" style={{ opacity:updating?0.5:1 }}>
@@ -1441,6 +1797,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               <button onClick={async () => {
                 setUpdating(true)
                 await supabase.from('contratos').update({ estado:'cancelado' }).eq('id', sel.id)
+                onLog && onLog('Canceló contrato', 'contrato', sel.id, sel.propietario_correo)
                 onReload(); onMsg('Contrato cancelado'); onClose()
                 setUpdating(false)
               }} disabled={updating} style={{ padding:'10px', borderRadius:999, border:'1px solid oklch(0.85 0.06 20)', color:'oklch(0.45 0.08 20)', background:'transparent', fontSize:13, cursor:'pointer' }}>
@@ -1558,6 +1915,98 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
   if (sel._tipo === 'referido') return (
     <ReferidoDetalle referido={sel} onClose={onClose} onActualizar={onActualizarReferido}/>
   )
+
+  if (sel._tipo === 'comision') {
+    const fmt = (n: number) => '$' + (n||0).toLocaleString('es-CR', { minimumFractionDigits:0, maximumFractionDigits:0 })
+    const ESTADOS = ['proyectada','en_proceso','cobrada','cancelada']
+    const ESTADO_LABEL: Record<string,string> = { proyectada:'Proyectada', en_proceso:'En proceso', cobrada:'Cobrada', cancelada:'Cancelada' }
+    return (
+      <div>
+        <div style={{ padding:'20px 24px', borderBottom:'1px solid var(--rule)', display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', top:0, background:'white', zIndex:1 }}>
+          <div>
+            <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--accent)', marginBottom:4 }}>Comisión · {sel.propiedad_ref||''}</div>
+            <div style={{ fontFamily:'var(--serif)', fontSize:20 }}>{sel.propiedad_titulo||'Sin propiedad'}</div>
+          </div>
+          <button onClick={onClose} style={{ width:32, height:32, borderRadius:'50%', border:'1px solid var(--rule)', background:'transparent', fontSize:16, display:'grid', placeItems:'center', cursor:'pointer' }}>×</button>
+        </div>
+        <div style={{ padding:'20px 24px' }}>
+
+          {/* Estado */}
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Estado del negocio</div>
+            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+              {ESTADOS.map(e => (
+                <button
+                  key={e}
+                  onClick={async () => { setUpdating(true); await onActualizarComision(sel.id, { estado: e, ...(e==='cobrada'?{fecha_cierre_real:new Date().toISOString().slice(0,10)}:{}) }); setUpdating(false) }}
+                  disabled={updating || sel.estado===e}
+                  className={sel.estado===e?'tab active':'tab'}
+                  style={{ opacity:updating?0.6:1 }}
+                >
+                  {ESTADO_LABEL[e]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Datos generales */}
+          <div style={{ marginBottom:20 }}>
+            <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Datos del negocio</div>
+            {[
+              { l:'Asesor principal', v:sel.asesor_nombre||sel.asesor_email||'—' },
+              { l:'Zona', v:sel.propiedad_zona||'—' },
+              { l:'Precio de venta', v:sel.precio_venta?fmt(sel.precio_venta):'—' },
+              { l:'% Comisión', v:(sel.porcentaje_comision||0)+'%' },
+              { l:'Monto total comisión', v:fmt(sel.monto_comision) },
+              ...(sel.es_equipo_nido ? [
+                { l:'Monto asesor (Equipo NIDO)', v:fmt(sel.monto_asesor) },
+                { l:'Monto NIDO', v:fmt(sel.monto_nido) },
+              ] : []),
+              ...(sel.colaborador_email ? [
+                { l:'Colaborador', v:sel.colaborador_nombre||sel.colaborador_email },
+                { l:'Split principal / colaborador', v:(sel.porcentaje_principal||100)+'% / '+(sel.porcentaje_colaborador||0)+'%' },
+                { l:'Monto principal', v:fmt(sel.monto_principal) },
+                { l:'Monto colaborador', v:fmt(sel.monto_colaborador_split) },
+                { l:'Split confirmado por colaborador', v:sel.split_confirmado_colaborador?'✓ Sí':'Pendiente' },
+              ] : []),
+              { l:'Cierre estimado', v:sel.fecha_cierre_estimada?new Date(sel.fecha_cierre_estimada).toLocaleDateString('es-CR'):'—' },
+              { l:'Cierre real', v:sel.fecha_cierre_real?new Date(sel.fecha_cierre_real).toLocaleDateString('es-CR'):'—' },
+              { l:'Registrado por', v:sel.creado_por||'—' },
+            ].map((f:any) => (
+              <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+                <span style={{ color:'var(--ink-3)', flexShrink:0, marginRight:12 }}>{f.l}</span>
+                <span style={{ fontWeight:500, textAlign:'right' }}>{f.v}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Pago al asesor */}
+          {sel.estado === 'cobrada' && (
+            <div style={{ marginBottom:20 }}>
+              <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Pago al asesor</div>
+              <button
+                onClick={async () => { setUpdating(true); await onActualizarComision(sel.id, { pagado_asesor: !sel.pagado_asesor, pagado_asesor_at: !sel.pagado_asesor ? new Date().toISOString() : null }); setUpdating(false) }}
+                disabled={updating}
+                className="btn"
+                style={{ width:'100%', background:sel.pagado_asesor?'var(--accent-tint)':'transparent', color:sel.pagado_asesor?'var(--accent)':'var(--ink-2)', border:'1px solid '+(sel.pagado_asesor?'oklch(0.85 0.04 150)':'var(--rule)'), opacity:updating?0.6:1 }}
+              >
+                {sel.pagado_asesor ? '✓ Pagado al asesor' : 'Marcar como pagado al asesor'}
+              </button>
+            </div>
+          )}
+
+          {/* Notas */}
+          <div style={{ marginBottom:8 }}>
+            <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Notas internas</div>
+            <textarea value={notasComision} onChange={e => setNotasComision(e.target.value)} rows={3} placeholder="Notas sobre este negocio..." className="field" style={{ marginBottom:10, resize:'vertical' }}/>
+            <button onClick={async () => { setUpdating(true); await onActualizarComision(sel.id, { notas: notasComision }); setUpdating(false) }} disabled={updating} className="btn btn-dark" style={{ width:'100%', opacity:updating?0.5:1 }}>
+              Guardar notas
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return null
 }

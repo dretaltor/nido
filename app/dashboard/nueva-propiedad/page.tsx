@@ -23,7 +23,9 @@ const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la monta
 export default function NuevaPropiedad() {
   const [current, setCurrent] = useState(0)
   const [completed, setCompleted] = useState(new Set())
-  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', distrito:'', direccion:'', topografia:'', uso_suelo:'', terreno_tipo:'residencial', cuota_condominal:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'', numero_finca:'', numero_plano:'', naturaleza:'', area_registral:'', colindancias:'', gravamenes:'', anotaciones:'', libre_gravamenes:false })
+  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', distrito:'', direccion:'', topografia:'', uso_suelo:'', terreno_tipo:'residencial', cuota_condominal:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'', numero_finca:'', numero_plano:'', naturaleza:'', area_registral:'', colindancias:'', gravamenes:'', anotaciones:'', libre_gravamenes:false, colaboracion:true })
+  const [colaboracionElegida, setColaboracionElegida] = useState(false)
+  const [esIndependiente, setEsIndependiente] = useState(false)
   const [published, setPublished] = useState(false)
   const [contratoAceptado, setContratoAceptado] = useState<boolean|null>(null)
   const [trialBloqueado, setTrialBloqueado] = useState(false)
@@ -60,8 +62,9 @@ export default function NuevaPropiedad() {
 
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { window.location.href = '/login'; return }
-      const { data } = await supabase.from('perfiles').select('contrato_asesor_aceptado').eq('id', user.id).maybeSingle()
+      const { data } = await supabase.from('perfiles').select('contrato_asesor_aceptado,equipo_nido_estado').eq('id', user.id).maybeSingle()
       setContratoAceptado(!!data?.contrato_asesor_aceptado)
+      setEsIndependiente(data?.equipo_nido_estado !== 'aprobado')
 
       const { data: sus } = await supabase.from('suscripciones').select('activo,es_trial,trial_fin').eq('correo', user.email).maybeSingle()
       const trialVencido = sus?.es_trial && sus?.trial_fin && new Date(sus.trial_fin) < new Date()
@@ -150,6 +153,7 @@ export default function NuevaPropiedad() {
         gravamenes: data.gravamenes||'',
         anotaciones: data.anotaciones||'',
         libre_gravamenes: data.libre_gravamenes||false,
+        acepta_colaboracion: (!adminMode && esIndependiente) ? data.colaboracion : true,
         fotos: data.photos.filter((p:any) => !p.uploading && p.url && p.url.includes('supabase')).map((p:any) => p.url),
       })
       setPublished(true)
@@ -187,6 +191,7 @@ export default function NuevaPropiedad() {
     { label:'Al menos 4 fotos', done:data.photos.length>=4 },
     { label:'Título y descripción', done:!!data.title && data.desc.length>20 },
     { label:'Precio definido', done:!!data.price },
+    ...(!adminMode && esIndependiente ? [{ label:'Colaboración entre asesores', done:colaboracionElegida }] : []),
   ]
 
   const s = { fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }
@@ -519,6 +524,19 @@ export default function NuevaPropiedad() {
             <p style={{fontSize:12,color:'var(--ink-3)'}}>Las propiedades dentro del rango se venden 2.4× más rápido.</p>
           </div>
         </div>
+        {!adminMode && esIndependiente && (
+          <div className="field-group">
+            <label className="field-label">Colaboración entre asesores</label>
+            <p style={{fontSize:13,color:'var(--ink-2)',lineHeight:1.6,marginBottom:14}}>
+              Si otro asesor de la red NIDO trae un comprador para esta propiedad, ¿aceptás compartir la comisión 50/50 con él?
+            </p>
+            <div className="toggle-group">
+              {[[true,'Sí, acepto colaborar'],[false,'No, la manejo solo']].map(([v,l]) => (
+                <button key={String(v)} className={data.colaboracion===v?'active':''} onClick={() => { patch({colaboracion:v as boolean}); setColaboracionElegida(true) }}>{l}</button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     )
     if (current === 7) return (
@@ -589,6 +607,7 @@ export default function NuevaPropiedad() {
           {label:'Descripción', body:data.title||'Sin título', step:5},
           {label:'Datos registrales', body:data.numero_finca||'Pendiente', step:7},
           {label:'Precio', body:data.price?'$'+parseInt(data.price).toLocaleString('en-US')+(data.op==='alquiler'?'/mes':''):'—', step:6},
+          ...(!adminMode && esIndependiente ? [{label:'Colaboración 50/50', body:data.colaboracion?'Abierta a otros asesores':'Solo yo', step:6}] : []),
         ].map(s => (
           <div key={s.label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid var(--rule-soft)'}}>
             <div>
@@ -645,7 +664,12 @@ export default function NuevaPropiedad() {
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:48,paddingTop:24,borderTop:'1px solid var(--rule)'}}>
               <button onClick={back} disabled={current===0} style={{display:'flex',alignItems:'center',gap:8,background:'none',border:'none',color:current===0?'var(--ink-3)':'var(--ink)',cursor:current===0?'default':'pointer',fontSize:14}}>← Atrás</button>
               <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:'var(--ink-3)'}}>{String(current+1).padStart(2,'0')} / 08</span>
-              <button onClick={next} style={{background:'var(--ink)',color:'var(--bg)',border:'none',padding:'10px 24px',borderRadius:999,fontSize:14,cursor:'pointer'}}>Continuar →</button>
+              {(() => {
+                const requiereColaboracion = current === 6 && !adminMode && esIndependiente && !colaboracionElegida
+                return (
+                  <button onClick={next} disabled={requiereColaboracion} title={requiereColaboracion?'Confirmá si aceptás colaborar con otros asesores para continuar':undefined} style={{background:'var(--ink)',color:'var(--bg)',border:'none',padding:'10px 24px',borderRadius:999,fontSize:14,cursor:requiereColaboracion?'default':'pointer',opacity:requiereColaboracion?0.5:1}}>Continuar →</button>
+                )
+              })()}
             </div>
           )}
         </div>

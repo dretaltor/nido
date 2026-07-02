@@ -59,7 +59,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
       setPropiedad(data as Propiedad | null)
       setLoading(false)
       if (data && data.asesor_email) {
-        supabase.from('perfiles').select('correo,telefono,nombre,foto_url').eq('correo', data.asesor_email).maybeSingle()
+        supabase.from('asesores_publicos').select('correo,nombre,foto_url,equipo_nido_estado').eq('correo', data.asesor_email).maybeSingle()
           .then(({ data: pf }) => setPerfilAsesor(pf))
         supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', data.asesor_email).maybeSingle()
           .then(({ data: rat }) => setAsesorStats(s => ({ ...s, promedio: rat?.promedio ?? null, total: rat?.total ?? 0 })))
@@ -301,7 +301,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'white',marginBottom:2}}>{propiedad.asesor_nombre}</div>
                       <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',display:'flex',alignItems:'center',gap:6}}>
                         <span style={{width:6,height:6,borderRadius:'50%',background:'#22c55e',display:'inline-block'}}/>
-                        Asesor certificado NIDO
+                        {perfilAsesor?.equipo_nido_estado === 'aprobado' ? 'Asesor NIDO' : 'Asesor afiliado a NIDO'}
                       </div>
                     </div>
                   </div>
