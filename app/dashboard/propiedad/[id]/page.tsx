@@ -116,7 +116,11 @@ export default function EditarPropiedad() {
     }).eq('id', id)
     setSaving(false)
     if (error) { setMsg('Error al guardar: ' + error.message) }
-    else { setMsg('✓ Cambios guardados'); setTimeout(() => setMsg(''), 3000) }
+    else {
+      setMsg('✓ Cambios guardados'); setTimeout(() => setMsg(''), 3000)
+      // Si el precio bajo, avisar a quien tenga una alerta de busqueda guardada que haga match
+      fetch('/api/alertas/baja-precio', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ propiedadId: id }) }).catch(() => {})
+    }
   }
 
   if (!checandoTrial && trialBloqueado) return (
