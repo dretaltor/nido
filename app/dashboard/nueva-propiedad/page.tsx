@@ -31,7 +31,33 @@ export default function NuevaPropiedad() {
   const [planActual, setPlanActual] = useState<string>('gratis')
   const [propiedadesActuales, setPropiedadesActuales] = useState(0)
 
+  // Modo admin: un admin registra la propiedad y la asigna a otro asesor (ej. Equipo NIDO)
+  const [adminMode, setAdminMode] = useState(false)
+  const [adminChecked, setAdminChecked] = useState(false)
+  const [asesorAsignado, setAsesorAsignado] = useState<{ email:string, nombre:string, whatsapp:string }|null>(null)
+
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const esAdmin = params.get('admin') === '1'
+    const asesorEmail = params.get('asesorEmail') || ''
+
+    if (esAdmin && asesorEmail) {
+      supabase.auth.getUser().then(async ({ data: { user } }) => {
+        if (!user) { window.location.href = '/admin/login'; return }
+        const { data: admin } = await supabase.from('admins').select('correo').eq('correo', user.email!).maybeSingle()
+        if (!admin) { window.location.href = '/admin/login'; return }
+        setAdminMode(true)
+        setAsesorAsignado({
+          email: asesorEmail,
+          nombre: params.get('asesorNombre') || '',
+          whatsapp: params.get('asesorWhatsapp') || '',
+        })
+        setContratoAceptado(true)
+        setAdminChecked(true)
+      })
+      return
+    }
+
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { window.location.href = '/login'; return }
       const { data } = await supabase.from('perfiles').select('contrato_asesor_aceptado').eq('id', user.id).maybeSingle()
@@ -48,6 +74,7 @@ export default function NuevaPropiedad() {
       setPropiedadesActuales(count || 0)
       const limite = getPlanConfig(plan).maxPropiedades
       setLimiteAlcanzado((count || 0) >= limite)
+      setAdminChecked(true)
     })
   }, [])
   const [publishing, setPublishing] = useState(false)
@@ -110,11 +137,11 @@ export default function NuevaPropiedad() {
         uso_suelo: data.kind==='lote' ? data.uso_suelo : null,
         terreno_tipo: data.kind==='lote' ? data.terreno_tipo : null,
         cuota_condominal: data.kind==='lote' && data.terreno_tipo==='condominio' && data.cuota_condominal ? parseFloat(data.cuota_condominal) : null,
-        disponible: false,
-        verificacion_estado: 'pendiente_verificacion',
-        asesor_email: user?.email||'',
-        asesor_nombre: user?.user_metadata?.nombre||'',
-        asesor_whatsapp: data.whatsapp||'',
+        disponible: adminMode ? true : false,
+        verificacion_estado: adminMode ? 'aprobada' : 'pendiente_verificacion',
+        asesor_email: adminMode ? (asesorAsignado?.email||'') : (user?.email||''),
+        asesor_nombre: adminMode ? (asesorAsignado?.nombre||'') : (user?.user_metadata?.nombre||''),
+        asesor_whatsapp: adminMode ? (asesorAsignado?.whatsapp||data.whatsapp||'') : (data.whatsapp||''),
         numero_finca: data.numero_finca||'',
         numero_plano: data.numero_plano||'',
         naturaleza: data.naturaleza||'',
@@ -227,11 +254,17 @@ export default function NuevaPropiedad() {
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh'}}>
         <div style={{maxWidth:520,textAlign:'center',padding:'0 24px'}}>
           <div style={{width:64,height:64,borderRadius:'50%',background:'var(--accent)',display:'grid',placeItems:'center',margin:'0 auto 24px',color:'white',fontSize:24}}>✓</div>
-          <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'clamp(32px,5vw,48px)',fontWeight:400,marginBottom:16}}>Tu propiedad está publicada.</h1>
-          <p style={{color:'var(--ink-2)',lineHeight:1.65,marginBottom:32}}>Valeria está optimizando tu publicación. Pronto aparecerá en el portal.</p>
+          <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'clamp(32px,5vw,48px)',fontWeight:400,marginBottom:16}}>
+            {adminMode ? 'Propiedad publicada y asignada.' : 'Tu propiedad está publicada.'}
+          </h1>
+          <p style={{color:'var(--ink-2)',lineHeight:1.65,marginBottom:32}}>
+            {adminMode
+              ? `Ya está en vivo en el portal, asignada a ${asesorAsignado?.nombre || asesorAsignado?.email}.`
+              : 'Valeria está optimizando tu publicación. Pronto aparecerá en el portal.'}
+          </p>
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
             <a href="/propiedades" style={{background:'var(--ink)',color:'var(--bg)',padding:'12px 24px',borderRadius:999,fontSize:14,textDecoration:'none'}}>Ver portal</a>
-            <a href={typeof window !== 'undefined' && localStorage.getItem('nido_user_tipo') === 'propietario' ? '/dashboard/propietario' : '/dashboard'} style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'12px 24px',borderRadius:999,fontSize:14,textDecoration:'none'}}>Mi panel →</a>
+            <a href={adminMode ? '/admin' : (typeof window !== 'undefined' && localStorage.getItem('nido_user_tipo') === 'propietario' ? '/dashboard/propietario' : '/dashboard')} style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'12px 24px',borderRadius:999,fontSize:14,textDecoration:'none'}}>{adminMode ? 'Volver al admin →' : 'Mi panel →'}</a>
           </div>
         </div>
       </div>
@@ -567,7 +600,7 @@ export default function NuevaPropiedad() {
         ))}
         <div style={{marginTop:32,display:'flex',justifyContent:'flex-end'}}>
           <button onClick={handlePublish} disabled={publishing} style={{background:'var(--ink)',color:'var(--bg)',border:'none',padding:'14px 28px',borderRadius:999,fontSize:15,cursor:'pointer'}}>
-            {publishing?'Publicando...':'Publicar propiedad →'}
+            {publishing?'Publicando...':(adminMode?'Publicar y asignar →':'Publicar propiedad →')}
           </button>
         </div>
       </div>
@@ -581,10 +614,15 @@ export default function NuevaPropiedad() {
       <nav style={{position:'sticky',top:0,zIndex:50,background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--rule)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 40px',maxWidth:1500,margin:'0 auto'}}>
           <a href="/" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:'var(--ink)',textDecoration:'none'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></a>
-          <div style={{fontSize:13,color:'var(--ink-3)'}}>Publicá tu propiedad · Paso {current+1} de 8</div>
-          <a href={typeof window !== 'undefined' && localStorage.getItem('nido_user_tipo') === 'propietario' ? '/dashboard/propietario' : '/dashboard'} style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'8px 16px',borderRadius:999,fontSize:13,textDecoration:'none'}}>Mi panel</a>
+          <div style={{fontSize:13,color:'var(--ink-3)'}}>{adminMode ? 'Modo admin' : 'Publicá tu propiedad'} · Paso {current+1} de 8</div>
+          <a href={adminMode ? '/admin' : (typeof window !== 'undefined' && localStorage.getItem('nido_user_tipo') === 'propietario' ? '/dashboard/propietario' : '/dashboard')} style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'8px 16px',borderRadius:999,fontSize:13,textDecoration:'none'}}>{adminMode ? 'Volver al admin' : 'Mi panel'}</a>
         </div>
       </nav>
+      {adminMode && asesorAsignado && (
+        <div style={{background:'var(--ink)',color:'white',padding:'10px 40px',fontSize:13,textAlign:'center'}}>
+          ⭐ Estás registrando esta propiedad a nombre de <strong>{asesorAsignado.nombre || asesorAsignado.email}</strong> ({asesorAsignado.email}). Se publicará automáticamente al terminar.
+        </div>
+      )}
       <div className="wizard-grid" style={{maxWidth:1500,margin:'0 auto',padding:'40px 40px 80px',display:'grid',gridTemplateColumns:'200px 1fr 320px',gap:48,alignItems:'start'}}>
         <nav className="wizard-stepper" style={{position:'sticky',top:88,display:'flex',flexDirection:'column',gap:0}}>
           <div style={{fontSize:10,letterSpacing:'0.16em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:18}}>Publicación</div>

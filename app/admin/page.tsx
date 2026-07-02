@@ -994,6 +994,7 @@ export default function AdminPanel() {
               onVerificarPropiedad={verificarPropiedad}
               onEnviarMensaje={enviarMensaje}
               onActualizarReferido={actualizarReferido}
+              onResponderEquipoNido={responderEquipoNido}
               onMsg={setMsg}
               onReload={loadAll}
             />
@@ -1057,7 +1058,7 @@ function MensajeForm({ asesores, propietarios, onSend }: any) {
 }
 
 // ── DRAWER DETALLE ──
-function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onActualizarReferido, onMsg, onReload }: any) {
+function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onActualizarReferido, onResponderEquipoNido, onMsg, onReload }: any) {
   const [nuevoPlan, setNuevoPlan] = useState('')
   const [notasKYC, setNotasKYC] = useState(sel?.verificacion_notas||'')
   const [msgInterno, setMsgInterno] = useState('')
@@ -1090,6 +1091,30 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               {sus && <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)', textTransform:'uppercase' }}>{sus.plan}</span>}
             </div>
           </div>
+        </div>
+
+        {/* Gestión admin */}
+        <div style={{ marginBottom:20, display:'flex', flexDirection:'column', gap:8 }}>
+          <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:4 }}>Gestión</div>
+          <a
+            href={'/dashboard/nueva-propiedad?admin=1&asesorEmail='+encodeURIComponent(sel.correo)+'&asesorNombre='+encodeURIComponent(sel.nombre||'')+'&asesorWhatsapp='+encodeURIComponent(sel.telefono||'')}
+            className="btn btn-dark"
+            style={{ textAlign:'center', textDecoration:'none' }}
+          >
+            🏠 Registrar propiedad para este asesor
+          </a>
+          {sel.equipo_nido_estado === 'aprobado' ? (
+            <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)', textAlign:'center', padding:'8px 12px' }}>⭐ Ya está en Equipo NIDO</span>
+          ) : (
+            <button
+              onClick={async () => { setUpdating(true); await onResponderEquipoNido(sel, true); setUpdating(false); onMsg('✓ '+(sel.nombre||sel.correo)+' agregado a Equipo NIDO'); onClose() }}
+              disabled={updating}
+              className="btn btn-outline"
+              style={{ opacity:updating?0.6:1 }}
+            >
+              ⭐ Agregar a Equipo NIDO
+            </button>
+          )}
         </div>
 
         {/* Datos */}

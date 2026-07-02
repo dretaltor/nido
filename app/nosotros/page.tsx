@@ -145,22 +145,22 @@ export default function Nosotros() {
               {
                 num:'01',
                 titulo:'Corredora inmobiliaria',
-                desc:'Gestionamos la venta de propiedades directamente con un equipo de asesores certificados NIDO. Exclusividad de 90 días, comisión del 4% solo al cerrar.',
-                items:['Verificación registral completa','Campaña de marketing incluida','Asesoría legal y documental','Negociación profesional'],
+                desc:'Gestionamos la venta de propiedades directamente con un equipo de asesores certificados NIDO. Cobramos una comisión competitiva, y solo cuando la propiedad se vende.',
+                items:['Propiedad verificada de principio a fin','Marketing y promoción incluidos','Acompañamiento legal y documental','Negociación en manos de profesionales'],
                 color:'oklch(0.75 0.06 150)',
               },
               {
                 num:'02',
-                titulo:'Plataforma SaaS para asesores',
-                desc:'Asesores inmobiliarios independientes se suscriben a NIDO para acceder al CRM, Valeria IA, la academia y el portal de propiedades.',
-                items:['Plan Elite: $59/mes','Plan Black: $149/mes','Valeria IA incluida','Academia + certificaciones'],
+                titulo:'Plataforma para asesores',
+                desc:'Asesores inmobiliarios independientes se suscriben a NIDO para acceder a tecnología, formación y visibilidad que antes solo tenían las grandes inmobiliarias.',
+                items:['Planes flexibles según el ritmo de cada asesor','Asistencia inteligente incluida','Formación continua con certificación','Portal y red de referidos'],
                 color:'var(--gold)',
               },
               {
                 num:'03',
                 titulo:'Portal de propiedades',
-                desc:'El portal público conecta compradores con propiedades verificadas y asesores calificados. Genera leads calificados para toda la red.',
-                items:['Búsqueda con mapa interactivo','Fichas con datos registrales','Contacto directo con asesor','Valuación con IA gratuita'],
+                desc:'El portal público conecta compradores con propiedades verificadas y asesores calificados. Genera oportunidades reales para toda la red.',
+                items:['Búsqueda intuitiva por zona','Información confiable en cada ficha','Contacto directo con el asesor a cargo','Estimación de valor sin costo'],
                 color:'oklch(0.65 0.06 200)',
               },
             ].map((carril, i) => (
@@ -174,6 +174,9 @@ export default function Nosotros() {
                       <span style={{ color:carril.color, fontSize:10 }}>✓</span> {item}
                     </div>
                   ))}
+                  {carril.num === '02' && (
+                    <a href="/precios" style={{ display:'inline-block', marginTop:6, fontSize:12, color:carril.color, textDecoration:'none' }}>Ver planes y precios →</a>
+                  )}
                 </div>
               </div>
             ))}
@@ -276,22 +279,57 @@ export default function Nosotros() {
             </p>
           </div>
 
-          <div className="grid-3" style={{ marginBottom:48 }}>
+          <div className="grid-2" style={{ marginBottom:48 }}>
             {[
-              { icon:'🗺️', titulo:'Portal nacional con mapa real', desc:'Búsqueda de propiedades con geolocalización en las 7 provincias y los 84 cantones de Costa Rica.' },
-              { icon:'✦', titulo:'Valeria IA 24/7', desc:'Asistente con IA que responde por WhatsApp y CRM — califica leads, agenda visitas y da seguimiento sin descanso.' },
-              { icon:'🪪', titulo:'KYC verificado', desc:'Verificación de identidad con cédula y selfie para cada asesor y propietario antes de operar en la plataforma.' },
-              { icon:'📝', titulo:'Contratos digitales', desc:'Firma de contrato de corretaje vía GAUDI o física escaneada, con contrafirma y activación desde el backoffice.' },
-              { icon:'🧙', titulo:'Wizard de publicación', desc:'Publicá una propiedad en minutos — datos registrales, fotos con reordenamiento, y campos específicos para casas, lotes y terrenos.' },
-              { icon:'🎓', titulo:'Academia certificada', desc:'6 cursos completos sobre ventas, marketing digital, legal, inversión y negociación — con quizzes y certificación.' },
-              { icon:'📅', titulo:'Visitas y ofertas en vivo', desc:'Gestión completa de citas y ofertas con confirmación, reprogramación y rechazo — sincronizado a Google Calendar.' },
-              { icon:'🔔', titulo:'Notificaciones automáticas', desc:'Correo y WhatsApp en cada evento importante: nueva visita, oferta recibida, aprobación de KYC o propiedad.' },
-              { icon:'🤝', titulo:'Colaboración entre asesores', desc:'Esquema de comisión compartida 50/50 para negociaciones conjuntas entre asesores afiliados.' },
-            ].map((f, i) => (
-              <div key={i} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:14, padding:'24px' }}>
-                <div style={{ fontSize:26, marginBottom:12 }}>{f.icon}</div>
-                <div style={{ fontSize:15, fontWeight:500, marginBottom:8, color:'var(--ink)' }}>{f.titulo}</div>
-                <div style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.65 }}>{f.desc}</div>
+              {
+                icon:'🏠', titulo:'Si vendés o alquilás una propiedad',
+                items:[
+                  'Tu propiedad llega solo a interesados con intención real de comprar',
+                  'Nunca estás solo: hay un asesor certificado y tecnología de respaldo en cada paso',
+                  'Sabés en todo momento en qué etapa está tu proceso',
+                  'Revisamos que tu propiedad esté en condiciones de venderse antes de publicarla',
+                ],
+                color:'var(--accent)',
+              },
+              {
+                icon:'🔍', titulo:'Si estás buscando comprar',
+                items:[
+                  'Cada propiedad que ves fue verificada antes de llegar al portal',
+                  'Un asistente inteligente te acompaña desde la primera pregunta hasta la visita',
+                  'Tratás siempre con un asesor certificado, no con un intermediario improvisado',
+                  'Toda la información que necesitás para decidir, en un solo lugar',
+                ],
+                color:'oklch(0.52 0.08 230)',
+              },
+              {
+                icon:'🎓', titulo:'Si sos asesor inmobiliario',
+                items:[
+                  'Herramientas de nivel corporativo, accesibles para un asesor independiente',
+                  'Oportunidades calificadas que llegan mientras atendés a tus otros clientes',
+                  'Formación continua y una certificación que te distingue en el mercado',
+                  'Una red donde los asesores colaboran en vez de competir entre sí',
+                ],
+                color:'var(--gold)',
+              },
+              {
+                icon:'🛡️', titulo:'El respaldo detrás de cada transacción',
+                items:[
+                  'Presencia en todo el país, en cada provincia y cantón',
+                  'Inteligencia artificial trabajando de forma constante para que ninguna oportunidad se pierda',
+                  'Verificación de identidad y de propiedad antes de que nadie negocie',
+                  'Cada paso queda documentado y trazable — nada se pierde en una conversación suelta',
+                ],
+                color:'oklch(0.65 0.06 200)',
+              },
+            ].map((col, i) => (
+              <div key={i} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:14, padding:'28px' }}>
+                <div style={{ fontSize:26, marginBottom:12 }}>{col.icon}</div>
+                <div style={{ fontSize:15, fontWeight:600, color:'var(--ink)', marginBottom:16 }}>{col.titulo}</div>
+                {col.items.map(item => (
+                  <div key={item} style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:11, fontSize:13, color:'var(--ink-3)', lineHeight:1.55 }}>
+                    <span style={{ color:col.color, flexShrink:0, marginTop:2 }}>✓</span> {item}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
