@@ -266,6 +266,7 @@ export default function Propiedades() {
             <Link href="/propiedades" style={{ borderBottom: '1px solid var(--ink)', color: 'var(--ink)', paddingBottom: 2 }}>Ver propiedades</Link>
             <a href="/nosotros">Nosotros</a>
             <a href="/asesores">Asesores</a>
+            <Link href="/calculadoras">Calculadoras</Link>
             <Link href="/noticias">Noticias</Link>
           </nav>
           <div className="header-btns" style={{ display: 'flex', gap: 10 }}>
