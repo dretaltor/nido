@@ -21,7 +21,7 @@ export default function Nav({ rol }: { rol?: string }) {
     ? [{ label: 'Dashboard', href: '/dashboard' }, { label: 'CRM', href: '/dashboard/crm' }, { label: 'Academia', href: '/academia' }, { label: 'Precios', href: '/precios' }]
     : rol === 'propietario'
     ? [{ label: 'Mi propiedad', href: '/propietario' }, { label: 'Asesores', href: '/asesores' }, { label: 'Contacto', href: '/contacto' }]
-    : [{ label: 'Propiedades', href: '/propiedades' }, { label: 'Asesores', href: '/asesores' }, { label: 'Calculadoras', href: '/calculadoras' }, { label: 'Academia', href: '/academia' }, { label: 'Precios', href: '/precios' }]
+    : [{ label: 'Propiedades', href: '/propiedades' }, { label: 'Asesores', href: '/asesores' }, { label: 'Calculadoras', href: '/calculadoras' }, { label: 'Noticias', href: '/noticias' }]
 
   return (
     <>
