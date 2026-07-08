@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test:rls": "psql \"$SUPABASE_DB_URL\" -v ON_ERROR_STOP=1 -f scripts/rls-smoke-test.sql"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.0",

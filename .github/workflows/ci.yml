@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # El repo tiene ~437 errores de lint preexistentes (sobre todo <a> en vez de
+      # next/link y usos de `any`) nunca antes corregidos porque nunca hubo CI.
+      # No bloquea el pipeline todavía para no dejarlo en rojo permanente el día 1 —
+      # queda como reporte visible hasta que se haga una limpieza dedicada.
+      - name: Lint (no bloqueante — ver nota arriba)
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Type check
+        run: npm run typecheck
+
+      # Requiere el secret SUPABASE_DB_URL en Settings → Secrets and variables → Actions
+      # (Supabase → Project Settings → Database → Connection string, modo "Session pooler").
+      # Sin ese secret, este paso se salta en vez de fallar el pipeline.
+      - name: RLS smoke test
+        if: ${{ secrets.SUPABASE_DB_URL != '' }}
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          sudo apt-get update -y && sudo apt-get install -y postgresql-client
+          npm run test:rls
