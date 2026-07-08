@@ -63,6 +63,7 @@ const PLANES = [
       { texto: 'Galería de fotos ilimitada', ok: true },
       { texto: 'Valeria IA con memoria y contexto', ok: true },
       { texto: 'CRM avanzado con score de leads', ok: true },
+      { texto: 'Leads premium de las calculadoras (prioridad automática)', ok: true },
       { texto: 'Estadísticas en tiempo real', ok: true },
       { texto: 'Academia NIDO + certificaciones', ok: true },
       { texto: 'Tours 360° ilimitados', ok: true },

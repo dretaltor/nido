@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase'
 import { crearTicketSoporte } from '../../lib/soporte'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
+import { getPlanConfig } from '../../lib/planes'
 
 interface ValeriaPerfil {
   nombre_asesor?: string; estilo_comunicacion?: string; zonas?: string; tipo_propiedades?: string
@@ -88,8 +89,24 @@ export default function Chat() {
   const [valeriaPerfil, setValeriaPerfil] = useState<ValeriaPerfil | null>(null)
   const [escalando, setEscalando] = useState(false)
   const [ticketAbierto, setTicketAbierto] = useState(false)
+  const [planChecked, setPlanChecked] = useState(false)
+  const [tieneAccesoValeria, setTieneAccesoValeria] = useState(true)
+  const [planActual, setPlanActual] = useState('gratis')
   const chatRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    // Verifica que el plan del asesor incluya Valeria IA (desde Elite)
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { setPlanChecked(true); return }
+      const { data: sus } = await supabase.from('suscripciones').select('plan,activo,es_trial,trial_fin').eq('correo', user.email).maybeSingle()
+      const trialVigente = !!(sus?.es_trial && sus?.trial_fin && new Date(sus.trial_fin) >= new Date())
+      const plan = sus?.plan || 'gratis'
+      setPlanActual(plan)
+      setTieneAccesoValeria(trialVigente || (!!sus?.activo && getPlanConfig(plan).valeriaIA))
+      setPlanChecked(true)
+    })
+  }, [])
 
   useEffect(() => {
     // Load asesor's Valeria profile
@@ -165,6 +182,29 @@ export default function Chat() {
   }
 
   const nombre = user?.email?.split('@')[0] || 'asesor'
+
+  if (!planChecked) return (
+    <main style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', background:'var(--bg)' }}>
+      <div style={{ fontSize:14, color:'oklch(0.60 0.005 80)', fontFamily:"'DM Sans',sans-serif" }}>Cargando...</div>
+    </main>
+  )
+
+  if (!tieneAccesoValeria) return (
+    <main style={{ minHeight:'100vh', display:'flex', alignItems:'center', justifyContent:'center', padding:24, background:'var(--bg)' }}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');`}</style>
+      <div style={{ maxWidth:460, textAlign:'center', background:'white', border:'1px solid oklch(0.88 0.006 80)', borderRadius:20, padding:'40px 32px' }}>
+        <div style={{ width:56, height:56, borderRadius:'50%', background:'linear-gradient(135deg,oklch(0.42 0.06 150),oklch(0.30 0.08 150))', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:"'Cormorant Garamond',serif", fontSize:24, fontStyle:'italic', color:'oklch(0.85 0.06 80)', margin:'0 auto 20px' }}>V</div>
+        <h1 style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:26, fontWeight:400, marginBottom:10, color:'#0D1F15' }}>Valeria IA es parte de NIDO Elite</h1>
+        <p style={{ fontSize:14, color:'#6B7280', lineHeight:1.6, marginBottom:8 }}>
+          Tu plan {getPlanConfig(planActual).nombrePublico} no incluye la mentora IA. Desde Elite ($59/mes) tenés a Valeria 24/7 para tu pipeline, redacción y estrategia — con CRM completo incluido.
+        </p>
+        <a href="/precios" style={{ display:'inline-block', marginTop:16, padding:'13px 28px', borderRadius:999, background:'#0D1F15', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>Ver planes →</a>
+        <div style={{ marginTop:16 }}>
+          <a href="/dashboard" style={{ fontSize:13, color:'#6B7280', textDecoration:'none' }}>← Volver al dashboard</a>
+        </div>
+      </div>
+    </main>
+  )
 
   return (
     <main style={{ fontFamily:"'DM Sans',sans-serif", height:'100vh', display:'flex', flexDirection:'column', background:'var(--bg)', color:'var(--ink)', overflow:'hidden' }}>

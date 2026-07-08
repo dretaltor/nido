@@ -14,6 +14,7 @@ interface Lead {
   mensaje: string; zona_interes?: string; presupuesto?: string
   tipo_busqueda?: string; estado: string; created_at: string
   propiedad_id?: string; propiedad_titulo?: string; propiedad?: string
+  fuente?: string; asignado_automaticamente?: boolean
 }
 
 const ESTADOS = ['todos','nuevo','contactado','interesado','visita','oferta','cerrado','perdido']
@@ -83,7 +84,7 @@ export default function CRM() {
           setCheckandoPlan(false)
         })
 
-      supabase.from('leads').select('id,nombre,email,telefono,mensaje,estado,propiedad_id,asesor_email,created_at').eq('asesor_email', user.email).order('created_at', { ascending: false })
+      supabase.from('leads').select('id,nombre,email,telefono,mensaje,estado,propiedad_id,asesor_email,created_at,fuente,asignado_automaticamente').eq('asesor_email', user.email).order('created_at', { ascending: false })
         .then(({ data }) => { setLeads(data || []); setLoading(false) })
       supabase.from('visitas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,propiedad_titulo,asesor_email,asesor_whatsapp,fecha,hora,tipo,notas,estado,created_at').eq('asesor_email', user.email).order('created_at', { ascending: false })
         .then(({ data }) => setVisitas(data || []))
@@ -263,7 +264,10 @@ export default function CRM() {
                   {(l.nombre||'?')[0].toUpperCase()}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{l.nombre||'Sin nombre'}</div>
+                  <div style={{ fontSize:14, fontWeight:500, marginBottom:2, display:'flex', alignItems:'center', gap:8 }}>
+                    {l.nombre||'Sin nombre'}
+                    {l.asignado_automaticamente && <span title="Lead premium asignado automáticamente por tu plan Black" style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:600, background:'var(--ink)', color:'white', letterSpacing:'0.04em' }}>✦ PREMIUM</span>}
+                  </div>
                   <div style={{ fontSize:12, color:'var(--ink-3)', display:'flex', gap:12 }}>
                     <span>{l.email||'—'}</span>
                     {l.zona_interes && <span>· {l.zona_interes}</span>}

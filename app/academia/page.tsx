@@ -41,18 +41,34 @@ export default function Academia() {
   const [sel, setSel] = useState<typeof CURSOS[0] | null>(null)
   const [planActivo, setPlanActivo] = useState<string | null>(null)
   const [cargandoPlan, setCargandoPlan] = useState(true)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [comprasCurso, setComprasCurso] = useState<Record<number, string>>({}) // curso_id -> estado
+  const [solicitando, setSolicitando] = useState(false)
   const { bloqueado: trialBloqueado, checando: checandoTrial } = useTrial()
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user?.email) { setCargandoPlan(false); return }
+      setUserEmail(user.email)
       const { data } = await supabase.from('suscripciones').select('plan,activo').eq('correo', user.email).maybeSingle()
       if (data?.activo) setPlanActivo(data.plan)
+      const { data: compras } = await supabase.from('cursos_compras').select('curso_id,estado').eq('correo', user.email)
+      const mapa: Record<number, string> = {}
+      ;(compras || []).forEach(c => { mapa[c.curso_id] = c.estado })
+      setComprasCurso(mapa)
       setCargandoPlan(false)
     })
   }, [])
 
   const todoDesbloqueado = getPlanConfig(planActivo).academiaCompleta
+
+  const solicitarCompraCurso = async (curso: typeof CURSOS[0]) => {
+    if (!userEmail || solicitando) return
+    setSolicitando(true)
+    await supabase.from('cursos_compras').insert({ correo: userEmail, curso_id: curso.id, curso_titulo: curso.titulo })
+    setComprasCurso(prev => ({ ...prev, [curso.id]: 'solicitado' }))
+    setSolicitando(false)
+  }
 
   if (!checandoTrial && trialBloqueado) return (
     <main style={{ fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
@@ -141,12 +157,14 @@ export default function Academia() {
               </div>
             ))
           ) : filtrados.map(c => (
-            <div key={c.id} className="curso-card" onClick={() => { if(c.gratis || todoDesbloqueado) { window.location.href = '/academia/curso?id='+c.id } else { setSel(c) } }}>
+            <div key={c.id} className="curso-card" onClick={() => { if(c.gratis || todoDesbloqueado || comprasCurso[c.id]==='aprobado') { window.location.href = '/academia/curso?id='+c.id } else { setSel(c) } }}>
               <div style={{ height:120, background:`oklch(0.88 0.03 ${c.hue})`, display:'flex', alignItems:'center', justifyContent:'center', position:'relative' }}>
                 <span style={{ fontSize:36 }}>{c.icon}</span>
                 {c.gratis && <span style={{ position:'absolute', top:10, right:10, background:'var(--accent)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em', fontWeight:500 }}>GRATIS</span>}
                 {!c.gratis && todoDesbloqueado && <span style={{ position:'absolute', top:10, right:10, background:'var(--accent)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em', fontWeight:500 }}>INCLUIDO</span>}
-                {!c.gratis && !todoDesbloqueado && <span style={{ position:'absolute', top:10, right:10, background:'var(--ink)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em' }}>PRO</span>}
+                {!c.gratis && !todoDesbloqueado && comprasCurso[c.id]==='aprobado' && <span style={{ position:'absolute', top:10, right:10, background:'var(--accent)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em', fontWeight:500 }}>COMPRADO</span>}
+                {!c.gratis && !todoDesbloqueado && comprasCurso[c.id]==='solicitado' && <span style={{ position:'absolute', top:10, right:10, background:'oklch(0.65 0.12 70)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em' }}>EN REVISIÓN</span>}
+                {!c.gratis && !todoDesbloqueado && !comprasCurso[c.id] && <span style={{ position:'absolute', top:10, right:10, background:'var(--ink)', color:'white', fontSize:10, padding:'2px 10px', borderRadius:999, letterSpacing:'0.06em' }}>PRO</span>}
               </div>
               <div style={{ padding:'16px 18px', flex:1, display:'flex', flexDirection:'column' }}>
                 <div style={{ display:'flex', gap:8, marginBottom:10 }}>
@@ -214,13 +232,22 @@ export default function Academia() {
                   </div>
                 ))}
               </div>
-              {(sel.gratis || todoDesbloqueado)
+              {(sel.gratis || todoDesbloqueado || comprasCurso[sel.id]==='aprobado')
                 ? <a href={'/academia/curso?id=' + sel.id} style={{ display:'block', textAlign:'center', width:'100%', padding:'13px', borderRadius:999, background:'var(--accent)', border:'none', color:'white', fontSize:14, fontWeight:500, cursor:'pointer', textDecoration:'none' }}>{sel.gratis ? 'Comenzar curso gratis →' : 'Comenzar curso →'}</a>
+                : comprasCurso[sel.id]==='solicitado'
+                ? <div style={{ background:'oklch(0.95 0.04 70)', border:'1px solid oklch(0.85 0.06 70)', borderRadius:10, padding:'12px 14px', fontSize:13, color:'var(--ink-2)' }}>
+                    Ya solicitaste este curso — el equipo NIDO te va a contactar para coordinar el pago y activarlo.
+                  </div>
                 : <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
                     <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:10, padding:'12px 14px', fontSize:13, color:'var(--ink-2)' }}>
-                      Este curso es parte del plan Enterprise. Desbloquealo junto con todos los demás cursos.
+                      Este curso es parte del plan Enterprise. Desbloquealo junto con todos los demás cursos, o comprá solo este.
                     </div>
                     <a href="/precios" style={{ display:'block', padding:'13px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textAlign:'center', textDecoration:'none' }}>Ver plan Enterprise →</a>
+                    {userEmail && (
+                      <button onClick={() => solicitarCompraCurso(sel)} disabled={solicitando} style={{ display:'block', width:'100%', padding:'13px', borderRadius:999, background:'transparent', border:'1px solid var(--rule)', color:'var(--ink-2)', fontSize:14, fontWeight:500, textAlign:'center', cursor:'pointer' }}>
+                        {solicitando ? 'Enviando...' : 'Comprar solo este curso →'}
+                      </button>
+                    )}
                   </div>
               }
             </div>

@@ -6,7 +6,7 @@ import { supabase } from '../../lib/supabase'
 import { getPlanConfig } from '../../lib/planes'
 import type {
   Perfil, Propietario, Propiedad, Contrato, Comision, SoporteTicket, SoporteMensaje, Referido,
-  AdminAuditLog, AdminMetricas, Admin, ResumenComisiones, Suscripcion, Lead, Json,
+  AdminAuditLog, AdminMetricas, Admin, ResumenComisiones, Suscripcion, Lead, Json, ReferidoPagoMensual, Oficina, CursoCompra, AlertaBusqueda,
 } from '../../lib/database.types'
 
 // Item polimórfico seleccionado en el drawer lateral: puede ser un asesor, propietario,
@@ -107,6 +107,10 @@ type SelItem = {
   propietario_nombre?: string | null
   provincia?: string | null
   recompensa_monto?: number | null
+  recompensa_tipo?: string
+  recompensa_pct?: number | null
+  recompensa_meses_max?: number | null
+  meses_pagados?: number
   ref_id?: string | null
   referido_email?: string
   referido_nombre?: string | null
@@ -190,9 +194,12 @@ const MODULES = [
   { id:'soporte', icon:'🎫', label:'Soporte' },
   { id:'referidos', icon:'🤝', label:'Referidos' },
   { id:'atribucion', icon:'📊', label:'Atribución' },
+  { id:'inteligencia', icon:'🧠', label:'Inteligencia de mercado' },
   { id:'kyc_propietarios', icon:'🏠', label:'KYC Propietarios' },
   { id:'contratos', icon:'📋', label:'Contratos' },
   { id:'comisiones', icon:'💰', label:'Comisiones' },
+  { id:'oficinas', icon:'🏢', label:'Oficinas afiliadas' },
+  { id:'cursos_compras', icon:'🎓', label:'Cursos individuales' },
   { id:'equipo_nido', icon:'⭐', label:'Equipo NIDO' },
   { id:'actividad', icon:'🕐', label:'Actividad' },
   { id:'administradores', icon:'🔑', label:'Administradores' },
@@ -212,6 +219,14 @@ export default function AdminPanel() {
   const [suscripciones, setSuscripciones] = useState<Suscripcion[]>([])
   const [tickets, setTickets] = useState<SoporteTicket[]>([])
   const [referidos, setReferidos] = useState<Referido[]>([])
+  const [pagosMensuales, setPagosMensuales] = useState<ReferidoPagoMensual[]>([])
+  const [oficinas, setOficinas] = useState<Oficina[]>([])
+  const [oficinaSel, setOficinaSel] = useState<Oficina | null>(null)
+  const [nuevaOficina, setNuevaOficina] = useState({ nombre:'', contacto_nombre:'', contacto_email:'', telefono:'', asientos_contratados:'1' })
+  const [creandoOficina, setCreandoOficina] = useState(false)
+  const [emailAsignar, setEmailAsignar] = useState('')
+  const [cursosCompras, setCursosCompras] = useState<CursoCompra[]>([])
+  const [alertasBusqueda, setAlertasBusqueda] = useState<AlertaBusqueda[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
   const [auditoria, setAuditoria] = useState<AdminAuditLog[]>([])
   const [admins, setAdmins] = useState<Admin[]>([])
@@ -225,7 +240,7 @@ export default function AdminPanel() {
   const [adminUser, setAdminUser] = useState<User | null>(null)
 
   const loadAll = async () => {
-    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }, { data: lds }, { data: audit }, { data: adms }] = await Promise.all([
+    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }, { data: pagosRef }, { data: lds }, { data: audit }, { data: adms }, { data: ofs }, { data: ccs }, { data: alts }] = await Promise.all([
       supabase.from('admin_metricas').select('*').maybeSingle(),
       supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at,referido_por,suspendido').order('created_at', { ascending: false }),
       supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at,referido_por,suspendido').order('created_at', { ascending: false }),
@@ -235,9 +250,13 @@ export default function AdminPanel() {
       supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,created_at').order('created_at', { ascending: false }),
       supabase.from('soporte_tickets').select('*').order('updated_at', { ascending: false }),
       supabase.from('referidos').select('*').order('created_at', { ascending: false }),
-      supabase.from('leads').select('id,nombre,zona_interes,fuente,estado,created_at').order('created_at', { ascending: false }),
+      supabase.from('referidos_pago_mensual').select('*'),
+      supabase.from('leads').select('id,nombre,zona_interes,fuente,estado,created_at,presupuesto,tipo_busqueda,asignado_automaticamente').order('created_at', { ascending: false }),
       supabase.from('admin_audit_log').select('*').order('created_at', { ascending: false }).limit(200),
       supabase.from('admins').select('*').order('created_at', { ascending: false }),
+      supabase.from('oficinas').select('*').order('created_at', { ascending: false }),
+      supabase.from('cursos_compras').select('*').order('created_at', { ascending: false }),
+      supabase.from('alertas_busqueda').select('*').order('created_at', { ascending: false }),
     ])
     setMetricas(met)
     // Estas queries seleccionan solo un subconjunto de columnas (no '*'), por eso el cast:
@@ -250,9 +269,13 @@ export default function AdminPanel() {
     setContratos((cons || []) as unknown as Contrato[])
     setTickets(tks || [])
     setReferidos(refs || [])
+    setPagosMensuales(pagosRef || [])
     setLeads((lds || []) as unknown as Lead[])
     setAuditoria(audit || [])
     setAdmins(adms || [])
+    setOficinas(ofs || [])
+    setCursosCompras(ccs || [])
+    setAlertasBusqueda(alts || [])
     setLoading(false)
   }
 
@@ -419,17 +442,82 @@ export default function AdminPanel() {
     setTimeout(() => setMsg(''), 3000)
   }
 
-  const actualizarReferido = async (id: string, estado: string, recompensaMonto?: number | null, notas?: string) => {
-    await supabase.from('referidos').update({
+  const actualizarReferido = async (id: string, estado: string, recompensaMonto?: number | null, notas?: string, recompensaTipo?: string, recompensaPct?: number | null, recompensaMesesMax?: number | null) => {
+    const cambios = {
       estado,
       recompensa_monto: recompensaMonto ?? null,
       notas_admin: notas || null,
+      recompensa_tipo: recompensaTipo || 'unico',
+      recompensa_pct: recompensaTipo === 'recurrente_pct' ? (recompensaPct ?? null) : null,
+      recompensa_meses_max: recompensaTipo === 'recurrente_pct' ? (recompensaMesesMax ?? null) : null,
       updated_at: new Date().toISOString(),
-    }).eq('id', id)
+    }
+    await supabase.from('referidos').update(cambios).eq('id', id)
     logAccion('Actualizó referido', 'referido', id, 'Estado: ' + estado)
     loadAll()
-    setSel((p: SelItem | null) => p ? {...p, estado, recompensa_monto: recompensaMonto ?? null, notas_admin: notas || null} : null)
+    setSel((p: SelItem | null) => p ? {...p, ...cambios} : null)
     setMsg('✓ Referido actualizado')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  const marcarMesPagado = async (referidoId: string, mesesPagadosActuales: number) => {
+    await supabase.from('referidos').update({ meses_pagados: mesesPagadosActuales + 1, updated_at: new Date().toISOString() }).eq('id', referidoId)
+    logAccion('Registró pago mensual de referido', 'referido', referidoId, 'Mes ' + (mesesPagadosActuales + 1) + ' liquidado')
+    setPagosMensuales(prev => prev.filter(p => p.referido_id !== referidoId))
+    setMsg('✓ Pago del mes registrado')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  const crearOficina = async () => {
+    if (!nuevaOficina.nombre.trim() || !nuevaOficina.contacto_email.trim()) return
+    setCreandoOficina(true)
+    const { data } = await supabase.from('oficinas').insert({
+      nombre: nuevaOficina.nombre.trim(),
+      contacto_nombre: nuevaOficina.contacto_nombre.trim() || null,
+      contacto_email: nuevaOficina.contacto_email.trim(),
+      telefono: nuevaOficina.telefono.trim() || null,
+      asientos_contratados: Number(nuevaOficina.asientos_contratados) || 1,
+    }).select().maybeSingle()
+    if (data) {
+      logAccion('Creó oficina afiliada', 'oficina', data.id, data.nombre)
+      setOficinas(prev => [data as Oficina, ...prev])
+      setNuevaOficina({ nombre:'', contacto_nombre:'', contacto_email:'', telefono:'', asientos_contratados:'1' })
+      setMsg('✓ Oficina creada')
+      setTimeout(() => setMsg(''), 3000)
+    }
+    setCreandoOficina(false)
+  }
+
+  const actualizarEstadoOficina = async (id: string, estado: string) => {
+    await supabase.from('oficinas').update({ estado, updated_at: new Date().toISOString() }).eq('id', id)
+    logAccion('Actualizó estado de oficina', 'oficina', id, 'Estado: ' + estado)
+    setOficinas(prev => prev.map(o => o.id === id ? {...o, estado} : o))
+    setOficinaSel(prev => prev && prev.id === id ? {...prev, estado} : prev)
+  }
+
+  const asignarAsesorAOficina = async (oficinaId: string) => {
+    if (!emailAsignar.trim()) return
+    const { data: perfil } = await supabase.from('perfiles').select('id,correo').eq('correo', emailAsignar.trim()).maybeSingle()
+    if (!perfil) { setMsg('No encontré un asesor con ese correo'); setTimeout(() => setMsg(''), 3000); return }
+    await supabase.from('perfiles').update({ oficina_id: oficinaId }).eq('id', perfil.id)
+    logAccion('Asignó asesor a oficina', 'oficina', oficinaId, perfil.correo)
+    setAsesores(prev => prev.map(a => a.id === perfil.id ? {...a, oficina_id: oficinaId} : a))
+    setEmailAsignar('')
+    setMsg('✓ Asesor asignado a la oficina')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  const quitarAsesorDeOficina = async (asesorId: string, oficinaId: string) => {
+    await supabase.from('perfiles').update({ oficina_id: null }).eq('id', asesorId)
+    logAccion('Quitó asesor de oficina', 'oficina', oficinaId, asesorId)
+    setAsesores(prev => prev.map(a => a.id === asesorId ? {...a, oficina_id: null} : a))
+  }
+
+  const actualizarCursoCompra = async (id: string, estado: string) => {
+    await supabase.from('cursos_compras').update({ estado, updated_at: new Date().toISOString() }).eq('id', id)
+    logAccion('Actualizó compra de curso', 'curso_compra', id, 'Estado: ' + estado)
+    setCursosCompras(prev => prev.map(c => c.id === id ? {...c, estado} : c))
+    setMsg('✓ Solicitud actualizada')
     setTimeout(() => setMsg(''), 3000)
   }
 
@@ -1206,6 +1294,30 @@ export default function AdminPanel() {
               <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Crecimiento</div>
               <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Programa de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>referidos.</em></h1>
             </div>
+
+            {pagosMensuales.length > 0 && (
+              <div className="card" style={{ marginBottom:24, borderColor:'oklch(0.75 0.06 150)' }}>
+                <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--rule)' }}>
+                  <div style={{ fontSize:14, fontWeight:500 }}>💰 Pagos de recompensa recurrente pendientes este mes</div>
+                  <div style={{ fontSize:12, color:'var(--ink-3)', marginTop:2 }}>Calculado sobre la suscripción activa del asesor referido · {pagosMensuales.length} pago{pagosMensuales.length!==1?'s':''} por liquidar</div>
+                </div>
+                {pagosMensuales.map(pm => (
+                  <div key={pm.referido_id} className="row">
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{pm.referidor_email}</div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>
+                        Por referir a {pm.referido_nombre || pm.referido_email} (plan {pm.plan_referido}) · {pm.recompensa_pct}% · mes {pm.meses_pagados+1}{pm.recompensa_meses_max ? ' de ' + pm.recompensa_meses_max : ''}
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+                      <span style={{ fontFamily:'var(--serif)', fontSize:18, color:'var(--accent)' }}>${pm.monto_a_pagar_este_mes}</span>
+                      <button className="btn" onClick={() => marcarMesPagado(pm.referido_id, pm.meses_pagados)} style={{ padding:'8px 14px', background:'var(--ink)', color:'white', border:'none', borderRadius:8, fontSize:12, fontWeight:500, cursor:'pointer' }}>Marcar mes pagado</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             <div style={{ display:'flex', gap:8, marginBottom:20 }}>
               {['todos','pendiente','aprobado','rechazado','pagado'].map(f => (
                 <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
@@ -1244,6 +1356,106 @@ export default function AdminPanel() {
                     </div>
                   )
                 })}
+            </div>
+          </div>
+        )}
+
+        {modulo === 'oficinas' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Crecimiento B2B</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Oficinas <em style={{ fontStyle:'italic', color:'var(--accent)' }}>afiliadas.</em></h1>
+              <p style={{ fontSize:13, color:'var(--ink-3)', marginTop:6, maxWidth:640 }}>Inmobiliarias o equipos externos que corren su operación sobre la tecnología de NIDO — el equivalente tecnológico de una franquicia. Sin cobro automático todavía: gestioná el acuerdo manualmente acá.</p>
+            </div>
+
+            <div className="card" style={{ padding:20, marginBottom:24 }}>
+              <div style={{ fontSize:13, fontWeight:500, marginBottom:12 }}>Nueva oficina afiliada</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+                <input className="field" placeholder="Nombre de la inmobiliaria" value={nuevaOficina.nombre} onChange={e => setNuevaOficina({...nuevaOficina, nombre:e.target.value})}/>
+                <input className="field" placeholder="Correo de contacto" value={nuevaOficina.contacto_email} onChange={e => setNuevaOficina({...nuevaOficina, contacto_email:e.target.value})}/>
+                <input className="field" placeholder="Nombre de contacto (opcional)" value={nuevaOficina.contacto_nombre} onChange={e => setNuevaOficina({...nuevaOficina, contacto_nombre:e.target.value})}/>
+                <input className="field" placeholder="Teléfono (opcional)" value={nuevaOficina.telefono} onChange={e => setNuevaOficina({...nuevaOficina, telefono:e.target.value})}/>
+                <input className="field" type="number" placeholder="Asientos contratados" value={nuevaOficina.asientos_contratados} onChange={e => setNuevaOficina({...nuevaOficina, asientos_contratados:e.target.value})}/>
+              </div>
+              <button className="btn" disabled={creandoOficina} onClick={crearOficina} style={{ padding:'10px 20px', background:'var(--accent)', color:'white', border:'none', borderRadius:8, fontSize:13, fontWeight:500, cursor:'pointer' }}>+ Crear oficina</button>
+            </div>
+
+            <div className="card">
+              {oficinas.length === 0 && (
+                <div style={{ padding:'40px 20px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>Todavía no hay oficinas afiliadas.</div>
+              )}
+              {oficinas.map(o => {
+                const asesoresDeOficina = asesores.filter(a => a.oficina_id === o.id)
+                const estadoStyle = o.estado === 'activa' ? { background:'var(--accent-tint)', color:'var(--accent)' } : o.estado === 'pausada' ? { background:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)' } : { background:'oklch(0.93 0.05 80)', color:'oklch(0.45 0.08 80)' }
+                const abierta = oficinaSel?.id === o.id
+                return (
+                  <div key={o.id}>
+                    <div className="row" onClick={() => setOficinaSel(abierta ? null : o)}>
+                      <div style={{ width:40, height:40, borderRadius:10, background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{o.nombre[0].toUpperCase()}</div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{o.nombre}</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{o.contacto_email} · {asesoresDeOficina.length} de {o.asientos_contratados} asientos usados</div>
+                      </div>
+                      <span className="badge" style={estadoStyle}>{o.estado==='activa'?'Activa':o.estado==='pausada'?'Pausada':'Pendiente'}</span>
+                      <span style={{ color:'var(--ink-3)', fontSize:16, marginLeft:8 }}>{abierta ? '⌄' : '›'}</span>
+                    </div>
+                    {abierta && (
+                      <div style={{ padding:'0 20px 20px', borderBottom:'1px solid var(--rule)' }}>
+                        <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+                          {['pendiente','activa','pausada'].map(e => (
+                            <button key={e} onClick={() => actualizarEstadoOficina(o.id, e)} style={{ padding:'6px 14px', borderRadius:999, border:'1px solid ' + (o.estado===e ? 'var(--accent)' : 'var(--rule)'), background: o.estado===e ? 'var(--accent-tint)' : 'transparent', color: o.estado===e ? 'var(--accent)' : 'var(--ink-2)', fontSize:12, cursor:'pointer' }}>{e==='activa'?'Activa':e==='pausada'?'Pausada':'Pendiente'}</button>
+                          ))}
+                        </div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)', marginBottom:10 }}>Asesores en esta oficina ({asesoresDeOficina.length}/{o.asientos_contratados})</div>
+                        {asesoresDeOficina.length === 0 && <div style={{ fontSize:13, color:'var(--ink-3)', marginBottom:12 }}>Ningún asesor asignado todavía.</div>}
+                        {asesoresDeOficina.map(a => (
+                          <div key={a.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)' }}>
+                            <span style={{ fontSize:13 }}>{a.nombre || a.correo} <span style={{ color:'var(--ink-3)' }}>· {a.correo}</span></span>
+                            <button onClick={() => quitarAsesorDeOficina(a.id, o.id)} style={{ fontSize:12, color:'oklch(0.45 0.08 20)', background:'none', border:'none', cursor:'pointer' }}>Quitar</button>
+                          </div>
+                        ))}
+                        <div style={{ display:'flex', gap:8, marginTop:14 }}>
+                          <input className="field" placeholder="correo@asesor.com" value={emailAsignar} onChange={e => setEmailAsignar(e.target.value)} style={{ flex:1 }}/>
+                          <button onClick={() => asignarAsesorAOficina(o.id)} style={{ padding:'0 16px', background:'var(--ink)', color:'white', border:'none', borderRadius:8, fontSize:12, fontWeight:500, cursor:'pointer' }}>Asignar</button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {modulo === 'cursos_compras' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Academia</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Compras de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>cursos individuales.</em></h1>
+              <p style={{ fontSize:13, color:'var(--ink-3)', marginTop:6 }}>Asesores en plan Despega o Elite que quieren un curso avanzado sin pagar el plan completo. Coordiná el cobro y aprobá para desbloquearlo.</p>
+            </div>
+            <div className="card">
+              {cursosCompras.length === 0 && (
+                <div style={{ padding:'40px 20px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>No hay solicitudes todavía.</div>
+              )}
+              {cursosCompras.map(cc => {
+                const estadoStyle = cc.estado === 'aprobado' ? { background:'var(--accent-tint)', color:'var(--accent)' } : cc.estado === 'rechazado' ? { background:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)' } : { background:'oklch(0.93 0.05 80)', color:'oklch(0.45 0.08 80)' }
+                return (
+                  <div key={cc.id} className="row">
+                    <div style={{ flex:1 }}>
+                      <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{cc.curso_titulo}</div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>{cc.correo} · {new Date(cc.created_at).toLocaleDateString('es-CR')}</div>
+                    </div>
+                    <span className="badge" style={estadoStyle}>{cc.estado==='aprobado'?'Aprobado':cc.estado==='rechazado'?'Rechazado':'Solicitado'}</span>
+                    {cc.estado === 'solicitado' && (
+                      <div style={{ display:'flex', gap:8, marginLeft:12 }}>
+                        <button onClick={() => actualizarCursoCompra(cc.id, 'aprobado')} style={{ padding:'6px 14px', background:'var(--accent)', color:'white', border:'none', borderRadius:8, fontSize:12, fontWeight:500, cursor:'pointer' }}>Aprobar</button>
+                        <button onClick={() => actualizarCursoCompra(cc.id, 'rechazado')} style={{ padding:'6px 14px', background:'transparent', border:'1px solid var(--rule)', borderRadius:8, fontSize:12, cursor:'pointer' }}>Rechazar</button>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         )}
@@ -1327,6 +1539,138 @@ export default function AdminPanel() {
                     <div key={estado} style={{ textAlign:'center', padding:'16px 10px', background:'var(--bg)', borderRadius:10 }}>
                       <div style={{ fontFamily:'var(--serif)', fontSize:26 }}>{referidosPorEstado[estado] || 0}</div>
                       <div style={{ fontSize:11, color:'var(--ink-3)', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:4 }}>{estado}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )
+        })()}
+
+        {modulo === 'inteligencia' && (() => {
+          const CALC_LABEL: Record<string,string> = {
+            calculadora_capacidad: 'Capacidad de compra',
+            calculadora_roi: 'ROI de alquiler',
+            calculadora_impuesto: 'Impuesto de bienes inmuebles',
+            calculadora_hipoteca: 'Cuota / gastos de cierre',
+          }
+          const leadsCalculadoras = leads.filter(l => (l.fuente || '').startsWith('calculadora_'))
+          const porCalculadora: Record<string, number> = {}
+          leadsCalculadoras.forEach(l => { const f = l.fuente || 'otra'; porCalculadora[f] = (porCalculadora[f]||0)+1 })
+          const calculadorasOrdenadas = Object.entries(porCalculadora).sort((a,b) => b[1]-a[1])
+          const totalCalc = leadsCalculadoras.length || 1
+
+          const RANGOS = [
+            { label:'< $100K', min:0, max:100000 },
+            { label:'$100K – $250K', min:100000, max:250000 },
+            { label:'$250K – $400K', min:250000, max:400000 },
+            { label:'$400K – $700K', min:400000, max:700000 },
+            { label:'> $700K', min:700000, max:Infinity },
+          ]
+          const porRango: Record<string, number> = {}
+          leadsCalculadoras.forEach(l => {
+            const val = Number(l.presupuesto)
+            if (!val || isNaN(val)) return
+            const r = RANGOS.find(r => val >= r.min && val < r.max)
+            if (r) porRango[r.label] = (porRango[r.label]||0) + 1
+          })
+          const totalConPresupuesto = Object.values(porRango).reduce((a,b) => a+b, 0) || 1
+
+          const porTipoBusqueda: Record<string, number> = {}
+          leadsCalculadoras.forEach(l => { const t = l.tipo_busqueda || 'sin especificar'; porTipoBusqueda[t] = (porTipoBusqueda[t]||0)+1 })
+          const tiposOrdenados = Object.entries(porTipoBusqueda).sort((a,b) => b[1]-a[1])
+
+          const alertasActivas = alertasBusqueda.filter(a => a.activa !== false)
+          const porZonaAlerta: Record<string, number> = {}
+          alertasActivas.forEach(a => { if (a.zona) porZonaAlerta[a.zona] = (porZonaAlerta[a.zona]||0)+1 })
+          const zonasAlertaOrdenadas = Object.entries(porZonaAlerta).sort((a,b) => b[1]-a[1]).slice(0, 8)
+
+          const leadsPremium = leads.filter(l => l.asignado_automaticamente).length
+
+          return (
+            <div style={{ animation:'fadeUp 0.4s ease' }}>
+              <div style={{ marginBottom:24 }}>
+                <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Producto de datos</div>
+                <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Inteligencia de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>mercado.</em></h1>
+                <p style={{ fontSize:13, color:'var(--ink-3)', marginTop:6, maxWidth:640 }}>Comportamiento agregado de compradores en calculadoras y alertas — base del reporte trimestral que ningún competidor local puede replicar.</p>
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
+                <div className="card" style={{ padding:'20px 22px' }}>
+                  <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Leads de calculadoras</div>
+                  <div style={{ fontFamily:'var(--serif)', fontSize:32 }}>{leadsCalculadoras.length}</div>
+                </div>
+                <div className="card" style={{ padding:'20px 22px' }}>
+                  <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Alertas de búsqueda activas</div>
+                  <div style={{ fontFamily:'var(--serif)', fontSize:32 }}>{alertasActivas.length}</div>
+                </div>
+                <div className="card" style={{ padding:'20px 22px' }}>
+                  <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Leads premium asignados</div>
+                  <div style={{ fontFamily:'var(--serif)', fontSize:32 }}>{leadsPremium}</div>
+                </div>
+                <div className="card" style={{ padding:'20px 22px' }}>
+                  <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Compras individuales de curso</div>
+                  <div style={{ fontFamily:'var(--serif)', fontSize:32 }}>{cursosCompras.length}</div>
+                </div>
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:20 }}>
+                <div className="card" style={{ padding:'24px 26px' }}>
+                  <div style={{ fontSize:14, fontWeight:500, marginBottom:16 }}>Leads por calculadora</div>
+                  {calculadorasOrdenadas.length === 0 ? (
+                    <div style={{ fontSize:13, color:'var(--ink-3)' }}>Todavía no hay leads de calculadoras.</div>
+                  ) : calculadorasOrdenadas.map(([fuente, n]) => (
+                    <div key={fuente} style={{ marginBottom:12 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, marginBottom:4 }}>
+                        <span>{CALC_LABEL[fuente] || fuente}</span>
+                        <span style={{ color:'var(--ink-3)' }}>{n} ({Math.round(n/totalCalc*100)}%)</span>
+                      </div>
+                      <div style={{ height:6, borderRadius:999, background:'var(--rule-soft)', overflow:'hidden' }}>
+                        <div style={{ height:'100%', width:`${n/totalCalc*100}%`, background:'var(--accent)', borderRadius:999 }}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="card" style={{ padding:'24px 26px' }}>
+                  <div style={{ fontSize:14, fontWeight:500, marginBottom:16 }}>Presupuesto calculado</div>
+                  {totalConPresupuesto === 0 || Object.keys(porRango).length === 0 ? (
+                    <div style={{ fontSize:13, color:'var(--ink-3)' }}>Todavía no hay suficientes datos de presupuesto.</div>
+                  ) : RANGOS.filter(r => porRango[r.label]).map(r => (
+                    <div key={r.label} style={{ marginBottom:12 }}>
+                      <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, marginBottom:4 }}>
+                        <span>{r.label}</span>
+                        <span style={{ color:'var(--ink-3)' }}>{porRango[r.label]} ({Math.round(porRango[r.label]/totalConPresupuesto*100)}%)</span>
+                      </div>
+                      <div style={{ height:6, borderRadius:999, background:'var(--rule-soft)', overflow:'hidden' }}>
+                        <div style={{ height:'100%', width:`${porRango[r.label]/totalConPresupuesto*100}%`, background:'oklch(0.55 0.07 150)', borderRadius:999 }}/>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+                <div className="card" style={{ padding:'24px 26px' }}>
+                  <div style={{ fontSize:14, fontWeight:500, marginBottom:16 }}>Tipo de búsqueda</div>
+                  {tiposOrdenados.length === 0 ? (
+                    <div style={{ fontSize:13, color:'var(--ink-3)' }}>Sin datos todavía.</div>
+                  ) : tiposOrdenados.map(([tipo, n]) => (
+                    <div key={tipo} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+                      <span style={{ textTransform:'capitalize' }}>{tipo}</span>
+                      <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>{n}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="card" style={{ padding:'24px 26px' }}>
+                  <div style={{ fontSize:14, fontWeight:500, marginBottom:16 }}>Top zonas con alertas activas</div>
+                  {zonasAlertaOrdenadas.length === 0 ? (
+                    <div style={{ fontSize:13, color:'var(--ink-3)' }}>Todavía no hay alertas con zona definida.</div>
+                  ) : zonasAlertaOrdenadas.map(([zona, n]) => (
+                    <div key={zona} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
+                      <span>{zona}</span>
+                      <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>{n}</span>
                     </div>
                   ))}
                 </div>
@@ -1508,7 +1852,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
   onTogglePropiedad: (id: string, disponible: boolean) => void
   onVerificarPropiedad: (id: string, aprobar: boolean, notas?: string) => void
   onEnviarMensaje: (correo: string, asunto: string, mensaje: string) => void
-  onActualizarReferido: (id: string, estado: string, recompensaMonto?: number | null, notas?: string) => void
+  onActualizarReferido: (id: string, estado: string, recompensaMonto?: number | null, notas?: string, recompensaTipo?: string, recompensaPct?: number | null, recompensaMesesMax?: number | null) => void
   onResponderEquipoNido: (asesor: Perfil, aprobar: boolean) => void
   onSuspender: (tabla: 'perfiles'|'propietarios', id: string, correo: string, suspender: boolean) => void
   onActualizarComision: (id: string, patch: Partial<Comision>) => void
@@ -2188,16 +2532,21 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
 function ReferidoDetalle({ referido, onClose, onActualizar }: {
   referido: SelItem
   onClose: () => void
-  onActualizar: (id: string, estado: string, recompensaMonto?: number | null, notas?: string) => void
+  onActualizar: (id: string, estado: string, recompensaMonto?: number | null, notas?: string, recompensaTipo?: string, recompensaPct?: number | null, recompensaMesesMax?: number | null) => void
 }) {
   const [monto, setMonto] = useState(referido.recompensa_monto ? String(referido.recompensa_monto) : '')
   const [notas, setNotas] = useState(referido.notas_admin || '')
   const [guardando, setGuardando] = useState(false)
+  const [tipoRecompensa, setTipoRecompensa] = useState(referido.recompensa_tipo || 'unico')
+  const [pct, setPct] = useState(referido.recompensa_pct ? String(referido.recompensa_pct) : '20')
+  const [mesesMax, setMesesMax] = useState(referido.recompensa_meses_max ? String(referido.recompensa_meses_max) : '12')
 
   const cambiarEstado = async (estado: string) => {
     setGuardando(true)
     const montoNum = monto.trim() ? Number(monto) : null
-    await onActualizar(referido.id||'', estado, montoNum, notas)
+    const pctNum = pct.trim() ? Number(pct) : null
+    const mesesMaxNum = mesesMax.trim() ? Number(mesesMax) : null
+    await onActualizar(referido.id||'', estado, montoNum, notas, tipoRecompensa, pctNum, mesesMaxNum)
     setGuardando(false)
   }
 
@@ -2223,9 +2572,35 @@ function ReferidoDetalle({ referido, onClose, onActualizar }: {
         </div>
 
         <div style={{ marginBottom:16 }}>
-          <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Monto de recompensa (opcional)</label>
-          <input type="number" className="field" placeholder="Ej: 50" value={monto} onChange={e => setMonto(e.target.value)}/>
+          <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Tipo de recompensa</label>
+          <div style={{ display:'flex', gap:8 }}>
+            <button type="button" onClick={() => setTipoRecompensa('unico')} style={{ flex:1, padding:'8px', borderRadius:8, border:'1px solid ' + (tipoRecompensa==='unico' ? 'var(--accent)' : 'var(--rule)'), background: tipoRecompensa==='unico' ? 'var(--accent-tint)' : 'transparent', color: tipoRecompensa==='unico' ? 'var(--accent)' : 'var(--ink-2)', fontSize:12, fontWeight:500, cursor:'pointer' }}>Pago único</button>
+            <button type="button" onClick={() => setTipoRecompensa('recurrente_pct')} style={{ flex:1, padding:'8px', borderRadius:8, border:'1px solid ' + (tipoRecompensa==='recurrente_pct' ? 'var(--accent)' : 'var(--rule)'), background: tipoRecompensa==='recurrente_pct' ? 'var(--accent-tint)' : 'transparent', color: tipoRecompensa==='recurrente_pct' ? 'var(--accent)' : 'var(--ink-2)', fontSize:12, fontWeight:500, cursor:'pointer' }}>% recurrente</button>
+          </div>
         </div>
+
+        {tipoRecompensa === 'unico' ? (
+          <div style={{ marginBottom:16 }}>
+            <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Monto de recompensa (opcional)</label>
+            <input type="number" className="field" placeholder="Ej: 50" value={monto} onChange={e => setMonto(e.target.value)}/>
+          </div>
+        ) : (
+          <div style={{ display:'flex', gap:12, marginBottom:16 }}>
+            <div style={{ flex:1 }}>
+              <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>% de la suscripción</label>
+              <input type="number" className="field" placeholder="20" value={pct} onChange={e => setPct(e.target.value)}/>
+            </div>
+            <div style={{ flex:1 }}>
+              <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Meses tope</label>
+              <input type="number" className="field" placeholder="12" value={mesesMax} onChange={e => setMesesMax(e.target.value)}/>
+            </div>
+          </div>
+        )}
+        {tipoRecompensa === 'recurrente_pct' && (
+          <p style={{ fontSize:11, color:'var(--ink-3)', marginTop:-8, marginBottom:16, lineHeight:1.5 }}>
+            Mientras el referido tenga una suscripción paga activa, va a aparecer en &quot;Pagos pendientes este mes&quot; con el {pct || '—'}% de su cuota, hasta {mesesMax || 'sin tope de'} meses.
+          </p>
+        )}
 
         <div style={{ marginBottom:20 }}>
           <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Notas internas (opcional)</label>

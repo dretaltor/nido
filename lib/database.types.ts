@@ -158,6 +158,7 @@ export interface Lead {
   updated_at: string | null
   seguimiento_enviado: boolean
   fuente: string | null
+  asignado_automaticamente: boolean
 }
 
 export interface Noticia {
@@ -228,6 +229,31 @@ export interface Perfil {
   codigo_referido: string | null
   referido_por: string | null
   suspendido: boolean
+  oficina_id: string | null
+}
+
+export interface CursoCompra {
+  id: string
+  correo: string
+  curso_id: number
+  curso_titulo: string
+  estado: string
+  notas_admin: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface Oficina {
+  id: string
+  nombre: string
+  contacto_nombre: string | null
+  contacto_email: string
+  telefono: string | null
+  estado: string
+  asientos_contratados: number
+  notas_admin: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface Propiedad {
@@ -315,9 +341,26 @@ export interface Referido {
   referido_nombre: string | null
   estado: string
   recompensa_monto: number | null
+  recompensa_tipo: string
+  recompensa_pct: number | null
+  recompensa_meses_max: number | null
+  meses_pagados: number
   notas_admin: string | null
   created_at: string
   updated_at: string
+}
+
+export interface ReferidoPagoMensual {
+  referido_id: string
+  referidor_email: string
+  referido_email: string
+  referido_nombre: string | null
+  recompensa_pct: number | null
+  recompensa_meses_max: number | null
+  meses_pagados: number
+  plan_referido: string | null
+  precio_mensual_referido: number | null
+  monto_a_pagar_este_mes: number | null
 }
 
 export interface ResumenComisiones {

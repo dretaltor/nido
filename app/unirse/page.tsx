@@ -243,7 +243,7 @@ export default function Unirse() {
             {[
               { plan:'Despega', precio:'$0', periodo:'siempre', desc:'7 días de Black gratis, luego 5 propiedades', features:['5 propiedades','Portal público','Perfil de asesor','Sin Valeria IA ni CRM'], cta:'Crear cuenta', href:'/registro', featured:false },
               { plan:'Elite', precio:'$59', periodo:'/mes', desc:'Para asesores activos', features:['15 propiedades','Valeria IA 24/7','CRM de leads completo','Academia completa','Soporte en 24h'], cta:'Empezar Elite', href:'/registro?plan=pro', featured:true },
-              { plan:'Black', precio:'$149', periodo:'/mes', desc:'Para asesores top', features:['Propiedades ilimitadas','Valeria IA con memoria','CRM con score de leads','Tours 360° ilimitados','Soporte en 2 horas','Panel propietario'], cta:'Empezar Black', href:'/registro?plan=enterprise', featured:false },
+              { plan:'Black', precio:'$149', periodo:'/mes', desc:'Para asesores top', features:['Propiedades ilimitadas','Valeria IA con memoria','CRM con score de leads','Leads premium de calculadoras','Tours 360° ilimitados','Soporte en 2 horas','Panel propietario'], cta:'Empezar Black', href:'/registro?plan=enterprise', featured:false },
             ].map((p,i) => (
               <div key={i} style={{background:p.featured?'var(--ink)':'white',border:'1px solid '+(p.featured?'var(--ink)':'var(--rule)'),borderRadius:16,padding:28,position:'relative',transform:p.featured?'scale(1.04)':'none'}}>
                 {p.featured && <div style={{position:'absolute',top:-12,left:'50%',transform:'translateX(-50%)',background:'var(--accent)',color:'white',fontSize:10,padding:'4px 14px',borderRadius:999,letterSpacing:'0.1em',fontWeight:500,textTransform:'uppercase',whiteSpace:'nowrap'}}>Más popular</div>}
@@ -266,6 +266,15 @@ export default function Unirse() {
                 </a>
               </div>
             ))}
+          </div>
+
+          <div style={{maxWidth:900,margin:'40px auto 0',background:'var(--ink)',borderRadius:16,padding:'28px 32px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:24,flexWrap:'wrap'}}>
+            <div>
+              <div style={{fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',color:'oklch(0.75 0.06 150)',marginBottom:6}}>Para inmobiliarias y equipos</div>
+              <div style={{fontFamily:'var(--serif)',fontSize:22,color:'white',marginBottom:6}}>¿Ya tenés una inmobiliaria o un equipo de agentes?</div>
+              <p style={{fontSize:13,color:'rgba(255,255,255,0.6)',maxWidth:480}}>Migrá toda tu operación a la tecnología de NIDO — Valeria IA, CRM y Academia para todo tu equipo, con un plan a la medida por cantidad de asesores.</p>
+            </div>
+            <a href="/contacto" style={{padding:'12px 24px',borderRadius:999,background:'white',color:'var(--ink)',fontSize:13,fontWeight:500,textDecoration:'none',flexShrink:0}}>Hablemos →</a>
           </div>
         </div>
       </section>

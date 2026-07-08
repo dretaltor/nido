@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
 import type { Propiedad, Lead, Oferta, Perfil, Visita, Tarea, Suscripcion, AsesorCalificaciones } from '../../lib/database.types'
+import { getPlanConfig } from '../../lib/planes'
 
 type OfertaSel = Oferta & { tipo_vista?: string }
 
@@ -246,6 +247,27 @@ export default function Dashboard() {
           )}
           <p style={{ fontSize:14, color:'var(--ink-2)' }}>Esto es lo que está pasando con tu cartera hoy.</p>
         </div>
+
+        {/* Aviso proactivo de límite de plan */}
+        {(() => {
+          if (checandoTrial) return null
+          const planConf = getPlanConfig(suscripcion?.plan)
+          const max = planConf.maxPropiedades
+          if (max === Infinity || propiedades.length < max - 1) return null
+          const enLimite = propiedades.length >= max
+          return (
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:16, flexWrap:'wrap', background: enLimite ? 'oklch(0.95 0.04 50)' : 'var(--accent-tint)', border:'1px solid ' + (enLimite ? 'oklch(0.85 0.06 50)' : 'oklch(0.85 0.04 150)'), borderRadius:12, padding:'14px 20px', marginBottom:20 }}>
+              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+                <span style={{ fontSize:20 }}>{enLimite ? '🔒' : '📈'}</span>
+                <div>
+                  <div style={{ fontSize:14, fontWeight:500 }}>{enLimite ? 'Llegaste al límite de tu plan ' + planConf.nombrePublico : 'Estás por llegar al límite de tu plan ' + planConf.nombrePublico}</div>
+                  <div style={{ fontSize:12, color:'var(--ink-3)' }}>{propiedades.length} de {max} propiedades publicadas — subí de plan para publicar sin límite.</div>
+                </div>
+              </div>
+              <a href="/precios" style={{ fontSize:13, fontWeight:500, color: enLimite ? 'oklch(0.45 0.08 50)' : 'var(--accent)', flexShrink:0, textDecoration:'none' }}>Ver planes →</a>
+            </div>
+          )
+        })()}
 
         {/* Onboarding checklist */}
         {!onboardingDismissed && (
