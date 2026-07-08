@@ -1,9 +1,10 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Nav from '../../../components/Nav'
 import { LeadCaptureCalculadora } from '../../../components/calculadoras/LeadCaptureCalculadora'
 import { PropiedadesQueCalifican } from '../../../components/calculadoras/PropiedadesQueCalifican'
+import { useAsesorRef } from '../../../lib/useAsesorRef'
 
 function fmt(n: number): string {
   return '$' + Math.round(n).toLocaleString('es-CR')
@@ -16,6 +17,15 @@ function calificacionRoi(pct: number): { label: string; color: string } {
 }
 
 export default function RoiAlquilerClient() {
+  return (
+    <Suspense fallback={null}>
+      <RoiAlquilerInner />
+    </Suspense>
+  )
+}
+
+function RoiAlquilerInner() {
+  const { asesorEmail, asesorNombre } = useAsesorRef()
   const [precioCompra, setPrecioCompra] = useState(200000)
   const [alquilerMensual, setAlquilerMensual] = useState(1200)
   const [gastosAnuales, setGastosAnuales] = useState(3000)
@@ -125,6 +135,8 @@ export default function RoiAlquilerClient() {
             mensaje={mensaje}
             titulo="Guardá este análisis"
             textoBoton="Enviar mi resultado →"
+            asesorEmail={asesorEmail}
+            asesorNombre={asesorNombre}
           />
         </div>
 

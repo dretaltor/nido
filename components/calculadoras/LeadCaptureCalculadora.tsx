@@ -9,9 +9,12 @@ interface LeadCaptureCalculadoraProps {
   mensaje: string
   titulo?: string
   textoBoton?: string
+  asesorEmail?: string | null
+  asesorNombre?: string | null
+  alertaPrecioMax?: number
 }
 
-export function LeadCaptureCalculadora({ fuente, tipoBusqueda, presupuesto, mensaje, titulo, textoBoton }: LeadCaptureCalculadoraProps) {
+export function LeadCaptureCalculadora({ fuente, tipoBusqueda, presupuesto, mensaje, titulo, textoBoton, asesorEmail, asesorNombre, alertaPrecioMax }: LeadCaptureCalculadoraProps) {
   const [form, setForm] = useState({ nombre: '', email: '', telefono: '' })
   const [enviando, setEnviando] = useState(false)
   const [enviado, setEnviado] = useState(false)
@@ -35,11 +38,23 @@ export function LeadCaptureCalculadora({ fuente, tipoBusqueda, presupuesto, mens
       tipo_busqueda: tipoBusqueda || null,
       estado: 'nuevo',
       fuente,
+      asesor_email: asesorEmail || null,
     })
     if (err) {
       setError('No pudimos guardar tu resultado. Intentá de nuevo.')
       setEnviando(false)
       return
+    }
+    // Además del lead, guardamos una alerta de búsqueda para que le avisemos
+    // automáticamente si se publica una propiedad dentro de este presupuesto.
+    if (alertaPrecioMax) {
+      await supabase.from('alertas_busqueda').insert({
+        email: form.email,
+        zona: null,
+        tipo: null,
+        operacion: 'venta',
+        precio_max: alertaPrecioMax,
+      })
     }
     setEnviado(true)
     setEnviando(false)
@@ -57,7 +72,8 @@ export function LeadCaptureCalculadora({ fuente, tipoBusqueda, presupuesto, mens
       <div style={{ fontSize: 26, marginBottom: 8 }}>✓</div>
       <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 20, color: '#1B5E3B', marginBottom: 4 }}>¡Listo!</div>
       <p style={{ fontSize: 13, color: '#6B7280', lineHeight: 1.6, margin: 0 }}>
-        Guardamos tu resultado. Un asesor NIDO va a contactarte pronto para ayudarte con el siguiente paso.
+        Guardamos tu resultado. {asesorNombre ? `${asesorNombre} va a contactarte` : 'Un asesor NIDO va a contactarte'} pronto para ayudarte con el siguiente paso.
+        {alertaPrecioMax ? ' También te vamos a avisar por correo apenas se publique una propiedad dentro de tu presupuesto.' : ''}
       </p>
     </div>
   )

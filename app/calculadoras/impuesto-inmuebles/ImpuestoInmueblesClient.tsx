@@ -1,14 +1,24 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Nav from '../../../components/Nav'
 import { LeadCaptureCalculadora } from '../../../components/calculadoras/LeadCaptureCalculadora'
+import { useAsesorRef } from '../../../lib/useAsesorRef'
 
 function fmt(n: number): string {
   return '$' + Math.round(n).toLocaleString('es-CR')
 }
 
 export default function ImpuestoInmueblesClient() {
+  return (
+    <Suspense fallback={null}>
+      <ImpuestoInmueblesInner />
+    </Suspense>
+  )
+}
+
+function ImpuestoInmueblesInner() {
+  const { asesorEmail, asesorNombre } = useAsesorRef()
   const [valor, setValor] = useState(150000)
   const [tasa, setTasa] = useState(0.25)
 
@@ -84,6 +94,8 @@ export default function ImpuestoInmueblesClient() {
             mensaje={mensaje}
             titulo="¿Necesitás ayuda con trámites de tu propiedad?"
             textoBoton="Hablar con un asesor →"
+            asesorEmail={asesorEmail}
+            asesorNombre={asesorNombre}
           />
         </div>
 

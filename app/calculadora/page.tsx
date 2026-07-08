@@ -1,14 +1,36 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Nav from '../../components/Nav'
+import { LeadCaptureCalculadora } from '../../components/calculadoras/LeadCaptureCalculadora'
+import { useAsesorRef } from '../../lib/useAsesorRef'
 
 function fmt(n: number, currency: 'USD' | 'CRC') {
   const symbol = currency === 'USD' ? '$' : '₡'
   return symbol + Math.round(n).toLocaleString('es-CR')
 }
 
+function calcularCuota(precio: number, primaPct: number, tasaAnual: number, plazoAnios: number) {
+  const monto = precio * (1 - primaPct / 100)
+  const tasaMensual = tasaAnual / 100 / 12
+  const n = plazoAnios * 12
+  const cuota = tasaMensual === 0
+    ? monto / n
+    : (monto * tasaMensual * Math.pow(1 + tasaMensual, n)) / (Math.pow(1 + tasaMensual, n) - 1)
+  const total = cuota * n
+  return { montoFinanciado: monto, cuotaMensual: cuota, totalPagado: total, totalIntereses: total - monto }
+}
+
 export default function CalculadoraPage() {
+  return (
+    <Suspense fallback={null}>
+      <CalculadoraInner />
+    </Suspense>
+  )
+}
+
+function CalculadoraInner() {
+  const { asesorEmail, asesorNombre } = useAsesorRef()
   const [currency, setCurrency] = useState<'USD' | 'CRC'>('USD')
 
   // ── Costos de cierre ──────────────────────────────────────────────
@@ -25,17 +47,20 @@ export default function CalculadoraPage() {
   const [primaPct, setPrimaPct] = useState(20)
   const [tasaAnual, setTasaAnual] = useState(9.5)
   const [plazoAnios, setPlazoAnios] = useState(20)
+  const [comparar, setComparar] = useState(false)
 
-  const { montoFinanciado, cuotaMensual, totalPagado, totalIntereses } = useMemo(() => {
-    const monto = precioHipoteca * (1 - primaPct / 100)
-    const tasaMensual = tasaAnual / 100 / 12
-    const n = plazoAnios * 12
-    const cuota = tasaMensual === 0
-      ? monto / n
-      : (monto * tasaMensual * Math.pow(1 + tasaMensual, n)) / (Math.pow(1 + tasaMensual, n) - 1)
-    const total = cuota * n
-    return { montoFinanciado: monto, cuotaMensual: cuota, totalPagado: total, totalIntereses: total - monto }
-  }, [precioHipoteca, primaPct, tasaAnual, plazoAnios])
+  const { montoFinanciado, cuotaMensual, totalPagado, totalIntereses } = useMemo(
+    () => calcularCuota(precioHipoteca, primaPct, tasaAnual, plazoAnios),
+    [precioHipoteca, primaPct, tasaAnual, plazoAnios]
+  )
+
+  const escenarios = useMemo(() => [
+    { label: 'Entrada baja', detalle: '10% prima · 30 años', activo: false, ...calcularCuota(precioHipoteca, 10, tasaAnual, 30) },
+    { label: 'Tu escenario', detalle: `${primaPct}% prima · ${plazoAnios} años`, activo: true, ...calcularCuota(precioHipoteca, primaPct, tasaAnual, plazoAnios) },
+    { label: 'Entrada alta', detalle: '30% prima · 15 años', activo: false, ...calcularCuota(precioHipoteca, 30, tasaAnual, 15) },
+  ], [precioHipoteca, primaPct, tasaAnual, plazoAnios])
+
+  const mensajeHipoteca = `Calculadora de cuota mensual: precio ${fmt(precioHipoteca, currency)}, ${primaPct}% de prima, ${tasaAnual}% a ${plazoAnios} años → cuota estimada ${fmt(cuotaMensual, currency)}/mes. Gastos de cierre estimados: ${fmt(totalCierre, currency)}.`
 
   return (
     <main style={{ minHeight: '100vh', background: '#FAFAF8', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
@@ -124,12 +149,52 @@ export default function CalculadoraPage() {
             <div className="calc-line"><span>Total pagado al final del plazo</span><span>{fmt(totalPagado, currency)}</span></div>
             <div className="calc-line total"><span>Cuota mensual estimada</span><span>{fmt(cuotaMensual, currency)}</span></div>
 
+            <button onClick={() => setComparar(!comparar)} style={{ marginTop: 16, width: '100%', padding: '10px', borderRadius: 999, background: comparar ? '#1B5E3B' : 'rgba(27,94,59,0.06)', color: comparar ? 'white' : '#1B5E3B', border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {comparar ? 'Ocultar comparación de escenarios' : 'Comparar 3 escenarios →'}
+            </button>
+
             <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 16, lineHeight: 1.5 }}>
               Cálculo educativo de amortización estándar. No incluye seguros, comisión bancaria, avalúo ni otros
               cargos del banco. No es una oferta de crédito — consultá con tu entidad financiera para una cotización
               formal.
             </p>
           </div>
+        </div>
+
+        {comparar && (
+          <div className="calc-card" style={{ marginTop: 24 }}>
+            <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24, color: '#0D1F15', margin: '0 0 20px' }}>
+              Comparación de escenarios
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+              {escenarios.map(e => (
+                <div key={e.label} style={{ border: e.activo ? '2px solid #1B5E3B' : '1px solid rgba(27,94,59,0.1)', borderRadius: 14, padding: '18px 16px', background: e.activo ? 'rgba(27,94,59,0.04)' : 'transparent' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: e.activo ? '#1B5E3B' : '#0D1F15', marginBottom: 2 }}>{e.label}</div>
+                  <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>{e.detalle}</div>
+                  <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 22, color: '#0D1F15', marginBottom: 8 }}>{fmt(e.cuotaMensual, currency)}<span style={{ fontSize: 12, color: '#9CA3AF' }}>/mes</span></div>
+                  <div style={{ fontSize: 12, color: '#6B7280', display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}><span>Financiado</span><span>{fmt(e.montoFinanciado, currency)}</span></div>
+                  <div style={{ fontSize: 12, color: '#6B7280', display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}><span>Intereses totales</span><span>{fmt(e.totalIntereses, currency)}</span></div>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 16, lineHeight: 1.5 }}>
+              Los 3 escenarios usan el mismo precio y tasa de interés — solo varían la prima y el plazo, para que veas cómo cambia tu cuota mensual.
+            </p>
+          </div>
+        )}
+
+        <div style={{ marginTop: 28, maxWidth: 480, margin: '28px auto 0' }}>
+          <LeadCaptureCalculadora
+            fuente="calculadora_hipoteca"
+            tipoBusqueda="compra"
+            presupuesto={String(Math.round(precioHipoteca))}
+            mensaje={mensajeHipoteca}
+            titulo="Guardá este cálculo"
+            textoBoton="Enviar mi resultado →"
+            asesorEmail={asesorEmail}
+            asesorNombre={asesorNombre}
+            alertaPrecioMax={Math.round(precioHipoteca)}
+          />
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 40 }}>

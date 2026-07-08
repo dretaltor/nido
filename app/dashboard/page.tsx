@@ -84,6 +84,14 @@ export default function Dashboard() {
   const [updatingOferta, setUpdatingOferta] = useState(false)
   const [contraOferta, setContraOferta] = useState('')
   const [showContra, setShowContra] = useState(false)
+  const [copiadoCalc, setCopiadoCalc] = useState(false)
+
+  const copiarLinkCalculadoras = () => {
+    if (!user?.email) return
+    navigator.clipboard.writeText('https://www.nido-cr.com/calculadoras?ref=' + encodeURIComponent(user.email))
+    setCopiadoCalc(true)
+    setTimeout(() => setCopiadoCalc(false), 2500)
+  }
 
   const updateOfertaEstado = async (id: string, estado: string) => {
     setUpdatingOferta(true)
@@ -566,6 +574,17 @@ export default function Dashboard() {
                 </div>
               </a>
             ))}
+            <button
+              onClick={copiarLinkCalculadoras}
+              className="module-btn"
+              style={{ textAlign:'left', border:'1px solid var(--accent)', background:'var(--accent-tint)' }}
+            >
+              <span style={{ fontSize:22, color:'var(--accent)' }}>🧮</span>
+              <div>
+                <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>Tu link de calculadoras</div>
+                <div style={{ fontSize:12, color:'var(--ink-3)' }}>{copiadoCalc ? '✓ Copiado al portapapeles' : 'Compartí y recibí los leads que generen'}</div>
+              </div>
+            </button>
           </div>
         </div>
 

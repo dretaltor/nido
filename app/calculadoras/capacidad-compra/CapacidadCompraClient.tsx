@@ -1,15 +1,25 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Nav from '../../../components/Nav'
 import { LeadCaptureCalculadora } from '../../../components/calculadoras/LeadCaptureCalculadora'
 import { PropiedadesQueCalifican } from '../../../components/calculadoras/PropiedadesQueCalifican'
+import { useAsesorRef } from '../../../lib/useAsesorRef'
 
 function fmt(n: number): string {
   return '$' + Math.round(n).toLocaleString('es-CR')
 }
 
 export default function CapacidadCompraClient() {
+  return (
+    <Suspense fallback={null}>
+      <CapacidadCompraInner />
+    </Suspense>
+  )
+}
+
+function CapacidadCompraInner() {
+  const { asesorEmail, asesorNombre } = useAsesorRef()
   const [ingreso, setIngreso] = useState(3000)
   const [deudas, setDeudas] = useState(300)
   const [prima, setPrima] = useState(30000)
@@ -132,6 +142,9 @@ export default function CapacidadCompraClient() {
               mensaje={mensaje}
               titulo="Guardá tu presupuesto"
               textoBoton="Enviar mi resultado →"
+              asesorEmail={asesorEmail}
+              asesorNombre={asesorNombre}
+              alertaPrecioMax={Math.round(precioMaximo)}
             />
           </div>
         )}
