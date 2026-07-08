@@ -18,42 +18,14 @@ export function addWatermark(file: File): Promise<Blob> {
 
         ctx.drawImage(img, 0, 0)
 
-        // Marca de agua diagonal repetida, tenue, para no afectar la lectura de la foto.
-        const label = 'NIDO · nido-cr.com'
-        const fontSize = Math.max(16, Math.round(canvas.width / 28))
-        ctx.font = `600 ${fontSize}px Arial, sans-serif`
-        ctx.fillStyle = 'rgba(255,255,255,0.38)'
-        ctx.strokeStyle = 'rgba(0,0,0,0.18)'
-        ctx.lineWidth = 1
+        // Marca de agua única, centrada, muy tenue — solo "NIDO".
+        const label = 'NIDO'
+        const fontSize = Math.round(canvas.width / 7)
+        ctx.font = `700 ${fontSize}px Arial, sans-serif`
+        ctx.fillStyle = 'rgba(255,255,255,0.14)'
         ctx.textBaseline = 'middle'
-
-        ctx.save()
-        ctx.translate(canvas.width / 2, canvas.height / 2)
-        ctx.rotate(-Math.PI / 8)
-
-        const textWidth = ctx.measureText(label).width
-        const stepX = textWidth + fontSize * 3
-        const stepY = fontSize * 5
-        const diag = Math.sqrt(canvas.width ** 2 + canvas.height ** 2)
-
-        for (let y = -diag; y < diag; y += stepY) {
-          for (let x = -diag; x < diag; x += stepX) {
-            ctx.strokeText(label, x, y)
-            ctx.fillText(label, x, y)
-          }
-        }
-        ctx.restore()
-
-        // Marca legible en la esquina inferior (más sólida, identifica la fuente claramente).
-        const cornerText = 'NIDO.CR'
-        const cornerSize = Math.max(14, Math.round(canvas.width / 32))
-        ctx.font = `700 ${cornerSize}px Arial, sans-serif`
-        ctx.textBaseline = 'bottom'
-        ctx.textAlign = 'right'
-        ctx.fillStyle = 'rgba(0,0,0,0.35)'
-        ctx.fillRect(canvas.width - cornerSize * 6.5, canvas.height - cornerSize * 2, cornerSize * 6.5, cornerSize * 2)
-        ctx.fillStyle = 'rgba(255,255,255,0.9)'
-        ctx.fillText(cornerText, canvas.width - 12, canvas.height - 10)
+        ctx.textAlign = 'center'
+        ctx.fillText(label, canvas.width / 2, canvas.height / 2)
 
         URL.revokeObjectURL(url)
         canvas.toBlob(
