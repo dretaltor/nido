@@ -347,6 +347,7 @@ export default function Propiedades() {
         
         <div style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 16, flexShrink: 0 }}>
           <span>{filtered.length} resultados</span>
+          <Link href="/calculadoras/capacidad-compra" style={{ background: 'var(--accent-tint)', border: '1px solid oklch(0.85 0.04 150)', borderRadius: 999, padding: '6px 14px', fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>🧮 ¿Cuánto puedo pagar?</Link>
           <button onClick={() => setGuardarBusquedaOpen(true)} style={{ background: 'transparent', border: '1px solid var(--rule)', borderRadius: 999, padding: '6px 14px', fontFamily: 'var(--sans)', fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer' }}>🔔 Avisarme de nuevas propiedades</button>
           <select value={sort} onChange={e => setSort(e.target.value)} style={{ background: 'transparent', border: 0, borderBottom: '1px solid var(--ink)', fontFamily: 'var(--sans)', fontSize: 13, color: 'var(--ink)', outline: 'none', cursor: 'pointer' }}>
             <option value="featured">Destacados</option>
@@ -416,13 +417,23 @@ export default function Propiedades() {
         </div>
       </section>
 
-      <section style={{ maxWidth: 1600, margin: '0 auto', padding: '0 40px 60px' }}>
+      <section style={{ maxWidth: 1600, margin: '0 auto', padding: '0 40px 24px' }}>
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 12, padding: '32px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontFamily: 'var(--serif)', fontSize: 24, marginBottom: 6 }}>Explorá cantón por cantón</div>
             <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>Buscá propiedades en las 7 provincias de Costa Rica, zona por zona.</p>
           </div>
           <Link href="/propiedades/zona" style={{ padding: '12px 24px', borderRadius: 999, background: 'var(--ink)', color: 'white', fontSize: 13, fontWeight: 500, textDecoration: 'none', flexShrink: 0 }}>Ver todas las zonas →</Link>
+        </div>
+      </section>
+
+      <section style={{ maxWidth: 1600, margin: '0 auto', padding: '0 40px 60px' }}>
+        <div style={{ background: 'var(--ink)', borderRadius: 12, padding: '32px 36px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontFamily: 'var(--serif)', fontSize: 24, color: 'white', marginBottom: 6 }}>¿Sabés cuánto podés pagar?</div>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>Calculá tu presupuesto, la cuota mensual y el rendimiento de una inversión — con propiedades reales que califican.</p>
+          </div>
+          <Link href="/calculadoras" style={{ padding: '12px 24px', borderRadius: 999, background: 'var(--accent)', color: 'white', fontSize: 13, fontWeight: 500, textDecoration: 'none', flexShrink: 0 }}>Ver calculadoras →</Link>
         </div>
       </section>
 

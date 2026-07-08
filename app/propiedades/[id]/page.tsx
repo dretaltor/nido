@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useEffect, useState, use } from 'react'
+import { useEffect, useState, useMemo, use } from 'react'
 import dynamic from 'next/dynamic'
 const MapaUbicacion = dynamic(() => import('../../../components/MapaUbicacion'), { ssr: false })
 import { VisitaForm } from '@/components/visitas/VisitaForm'
@@ -56,6 +56,10 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [asesorStats, setAsesorStats] = useState<{promedio:number|null,total:number,cerradas:number,activas:number}>({promedio:null,total:0,cerradas:0,activas:0})
   const [resenasPropiedad, setResenasPropiedad] = useState<Partial<CalificacionPublica>[]>([])
+  const [calcOpen, setCalcOpen] = useState(false)
+  const [primaPct, setPrimaPct] = useState(20)
+  const [tasaAnual, setTasaAnual] = useState(9.5)
+  const [plazoAnios, setPlazoAnios] = useState(20)
 
   useEffect(() => {
 // Auth handled by AuthContext
@@ -82,22 +86,60 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
     })
   }, [id])
 
-  const sendMessage = async () => {
-    if (!input.trim() || sending) return
-    const userMsg = { role:'user', content:input }
+  const fmt = (n: number) => '$' + n.toLocaleString('en-US')
+
+  const calc = useMemo(() => {
+    if (!propiedad) return null
+    const monto = propiedad.precio * (1 - primaPct / 100)
+    const tasaMensual = tasaAnual / 100 / 12
+    const n = plazoAnios * 12
+    const cuota = tasaMensual === 0 ? monto / n : (monto * tasaMensual * Math.pow(1 + tasaMensual, n)) / (Math.pow(1 + tasaMensual, n) - 1)
+    const prima = propiedad.precio - monto
+    const traspaso = propiedad.precio * 0.015
+    const timbresRegistro = propiedad.precio * 0.008
+    const honorariosNotariales = propiedad.precio * 0.0125
+    const ivaHonorarios = honorariosNotariales * 0.13
+    const gastosCierre = traspaso + timbresRegistro + honorariosNotariales + ivaHonorarios
+    return { cuota, prima, gastosCierre }
+  }, [propiedad, primaPct, tasaAnual, plazoAnios])
+
+  const buildSistema = () => {
+    if (!propiedad) return undefined
+    let s = `Sos Valeria, la asistente IA de NIDO — plataforma inmobiliaria premium de Costa Rica. Estás ayudando a un comprador potencial que está viendo esta propiedad específica en nido-cr.com:
+
+Propiedad: ${propiedad.titulo}
+Zona: ${propiedad.zona}
+Precio: ${fmt(propiedad.precio)}${propiedad.operacion === 'alquiler' ? '/mes' : ''}
+Tipo: ${propiedad.tipo} · ${propiedad.operacion}
+
+Respondé en español, tono cercano y profesional, respuestas concisas (máximo 4-5 oraciones). Ayudá con dudas sobre la propiedad, la zona, el proceso de compra y financiamiento. Si no sabés algo específico de esta propiedad, sugerí contactar al asesor.`
+    if (calc && propiedad.operacion !== 'alquiler') {
+      s += `\n\nEl comprador ya calculó una estimación de financiamiento para esta propiedad: cuota mensual aproximada de ${fmt(Math.round(calc.cuota))}/mes con ${primaPct}% de prima (${fmt(Math.round(calc.prima))}), a ${tasaAnual}% de interés anual en ${plazoAnios} años. Gastos de cierre estimados: ${fmt(Math.round(calc.gastosCierre))}. Usá estos números si te preguntan sobre el financiamiento, y aclará siempre que es una estimación educativa, no una oferta de crédito.`
+    }
+    return s
+  }
+
+  const sendMessage = async (textoOverride?: string) => {
+    const texto = textoOverride ?? input
+    if (!texto.trim() || sending) return
+    const userMsg = { role:'user', content:texto }
     const newMsgs = [...messages, userMsg]
     setMessages(newMsgs)
     setInput('')
     setSending(true)
     try {
-      const res = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ messages: newMsgs }) })
+      const res = await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ messages: newMsgs, system: buildSistema() }) })
       const data = await res.json()
       setMessages([...newMsgs, { role:'assistant', content: data.message }])
     } catch {}
     setSending(false)
   }
 
-  const fmt = (n: number) => '$' + n.toLocaleString('en-US')
+  const preguntarSobreCalculo = () => {
+    if (!calc) return
+    setChatOpen(true)
+    sendMessage(`¿Qué te parece esta cuota estimada de ${fmt(Math.round(calc.cuota))}/mes para esta propiedad, con ${primaPct}% de prima a ${tasaAnual}% en ${plazoAnios} años?`)
+  }
 
   if (loading) return (
     <main style={{fontFamily:"'DM Sans',sans-serif",minHeight:'100vh',background:'var(--bg)',display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -271,7 +313,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                   </div>
                   <div style={{padding:'10px 14px',borderTop:'1px solid var(--rule)',display:'flex',gap:8}}>
                     <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key==='Enter' && sendMessage()} placeholder="Pregunta sobre esta propiedad..." style={{flex:1,border:'1px solid var(--rule)',borderRadius:999,padding:'8px 14px',fontSize:13,outline:'none',fontFamily:"'DM Sans',sans-serif",color:'var(--ink)'}}/>
-                    <button onClick={sendMessage} disabled={sending||!input.trim()} style={{width:34,height:34,borderRadius:'50%',background:'var(--ink)',border:'none',color:'white',cursor:'pointer',display:'grid',placeItems:'center'}}>
+                    <button onClick={() => sendMessage()} disabled={sending||!input.trim()} style={{width:34,height:34,borderRadius:'50%',background:'var(--ink)',border:'none',color:'white',cursor:'pointer',display:'grid',placeItems:'center'}}>
                       <Icon name="send"/>
                     </button>
                   </div>
@@ -290,6 +332,47 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
                 </div>
               )}
             </div>
+
+            {propiedad.operacion !== 'alquiler' && calc && (
+              <div style={{background:'white',border:'1px solid var(--rule)',borderRadius:16,overflow:'hidden',marginBottom:16}}>
+                <div onClick={() => setCalcOpen(!calcOpen)} style={{padding:'18px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',cursor:'pointer'}}>
+                  <div>
+                    <div style={{fontSize:11,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:4}}>Cuota estimada</div>
+                    <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:24,color:'var(--accent)'}}>{fmt(Math.round(calc.cuota))}<span style={{fontSize:13,color:'var(--ink-3)'}}>/mes</span></div>
+                  </div>
+                  <span style={{fontSize:12,color:'var(--ink-3)'}}>{calcOpen ? 'Cerrar ▲' : 'Ajustar ▾'}</span>
+                </div>
+
+                {calcOpen && (
+                  <div style={{padding:'0 24px 20px'}}>
+                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
+                      <div>
+                        <label style={{fontSize:10,color:'var(--ink-3)',display:'block',marginBottom:4}}>Prima %</label>
+                        <input type="number" value={primaPct} onChange={e => setPrimaPct(Number(e.target.value) || 0)} style={{width:'100%',border:'1px solid var(--rule)',borderRadius:8,padding:'7px 8px',fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'var(--ink)',boxSizing:'border-box'}}/>
+                      </div>
+                      <div>
+                        <label style={{fontSize:10,color:'var(--ink-3)',display:'block',marginBottom:4}}>Tasa %</label>
+                        <input type="number" step="0.1" value={tasaAnual} onChange={e => setTasaAnual(Number(e.target.value) || 0)} style={{width:'100%',border:'1px solid var(--rule)',borderRadius:8,padding:'7px 8px',fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'var(--ink)',boxSizing:'border-box'}}/>
+                      </div>
+                      <div>
+                        <label style={{fontSize:10,color:'var(--ink-3)',display:'block',marginBottom:4}}>Años</label>
+                        <input type="number" value={plazoAnios} onChange={e => setPlazoAnios(Number(e.target.value) || 0)} style={{width:'100%',border:'1px solid var(--rule)',borderRadius:8,padding:'7px 8px',fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'var(--ink)',boxSizing:'border-box'}}/>
+                      </div>
+                    </div>
+                    <div style={{fontSize:13,color:'var(--ink-2)',display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid var(--rule-soft)'}}>
+                      <span>Prima (tu aporte)</span><span>{fmt(Math.round(calc.prima))}</span>
+                    </div>
+                    <div style={{fontSize:13,color:'var(--ink-2)',display:'flex',justifyContent:'space-between',padding:'7px 0',borderTop:'1px solid var(--rule-soft)'}}>
+                      <span>Gastos de cierre estimados</span><span>{fmt(Math.round(calc.gastosCierre))}</span>
+                    </div>
+                    <button onClick={preguntarSobreCalculo} style={{marginTop:14,width:'100%',padding:'10px',borderRadius:999,background:'var(--accent-tint)',border:'1px solid oklch(0.85 0.04 150)',color:'var(--accent)',fontSize:12,fontWeight:500,cursor:'pointer',fontFamily:"'DM Sans',sans-serif"}}>
+                      <span style={{fontFamily:"'Cormorant Garamond',serif",fontStyle:'italic'}}>V</span> Preguntale a Valeria sobre este cálculo
+                    </button>
+                    <Link href="/calculadora" style={{display:'block',textAlign:'center',marginTop:10,fontSize:11,color:'var(--ink-3)'}}>Ver cálculo completo con gastos detallados →</Link>
+                  </div>
+                )}
+              </div>
+            )}
 
             {(propiedad.asesor_nombre || propiedad.asesor_email) && (
               <div style={{background:'white',border:'1px solid var(--rule)',borderRadius:16,overflow:'hidden'}}>
