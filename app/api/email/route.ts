@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     const { to, tipo, data } = await req.json()
 
     // Plantillas oficiales que solo el admin debe poder disparar (texto libre o anuncios de aprobacion)
-    const TIPOS_SOLO_ADMIN = ['mensaje_admin', 'kyc_aprobado', 'propiedad_aprobada', 'equipo_nido_aprobado']
+    const TIPOS_SOLO_ADMIN = ['mensaje_admin', 'kyc_aprobado', 'propiedad_aprobada', 'equipo_nido_aprobado', 'oficina_bienvenida']
     if (TIPOS_SOLO_ADMIN.includes(tipo)) {
       const { createClient } = await import('@supabase/supabase-js')
       const supabaseAdmin = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
@@ -648,6 +648,82 @@ export async function POST(req: NextRequest) {
               </p>
               <p style="font-size:11px;color:#9CA3AF;margin:0">© 2026 NIDO. Todos los derechos reservados.</p>
             </td></tr></table>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body>
+        </html>`
+      },
+      oficina_bienvenida: {
+        subject: 'Bienvenido a NIDO Oficinas Afiliadas · ' + (data?.nombre || 'Tu oficina') + ' ya está registrada',
+        html: `
+        <html>
+        <body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Oficinas Afiliadas · Costa Rica</p>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h1 style="font-family:Georgia,serif;font-size:26px;font-weight:400;color:#0D1F15;margin:0 0 16px">Hola ${esc(data?.contacto_nombre || '')}, ${esc(data?.nombre)} ya está registrada en NIDO.</h1>
+            <p style="font-size:15px;color:#6B7280;line-height:1.65;margin:0 0 24px">Su oficina quedó activa como aliado tecnológico de NIDO con ${esc(data?.asientos_contratados ?? '—')} asiento(s) contratado(s). El equipo NIDO asignará a sus asesores a la cuenta en los próximos días.</p>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F7F3;border:1px solid #C8E6D4;border-radius:12px;margin-bottom:24px">
+            <tr><td style="padding:20px 24px">
+              <p style="font-size:12px;font-weight:600;color:#1B5E3B;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.08em">Datos registrados</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:140px">Oficina</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.nombre)}</td></tr>
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280">Correo de contacto</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.contacto_email)}</td></tr>
+                <tr><td style="padding:8px 0;font-size:13px;color:#6B7280">Asientos</td><td style="padding:8px 0;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.asientos_contratados ?? '—')}</td></tr>
+              </table>
+            </td></tr>
+            </table>
+            <p style="font-size:13px;color:#6B7280;line-height:1.6;margin:0">Cualquier duda sobre el contrato B2B o la asignación de asesores, escribinos a <a href="mailto:hola@nido-cr.com" style="color:#1B5E3B">hola@nido-cr.com</a>.</p>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:20px 40px;border-top:1px solid #E5E3DC;text-align:center">
+            <p style="font-size:11px;color:#9CA3AF;margin:0">NIDO · Plataforma Inmobiliaria de Costa Rica · © 2026</p>
+          </td></tr>
+        </table>
+        </td></tr>
+        </table>
+        </body>
+        </html>`
+      },
+      nueva_compra_curso: {
+        subject: '🎓 Nueva compra de curso individual · NIDO · Requiere aprobación',
+        html: `
+        <html>
+        <body style="margin:0;padding:0;background:#F4F3EF;font-family:'DM Sans',Arial,sans-serif">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F3EF;padding:40px 0">
+        <tr><td align="center">
+        <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;border:1px solid #E5E3DC">
+          <tr><td style="background:#0D1F15;padding:28px 40px;text-align:center">
+            <span style="font-family:Georgia,serif;font-size:28px;color:white;letter-spacing:2px">NIDO<span style="color:#C8A96E">.</span></span>
+            <p style="color:rgba(255,255,255,0.5);font-size:12px;margin:6px 0 0;letter-spacing:2px;text-transform:uppercase">Nueva Compra de Curso · Requiere Aprobación</p>
+          </td></tr>
+          <tr><td style="padding:32px 40px">
+            <h1 style="font-family:Georgia,serif;font-size:26px;font-weight:400;color:#0D1F15;margin:0 0 16px">Nueva solicitud de compra individual</h1>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background:#F0F7F3;border:1px solid #C8E6D4;border-radius:12px;margin-bottom:24px">
+            <tr><td style="padding:20px 24px">
+              <p style="font-size:12px;font-weight:600;color:#1B5E3B;margin:0 0 16px;text-transform:uppercase;letter-spacing:0.08em">Datos de la solicitud</p>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;color:#6B7280;width:140px">Correo</td><td style="padding:8px 0;border-bottom:1px solid #E5E3DC;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.correo)}</td></tr>
+                <tr><td style="padding:8px 0;font-size:13px;color:#6B7280">Curso</td><td style="padding:8px 0;font-size:13px;font-weight:500;color:#0D1F15">${esc(data?.curso_titulo)}</td></tr>
+              </table>
+            </td></tr>
+            </table>
+            <div style="background:#FEF9F0;border:1px solid #F5E6C8;border-radius:10px;padding:16px 20px;margin-bottom:24px">
+              <p style="font-size:12px;font-weight:600;color:#92600A;margin:0 0 6px;text-transform:uppercase">⚠️ Acción requerida</p>
+              <p style="font-size:13px;color:#374151;line-height:1.6;margin:0">Coordinar el cobro con el solicitante y aprobar el acceso al curso desde el backoffice.</p>
+            </div>
+            <table cellpadding="0" cellspacing="0" width="100%"><tr><td align="center">
+              <a href="https://www.nido-cr.com/admin" style="display:inline-block;background:#1B5E3B;color:white;padding:14px 36px;border-radius:999px;font-size:15px;font-weight:500;text-decoration:none">Revisar en backoffice →</a>
+            </td></tr></table>
+          </td></tr>
+          <tr><td style="background:#F9F8F5;padding:20px 40px;border-top:1px solid #E5E3DC;text-align:center">
+            <p style="font-size:11px;color:#9CA3AF;margin:0">NIDO · Backoffice Administrativo · © 2026</p>
           </td></tr>
         </table>
         </td></tr>

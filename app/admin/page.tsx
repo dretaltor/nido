@@ -484,6 +484,12 @@ export default function AdminPanel() {
       setNuevaOficina({ nombre:'', contacto_nombre:'', contacto_email:'', telefono:'', asientos_contratados:'1' })
       setMsg('✓ Oficina creada')
       setTimeout(() => setMsg(''), 3000)
+      const { data: { session: sesOficina } } = await supabase.auth.getSession()
+      fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+sesOficina?.access_token}, body: JSON.stringify({
+        to: data.contacto_email,
+        tipo: 'oficina_bienvenida',
+        data: { nombre: data.nombre, contacto_nombre: data.contacto_nombre, contacto_email: data.contacto_email, asientos_contratados: data.asientos_contratados }
+      }) }).catch(() => {})
     }
     setCreandoOficina(false)
   }

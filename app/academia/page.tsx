@@ -67,6 +67,15 @@ export default function Academia() {
     setSolicitando(true)
     await supabase.from('cursos_compras').insert({ correo: userEmail, curso_id: curso.id, curso_titulo: curso.titulo })
     setComprasCurso(prev => ({ ...prev, [curso.id]: 'solicitado' }))
+    fetch('/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        to: 'hola@nido-cr.com',
+        tipo: 'nueva_compra_curso',
+        data: { correo: userEmail, curso_titulo: curso.titulo },
+      }),
+    }).catch(() => {})
     setSolicitando(false)
   }
 
