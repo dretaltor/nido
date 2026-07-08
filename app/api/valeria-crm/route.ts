@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     })
     const data = await res.json()
     return NextResponse.json({ text: data.content?.[0]?.text || '' })
-  } catch (err: any) {
+  } catch (err) {
     console.error('Valeria CRM error:', err)
     return NextResponse.json({ error: 'Error al procesar la solicitud' }, { status: 500 })
   }

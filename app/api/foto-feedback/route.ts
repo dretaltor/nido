@@ -68,7 +68,7 @@ Si SI es buena, en "mensaje" poné un elogio breve y genuino.`
     }
 
     return NextResponse.json(parsed)
-  } catch (err: any) {
-    return NextResponse.json({ buena: true, mensaje: '', error: err.message }, { status: 200 })
+  } catch (err) {
+    return NextResponse.json({ buena: true, mensaje: '', error: err instanceof Error ? err.message : String(err) }, { status: 200 })
   }
 }

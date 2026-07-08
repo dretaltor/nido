@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import type { Noticia } from '../../../lib/database.types'
+import Link from 'next/link'
 
 const CAT_COLORS: Record<string, string> = {
   Mercado: 'oklch(0.93 0.03 240)',
@@ -21,10 +23,10 @@ const CAT_TEXT: Record<string, string> = {
 export default function NoticiaDetalle() {
   const params = useParams()
   const router = useRouter()
-  const [noticia, setNoticia] = useState<any>(null)
+  const [noticia, setNoticia] = useState<Noticia | null>(null)
   const [contenido, setContenido] = useState('')
   const [generando, setGenerando] = useState(false)
-  const [relacionadas, setRelacionadas] = useState<any[]>([])
+  const [relacionadas, setRelacionadas] = useState<Partial<Noticia>[]>([])
 
   useEffect(() => {
     if (!params.id) return
@@ -116,12 +118,12 @@ Solo el texto del artículo, sin título, sin encabezados markdown.`
       {/* Nav */}
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1100, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
-            <a href="/propiedades">Portal</a>
-            <a href="/noticias" style={{ color:'var(--accent)', fontWeight:500 }}>← Noticias</a>
+            <Link href="/propiedades">Portal</Link>
+            <Link href="/noticias" style={{ color:'var(--accent)', fontWeight:500 }}>← Noticias</Link>
           </div>
-          <a href="/propiedades" style={{ background:'var(--ink)', color:'white', padding:'8px 18px', borderRadius:999, fontSize:13 }}>Ver propiedades →</a>
+          <Link href="/propiedades" style={{ background:'var(--ink)', color:'white', padding:'8px 18px', borderRadius:999, fontSize:13 }}>Ver propiedades →</Link>
         </div>
       </nav>
 
@@ -129,7 +131,7 @@ Solo el texto del artículo, sin título, sin encabezados markdown.`
 
         {/* Categoría y fecha */}
         <div style={{ display:'flex', gap:10, alignItems:'center', marginBottom:20 }}>
-          <span style={{ padding:'4px 12px', borderRadius:999, fontSize:11, fontWeight:500, background:CAT_COLORS[noticia.categoria]||'var(--bg)', color:CAT_TEXT[noticia.categoria]||'var(--ink-3)' }}>
+          <span style={{ padding:'4px 12px', borderRadius:999, fontSize:11, fontWeight:500, background:CAT_COLORS[noticia.categoria||'']||'var(--bg)', color:CAT_TEXT[noticia.categoria||'']||'var(--ink-3)' }}>
             {noticia.categoria}
           </span>
           {noticia.tag && (
@@ -164,7 +166,7 @@ Solo el texto del artículo, sin título, sin encabezados markdown.`
           {noticia.fuente_nombre && (
             <div style={{ marginLeft:'auto', textAlign:'right' }}>
               <div style={{ fontSize:11, color:'var(--ink-3)', marginBottom:2 }}>Fuente original</div>
-              <a href={noticia.fuente_url} target="_blank" rel="noopener noreferrer" style={{ fontSize:13, fontWeight:500, color:'var(--accent)' }}>
+              <a href={noticia.fuente_url||''} target="_blank" rel="noopener noreferrer" style={{ fontSize:13, fontWeight:500, color:'var(--accent)' }}>
                 {noticia.fuente_nombre} →
               </a>
             </div>
@@ -193,7 +195,7 @@ Solo el texto del artículo, sin título, sin encabezados markdown.`
         {/* Disclaimer */}
         <div style={{ background:'oklch(0.93 0.005 80)', border:'1px solid var(--rule)', borderRadius:10, padding:'14px 18px', marginBottom:40, fontSize:12, color:'var(--ink-3)', lineHeight:1.6 }}>
           ⚠️ Este artículo fue redactado por Valeria IA de NIDO a partir de información de fuentes periodísticas verificadas. El contenido tiene fines informativos y no constituye asesoramiento legal, financiero ni inmobiliario. Consultá siempre con un profesional certificado.
-          {noticia.fuente_nombre && <> Fuente original: <a href={noticia.fuente_url} target="_blank" rel="noopener noreferrer" style={{ color:'var(--accent)' }}>{noticia.fuente_nombre}</a>.</>}
+          {noticia.fuente_nombre && <> Fuente original: <a href={noticia.fuente_url||''} target="_blank" rel="noopener noreferrer" style={{ color:'var(--accent)' }}>{noticia.fuente_nombre}</a>.</>}
         </div>
 
         {/* CTA */}
@@ -202,9 +204,9 @@ Solo el texto del artículo, sin título, sin encabezados markdown.`
             <div style={{ fontFamily:'var(--serif)', fontSize:22, color:'white', marginBottom:6 }}>¿Buscás una propiedad en Costa Rica?</div>
             <p style={{ fontSize:13, color:'rgba(255,255,255,0.5)', lineHeight:1.6 }}>Encontrá propiedades verificadas con asesor certificado NIDO.</p>
           </div>
-          <a href="/propiedades" style={{ padding:'12px 24px', borderRadius:999, background:'var(--accent)', color:'white', fontSize:14, fontWeight:500, flexShrink:0 }}>
+          <Link href="/propiedades" style={{ padding:'12px 24px', borderRadius:999, background:'var(--accent)', color:'white', fontSize:14, fontWeight:500, flexShrink:0 }}>
             Ver propiedades →
-          </a>
+          </Link>
         </div>
 
         {/* Relacionadas */}
@@ -232,9 +234,9 @@ Solo el texto del artículo, sin título, sin encabezados markdown.`
       </div>
 
       <footer style={{ borderTop:'1px solid var(--rule)', padding:'24px 40px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'white' }}>
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:18, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:18, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
         <p style={{ fontSize:12, color:'var(--ink-3)' }}>© 2026 NIDO · Costa Rica</p>
-        <a href="/noticias" style={{ fontSize:13, color:'var(--ink-3)' }}>← Más noticias</a>
+        <Link href="/noticias" style={{ fontSize:13, color:'var(--ink-3)' }}>← Más noticias</Link>
       </footer>
     </main>
   )

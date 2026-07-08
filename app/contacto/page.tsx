@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import Link from 'next/link'
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');
@@ -50,7 +51,7 @@ export default function Contacto() {
         <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.65, marginBottom:28 }}>
           Un asesor NIDO va a contactarte en las próximas horas para ayudarte a encontrar tu propiedad.
         </p>
-        <a href="/propiedades" style={{ display:'inline-block', background:'var(--ink)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, fontWeight:500 }}>Ver propiedades →</a>
+        <Link href="/propiedades" style={{ display:'inline-block', background:'var(--ink)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, fontWeight:500 }}>Ver propiedades →</Link>
       </div>
     </main>
   )
@@ -61,8 +62,8 @@ export default function Contacto() {
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1200, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
-          <a href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>← Ver propiedades</a>
+          <Link href="/" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
+          <Link href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>← Ver propiedades</Link>
         </div>
       </nav>
 

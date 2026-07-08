@@ -14,7 +14,7 @@ export function SidebarPropietario({ plan, nombreUsuario }: { plan:PlanSuscripci
         {NAV.map(g => (
           <div key={g.section}>
             <p style={{fontSize:10,textTransform:'uppercase',letterSpacing:'0.15em',color:'rgba(0,0,0,0.35)',padding:'16px 20px 6px',fontWeight:500}}>{g.section}</p>
-            {g.items.map((item:any) => {
+            {g.items.map((item) => {
               const active = pathname===item.href
               const style = {display:'flex',alignItems:'center',gap:10,padding:'10px 20px',fontSize:13,textDecoration:'none',borderLeft:'2px solid '+(active?'var(--accent)':'transparent'),background:active?'var(--accent-tint)':'transparent',color:active?'var(--accent)':'rgba(0,0,0,0.5)',fontWeight:active?500:400,transition:'all 0.15s'} as const
               if (item.external) {

@@ -2,6 +2,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
+import Link from 'next/link'
+import type { User } from '@supabase/supabase-js'
+import type { Propietario } from '../../../../lib/database.types'
+
+type PropietarioState = (Partial<Propietario> & { [key: string]: unknown }) | null
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');
@@ -23,8 +28,8 @@ const CSS = `
 export default function PerfilPropietario() {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
-  const [user, setUser] = useState<any>(null)
-  const [propietario, setPropietario] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [propietario, setPropietario] = useState<PropietarioState>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingPass, setSavingPass] = useState(false)
@@ -54,6 +59,7 @@ export default function PerfilPropietario() {
   }, [])
 
   const savePerfil = async () => {
+    if (!user) return
     setSaving(true); setMsg('')
     await supabase.from('propietarios').update({ nombre: form.nombre, telefono: form.telefono, cedula: form.cedula }).eq('correo', user.email!)
     await supabase.auth.updateUser({ data: { nombre: form.nombre } })
@@ -83,19 +89,20 @@ export default function PerfilPropietario() {
     await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
     const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
     await supabase.from('propietarios').update({ foto_url: publicUrl }).eq('correo', user.email!)
-    setPropietario((p:any) => ({ ...p, foto_url: publicUrl }))
+    setPropietario((p) => ({ ...(p||{}), foto_url: publicUrl }))
     setUploading(false)
   }
 
   const uploadDoc = async (tipo: string, file: File) => {
+    if (!user) return
     setUploadingDoc(tipo)
     const ext = file.name.split('.').pop()
     const path = 'kyc-propietarios/' + user.id + '_' + tipo + '.' + ext
     await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
     const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
-    const update: any = { [tipo + '_url']: publicUrl, verificacion_estado: 'en_revision' }
+    const update: Record<string, unknown> = { [tipo + '_url']: publicUrl, verificacion_estado: 'en_revision' }
     await supabase.from('propietarios').update(update).eq('correo', user.email!)
-    setPropietario((p:any) => ({ ...p, [tipo + '_url']: publicUrl, verificacion_estado: 'en_revision' }))
+    setPropietario((p) => ({ ...(p||{}), [tipo + '_url']: publicUrl, verificacion_estado: 'en_revision' }))
     setUploadingDoc(null)
   }
 
@@ -109,7 +116,7 @@ export default function PerfilPropietario() {
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 32px', maxWidth:900, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:8 }}>
             <button className={'tab'+(tab==='perfil'?' active':'')} onClick={() => setTab('perfil')}>Mi perfil</button>
             <button className={'tab'+(tab==='seguridad'?' active':'')} onClick={() => setTab('seguridad')}>Seguridad</button>
@@ -172,12 +179,12 @@ export default function PerfilPropietario() {
                 { label:'Correo electrónico', key:'correo', placeholder:'tu@correo.com', disabled:true },
                 { label:'Teléfono', key:'telefono', placeholder:'+506 8888-8888' },
                 { label:'Cédula', key:'cedula', placeholder:'1-2345-6789' },
-              ].map((f:any) => (
+              ].map((f) => (
                 <div key={f.key}>
                   <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>
                     {f.label} {f.required && <span style={{ color:'var(--accent)' }}>*</span>}
                   </label>
-                  <input className="field-input" placeholder={f.placeholder} value={(form as any)[f.key]} onChange={e => !f.disabled && set(f.key, e.target.value)} disabled={f.disabled} style={{ opacity:f.disabled?0.6:1 }}/>
+                  <input className="field-input" placeholder={f.placeholder} value={(form as Record<string,string>)[f.key]} onChange={e => !f.disabled && set(f.key, e.target.value)} disabled={f.disabled} style={{ opacity:f.disabled?0.6:1 }}/>
                   {f.disabled && <p style={{ fontSize:11, color:'var(--ink-3)', marginTop:4 }}>El correo no se puede cambiar.</p>}
                 </div>
               ))}

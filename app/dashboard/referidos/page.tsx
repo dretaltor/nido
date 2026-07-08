@@ -2,6 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import Link from 'next/link'
+import type { Perfil, Referido } from '../../../lib/database.types'
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap');
@@ -18,8 +20,8 @@ const CSS = `
 export default function Referidos() {
   const router = useRouter()
   const [nombre, setNombre] = useState('')
-  const [perfil, setPerfil] = useState<any>(null)
-  const [referidos, setReferidos] = useState<any[]>([])
+  const [perfil, setPerfil] = useState<Partial<Perfil> | null>(null)
+  const [referidos, setReferidos] = useState<Referido[]>([])
   const [loading, setLoading] = useState(true)
   const [copiado, setCopiado] = useState(false)
 
@@ -67,11 +69,11 @@ export default function Referidos() {
       {/* Nav */}
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1400, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:28, alignItems:'center' }}>
             <a href="/dashboard" className="nav-link">Dashboard</a>
             <a href="/dashboard/crm" className="nav-link">CRM</a>
-            <a href="/propiedades" className="nav-link">Portal</a>
+            <Link href="/propiedades" className="nav-link">Portal</Link>
             <a href="/dashboard/nueva-propiedad" className="nav-link">Nueva propiedad</a>
             <a href="/dashboard/referidos" className="nav-link active">Referidos</a>
             <a href="/dashboard/perfil" className="nav-link">Mi perfil</a>

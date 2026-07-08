@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -17,7 +18,9 @@ export default function ResetPassword() {
     // Supabase pone el token en el hash de la URL
     const hash = window.location.hash
     if (hash && hash.includes('type=recovery')) {
-      // Supabase maneja automáticamente el hash y dispara PASSWORD_RECOVERY
+      // Supabase maneja automáticamente el hash y dispara PASSWORD_RECOVERY.
+      // Sincroniza estado con el hash de la URL al montar — no puede calcularse en render.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setListo(true)
       setVerificando(false)
     } else {
@@ -61,9 +64,9 @@ export default function ResetPassword() {
       `}</style>
 
       <div style={{ width:'100%', maxWidth:440, padding:'0 24px', animation:'fadeUp 0.5s ease' }}>
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:26, color:'var(--ink)', textDecoration:'none', display:'block', marginBottom:40, textAlign:'center' }}>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:26, color:'var(--ink)', textDecoration:'none', display:'block', marginBottom:40, textAlign:'center' }}>
           NIDO<span style={{ color:'var(--accent)' }}>.</span>
-        </a>
+        </Link>
 
         {verificando ? (
           <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:16, padding:'40px', textAlign:'center' }}>

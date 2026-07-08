@@ -3,6 +3,12 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { useTrial } from '../../../lib/useTrial'
+import Link from 'next/link'
+import type { User } from '@supabase/supabase-js'
+import type { Json } from '../../../lib/database.types'
+
+type ValeriaPerfilData = { valeria_perfil: Json | null, valeria_onboarding_completo: boolean | null } | null
+type KycEstado = { verificado?: boolean | null, verificacion_estado?: string | null, verificacion_notas?: string | null, cedula_frente_url?: string | null, cedula_reverso_url?: string | null, selfie_url?: string | null } | null
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
@@ -20,7 +26,7 @@ const CSS = `
 `
 
 function ValeriaPerfilResumen({ userId }: { userId: string }) {
-  const [perfil, setPerfil] = useState<any>(null)
+  const [perfil, setPerfil] = useState<ValeriaPerfilData>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -43,7 +49,7 @@ function ValeriaPerfilResumen({ userId }: { userId: string }) {
     </div>
   )
 
-  const p = perfil.valeria_perfil
+  const p = perfil.valeria_perfil as Record<string, string | undefined> | null
   return (
     <div>
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:16 }}>
@@ -74,7 +80,7 @@ function ValeriaPerfilResumen({ userId }: { userId: string }) {
 }
 
 function VerificacionKYC({ userId }: { userId: string }) {
-  const [estado, setEstado] = useState<any>(null)
+  const [estado, setEstado] = useState<KycEstado>(null)
   const [uploading, setUploading] = useState<string | null>(null)
   const [docs, setDocs] = useState({ cedula_frente_url:'', cedula_reverso_url:'', selfie_url:'' })
   const [kycError, setKycError] = useState('')
@@ -100,9 +106,9 @@ function VerificacionKYC({ userId }: { userId: string }) {
       const update = { [tipo + '_url']: publicUrl }
       await supabase.from('perfiles').upsert({ id: userId, ...update, verificacion_estado: 'en_revision' })
       setDocs(p => ({ ...p, [tipo + '_url']: publicUrl }))
-      setEstado((p: any) => ({ ...p, verificacion_estado: 'en_revision' }))
-    } catch (err: any) {
-      setKycError('Error al subir documento: ' + err.message)
+      setEstado((p) => ({ ...(p||{}), verificacion_estado: 'en_revision' }))
+    } catch (err) {
+      setKycError('Error al subir documento: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setUploading(null)
     }
@@ -144,7 +150,7 @@ function VerificacionKYC({ userId }: { userId: string }) {
       {kycError && <div style={{ marginBottom:12, padding:'10px 14px', background:'oklch(0.97 0.03 20)', border:'1px solid oklch(0.85 0.06 20)', borderRadius:8, fontSize:13, color:'oklch(0.45 0.08 20)' }}>{kycError}</div>}
       <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
         {items.map(item => {
-          const url = (docs as any)[item.key + '_url']
+          const url = (docs as Record<string,string>)[item.key + '_url']
           return (
             <div key={item.key} style={{ border:'1px solid var(--rule)', borderRadius:10, padding:'16px', display:'flex', alignItems:'center', gap:16, background: url ? 'var(--accent-tint)' : 'white' }}>
               <div style={{ width:48, height:48, borderRadius:8, background: url ? 'var(--accent)' : 'var(--bg)', display:'grid', placeItems:'center', fontSize:20, flexShrink:0 }}>
@@ -158,14 +164,14 @@ function VerificacionKYC({ userId }: { userId: string }) {
                 {url ? (
                   <div style={{ display:'flex', gap:8 }}>
                     <a href={url} target="_blank" style={{ fontSize:12, color:'var(--accent)', fontWeight:500 }}>Ver →</a>
-                    <button onClick={() => (refs as any)[item.key].current?.click()} style={{ fontSize:12, color:'var(--ink-3)', background:'none', border:'1px solid var(--rule)', padding:'4px 10px', borderRadius:999, cursor:'pointer' }}>Cambiar</button>
+                    <button onClick={() => (refs as Record<string, React.RefObject<HTMLInputElement | null>>)[item.key].current?.click()} style={{ fontSize:12, color:'var(--ink-3)', background:'none', border:'1px solid var(--rule)', padding:'4px 10px', borderRadius:999, cursor:'pointer' }}>Cambiar</button>
                   </div>
                 ) : (
-                  <button onClick={() => (refs as any)[item.key].current?.click()} disabled={uploading===item.key} style={{ fontSize:13, color:'white', background:'var(--ink)', border:'none', padding:'8px 16px', borderRadius:999, cursor:'pointer', opacity: uploading===item.key?0.6:1 }}>
+                  <button onClick={() => (refs as Record<string, React.RefObject<HTMLInputElement | null>>)[item.key].current?.click()} disabled={uploading===item.key} style={{ fontSize:13, color:'white', background:'var(--ink)', border:'none', padding:'8px 16px', borderRadius:999, cursor:'pointer', opacity: uploading===item.key?0.6:1 }}>
                     {uploading===item.key ? 'Subiendo...' : 'Subir'}
                   </button>
                 )}
-                <input ref={(refs as any)[item.key]} type="file" accept="image/*" style={{ display:'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadDoc(item.key, f) }}/>
+                <input ref={(refs as Record<string, React.RefObject<HTMLInputElement | null>>)[item.key]} type="file" accept="image/*" style={{ display:'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadDoc(item.key, f) }}/>
               </div>
             </div>
           )
@@ -179,7 +185,7 @@ export default function Perfil() {
   const { bloqueado: trialBloqueado, checando: checandoTrial } = useTrial()
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingPass, setSavingPass] = useState(false)
@@ -209,6 +215,7 @@ export default function Perfil() {
   }, [])
 
   const savePerfil = async () => {
+    if (!user) return
     setSaving(true); setMsg('')
     const { error } = await supabase.from('perfiles').upsert({
       id: user.id, ...perfil, updated_at: new Date().toISOString()
@@ -272,8 +279,8 @@ export default function Perfil() {
         const fb = await fbRes.json()
         if (fb?.mensaje) setFotoFeedback({ buena: !!fb.buena, mensaje: fb.mensaje })
       } catch {}
-    } catch (err: any) {
-      setMsg('Error al subir foto: ' + err.message)
+    } catch (err) {
+      setMsg('Error al subir foto: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setUploading(false)
     }
@@ -287,7 +294,7 @@ export default function Perfil() {
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 32px', maxWidth:1000, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
             <a href="/dashboard" className="nav-link">Dashboard</a>
             <a href="/dashboard/crm" className="nav-link">CRM</a>
@@ -347,7 +354,7 @@ export default function Perfil() {
               { label:'Teléfono', key:'telefono', placeholder:'+506 8888-8888' },
               { label:'Cédula', key:'cedula', placeholder:'1-2345-6789' },
               { label:'Código de corredor (opcional)', key:'codigo_corredor', placeholder:'CR-XXXX', span:true },
-            ].map((f:any) => (
+            ].map((f) => (
               <div key={f.key} style={{ gridColumn: f.span ? '1 / -1' : 'auto' }}>
                 <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>
                   {f.label} {f.required && <span style={{ color:'var(--accent)' }}>*</span>}
@@ -355,7 +362,7 @@ export default function Perfil() {
                 <input
                   className="field-input"
                   placeholder={f.placeholder}
-                  value={(perfil as any)[f.key]}
+                  value={(perfil as Record<string,string>)[f.key]}
                   onChange={e => !f.disabled && set(f.key, e.target.value)}
                   disabled={f.disabled}
                   style={{ opacity: f.disabled ? 0.6 : 1, cursor: f.disabled ? 'not-allowed' : 'text' }}
@@ -437,7 +444,7 @@ export default function Perfil() {
             Para mostrar el badge de <strong>Asesor Verificado NIDO</strong> necesitamos validar tu identidad. Subí los documentos requeridos — el proceso tarda menos de 24 horas.
           </p>
 
-          <VerificacionKYC userId={user?.id} />
+          <VerificacionKYC userId={user?.id||''} />
         </div>
 
         {/* Configuración de Valeria */}
@@ -446,7 +453,7 @@ export default function Perfil() {
           <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65, marginBottom:20 }}>
             Valeria trabaja con tu estilo, tus zonas y tu forma de cerrar tratos. Podés reconfigurar tu perfil en cualquier momento.
           </p>
-          <ValeriaPerfilResumen userId={user?.id} />
+          <ValeriaPerfilResumen userId={user?.id||''} />
         </div>
 
         {/* Cerrar sesión */}

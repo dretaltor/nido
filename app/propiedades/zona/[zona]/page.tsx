@@ -3,6 +3,7 @@ import { cache } from 'react'
 import { supabase } from '../../../../lib/supabase'
 import { ZONAS, getZonaBySlug } from '../../../../lib/zonas'
 import { ZonaLeadForm } from '../../../../components/zonas/ZonaLeadForm'
+import Link from 'next/link'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -27,7 +28,7 @@ export async function generateStaticParams() {
     .select('zona')
     .eq('disponible', true)
     .eq('verificacion_estado', 'aprobada')
-  const zonasConListado = new Set((data || []).map((p: any) => p.zona))
+  const zonasConListado = new Set((data || []).map((p: { zona: string }) => p.zona))
   return ZONAS.filter(z => zonasConListado.has(z.nombre)).map(z => ({ zona: z.slug }))
 }
 
@@ -60,7 +61,7 @@ export default async function ZonaPage({ params }: { params: Promise<{ zona: str
         <style>{CSS}</style>
         <div style={{ textAlign: 'center' }}>
           <h1 style={{ fontFamily: 'var(--serif)', fontSize: 28, marginBottom: 12 }}>Zona no encontrada</h1>
-          <a href="/propiedades" style={{ color: 'var(--accent)' }}>← Volver al catálogo</a>
+          <Link href="/propiedades" style={{ color: 'var(--accent)' }}>← Volver al catálogo</Link>
         </div>
       </main>
     )
@@ -80,7 +81,7 @@ export default async function ZonaPage({ params }: { params: Promise<{ zona: str
       },
       {
         '@type': 'ItemList',
-        itemListElement: listado.map((p: any, i: number) => ({
+        itemListElement: listado.map((p, i: number) => ({
           '@type': 'ListItem',
           position: i + 1,
           url: `https://www.nido-cr.com/propiedades/${p.id}`,
@@ -101,14 +102,14 @@ export default async function ZonaPage({ params }: { params: Promise<{ zona: str
 
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'oklch(0.97 0.005 80/0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--rule)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', maxWidth: 1600, margin: '0 auto' }}>
-          <a href="/" style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 500 }}>NIDO<span style={{ color: 'var(--accent)' }}>.</span></a>
-          <a href="/propiedades" style={{ fontSize: 13, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Ver todas las propiedades →</a>
+          <Link href="/" style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 500 }}>NIDO<span style={{ color: 'var(--accent)' }}>.</span></Link>
+          <Link href="/propiedades" style={{ fontSize: 13, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Ver todas las propiedades →</Link>
         </div>
       </header>
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '40px 40px 80px' }}>
         <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 10 }}>
-          <a href="/propiedades" style={{ color: 'var(--ink-3)' }}>Propiedades</a> · <a href="/propiedades/zona" style={{ color: 'var(--ink-3)' }}>Zonas</a> · {zona.nombre}
+          <Link href="/propiedades" style={{ color: 'var(--ink-3)' }}>Propiedades</Link> · <Link href="/propiedades/zona" style={{ color: 'var(--ink-3)' }}>Zonas</Link> · {zona.nombre}
         </div>
         <div style={{ marginBottom: 32 }}>
           <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--accent)', marginBottom: 8 }}>{zona.provincia}, Costa Rica</div>
@@ -124,7 +125,7 @@ export default async function ZonaPage({ params }: { params: Promise<{ zona: str
 
         {listado.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 20 }}>
-            {listado.map((p: any, i: number) => {
+            {listado.map((p, i: number) => {
               const hue = HUES[i % HUES.length]
               return (
                 <a key={p.id} href={`/propiedades/${p.id}`} style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', textDecoration: 'none', color: 'inherit', display: 'block' }}>

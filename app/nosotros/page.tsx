@@ -1,5 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function Nosotros() {
   const router = useRouter()
@@ -24,7 +25,7 @@ export default function Nosotros() {
 
       {/* NAV */}
       <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, background:'rgba(6,13,8,0.9)', backdropFilter:'blur(16px)', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'14px 40px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'white', textDecoration:'none' }}>NIDO<span style={{ color:'var(--gold)' }}>.</span></a>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'white', textDecoration:'none' }}>NIDO<span style={{ color:'var(--gold)' }}>.</span></Link>
         <div style={{ display:'flex', gap:24, fontSize:13 }} className="hide-mobile">
           <a href="#mision" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Misión</a>
           <a href="#modelo" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Modelo</a>
@@ -424,7 +425,7 @@ export default function Nosotros() {
       <footer style={{ background:'#040A06', padding:'28px 40px', display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'1px solid rgba(255,255,255,0.04)', flexWrap:'wrap', gap:12 }}>
         <span style={{ fontFamily:'var(--serif)', fontSize:20, color:'white' }}>NIDO<span style={{ color:'var(--gold)' }}>.</span></span>
         <div style={{ display:'flex', gap:24, fontSize:12 }}>
-          <a href="/propiedades" style={{ color:'rgba(255,255,255,0.3)', textDecoration:'none' }}>Portal</a>
+          <Link href="/propiedades" style={{ color:'rgba(255,255,255,0.3)', textDecoration:'none' }}>Portal</Link>
           <a href="/asesores" style={{ color:'rgba(255,255,255,0.3)', textDecoration:'none' }}>Asesores</a>
           <a href="/academia" style={{ color:'rgba(255,255,255,0.3)', textDecoration:'none' }}>Academia</a>
           <a href="/privacidad" style={{ color:'rgba(255,255,255,0.3)', textDecoration:'none' }}>Privacidad</a>

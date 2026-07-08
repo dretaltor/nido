@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import type { User } from '@supabase/supabase-js'
 
 export default function ContratoEquipoNido() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [aceptado, setAceptado] = useState(false)
   const [aprobado, setAprobado] = useState(false)
   const [checked, setChecked] = useState(false)
@@ -89,7 +90,7 @@ export default function ContratoEquipoNido() {
               </ol>
 
               <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>4. Uso de marca</h3>
-              <p style={{ marginBottom:16 }}>Mientras forme parte del Equipo NIDO, el Asesor puede identificarse como "Asesor del Equipo NIDO" en sus comunicaciones profesionales. Este derecho cesa inmediatamente al finalizar la relación con el equipo, debiendo el Asesor remover cualquier referencia a "Equipo NIDO" de sus perfiles y materiales.</p>
+              <p style={{ marginBottom:16 }}>Mientras forme parte del Equipo NIDO, el Asesor puede identificarse como &quot;Asesor del Equipo NIDO&quot; en sus comunicaciones profesionales. Este derecho cesa inmediatamente al finalizar la relación con el equipo, debiendo el Asesor remover cualquier referencia a &quot;Equipo NIDO&quot; de sus perfiles y materiales.</p>
 
               <h3 style={{ fontSize:15, fontWeight:500, marginBottom:10 }}>5. Confidencialidad</h3>
               <p style={{ marginBottom:16 }}>El Asesor se compromete a mantener confidencial la información de leads, clientes, propietarios, inventario interno y estrategias a las que acceda como parte del Equipo NIDO, tanto durante como después de su participación en el equipo.</p>

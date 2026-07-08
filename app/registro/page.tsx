@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 
 const PLANES_INFO: Record<string, { nombre: string, precio: string, color: string }> = {
@@ -132,9 +133,9 @@ function RegistroInner() {
       {/* Panel izquierdo */}
       <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', padding:'48px 64px', maxWidth:600, animation:'fadeUp 0.5s ease', overflowY:'auto' }}>
 
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:26, color:'var(--ink)', textDecoration:'none', marginBottom:32, display:'block' }}>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:26, color:'var(--ink)', textDecoration:'none', marginBottom:32, display:'block' }}>
           NIDO<span style={{ color:'var(--accent)' }}>.</span>
-        </a>
+        </Link>
 
         <div style={{ marginBottom:24 }}>
           <div style={{ fontSize:11, letterSpacing:'0.18em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>
@@ -182,7 +183,7 @@ function RegistroInner() {
               { id:'compania', label:'Trabajo para una compañía', desc:'Indicá el nombre de tu agencia o empresa' },
               { id:'equipo_nido', label:'Quiero aplicar al Equipo NIDO', desc:'Solicitar incorporación — sujeto a aprobación' },
             ].map(o => (
-              <button key={o.id} onClick={() => setTipoTrabajo(o.id as any)} style={{ display:'flex', alignItems:'center', gap:10, textAlign:'left', padding:'10px 14px', borderRadius:10, border:'1px solid '+(tipoTrabajo===o.id?'var(--accent)':'var(--rule)'), background:tipoTrabajo===o.id?'var(--accent-tint)':'white', cursor:'pointer', fontFamily:'inherit' }}>
+              <button key={o.id} onClick={() => setTipoTrabajo(o.id as 'independiente' | 'compania' | 'equipo_nido')} style={{ display:'flex', alignItems:'center', gap:10, textAlign:'left', padding:'10px 14px', borderRadius:10, border:'1px solid '+(tipoTrabajo===o.id?'var(--accent)':'var(--rule)'), background:tipoTrabajo===o.id?'var(--accent-tint)':'white', cursor:'pointer', fontFamily:'inherit' }}>
                 <div style={{ width:16, height:16, borderRadius:'50%', border:'2px solid '+(tipoTrabajo===o.id?'var(--accent)':'var(--rule)'), display:'grid', placeItems:'center', flexShrink:0 }}>
                   {tipoTrabajo===o.id && <div style={{ width:8, height:8, borderRadius:'50%', background:'var(--accent)' }}/>}
                 </div>
@@ -277,7 +278,7 @@ function RegistroInner() {
               </div>
             </div>
             <p style={{ fontSize:13, color:'rgba(255,255,255,0.6)', lineHeight:1.65, fontStyle:'italic' }}>
-              "Bienvenido a NIDO. Desde tu primer dia, voy a ayudarte a encontrar leads, redactar descripciones y cerrar mas rapido. Empecemos."
+              &quot;Bienvenido a NIDO. Desde tu primer dia, voy a ayudarte a encontrar leads, redactar descripciones y cerrar mas rapido. Empecemos.&quot;
             </p>
           </div>
         </div>

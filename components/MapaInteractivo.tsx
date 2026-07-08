@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useRef } from 'react'
+import type { Map as MapboxMap, LngLatBounds } from 'mapbox-gl'
 
 interface PropiedadMapa {
   id: string
@@ -42,8 +43,8 @@ async function geocodeQuery(query: string, token: string): Promise<[number, numb
 
 export default function MapaInteractivo({ propiedades, onSelect }: Props) {
   const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstance = useRef<any>(null)
-  const boundsRef = useRef<any>(null)
+  const mapInstance = useRef<MapboxMap | null>(null)
+  const boundsRef = useRef<LngLatBounds | null>(null)
 
   useEffect(() => {
     if (!mapRef.current || mapInstance.current) return

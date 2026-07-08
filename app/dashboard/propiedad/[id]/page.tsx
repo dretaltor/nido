@@ -1,4 +1,3 @@
-// @ts-nocheck
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
@@ -6,8 +5,13 @@ import { supabase } from '../../../../lib/supabase'
 import { useTrial } from '../../../../lib/useTrial'
 import { COSTA_RICA } from '../../../../lib/costaRicaData'
 import { addWatermark } from '../../../../lib/watermark'
+import type { User } from '@supabase/supabase-js'
+import type { Propiedad } from '../../../../lib/database.types'
+import type { Provincia, Canton } from '../../../../lib/costaRicaData'
 
 const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la montaña','Pet friendly','Jardín privado','Patio','Terraza','Balcón','Aire acondicionado','Cocina italiana','Isla en cocina','Walk-in closet','Cuarto de servicio','Gimnasio','Salón de eventos','Coworking','Rooftop','BBQ','Jacuzzi','Smart home','Generador eléctrico','Paneles solares','Cisterna','Seguridad 24/7','Acceso controlado','Internet 1 Gbps','Cerca de escuelas']
+
+type PropForm = Omit<Partial<Propiedad>, 'fotos' | 'amenidades' | 'precio' | 'cuota_condominal'> & { fotos: string[], amenidades: string[], precio?: string | number, cuota_condominal?: string | number | null }
 
 export default function EditarPropiedad() {
   const { bloqueado: trialBloqueado, checando: checandoTrial } = useTrial()
@@ -15,12 +19,12 @@ export default function EditarPropiedad() {
   const params = useParams()
   const id = params.id as string
 
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [notFound, setNotFound] = useState(false)
   const [msg, setMsg] = useState('')
-  const [p, setP] = useState<any>(null)
+  const [p, setP] = useState<PropForm | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
   useEffect(() => {
@@ -34,17 +38,17 @@ export default function EditarPropiedad() {
     })
   }, [id])
 
-  const patch = (vals: any) => setP((prev: any) => ({ ...prev, ...vals }))
+  const patch = (vals: Partial<PropForm>) => setP((prev) => prev ? ({ ...prev, ...vals }) : prev)
 
   const toggleAmen = (a: string) => {
-    const list = p.amenidades || []
+    const list = p?.amenidades || []
     patch({ amenidades: list.includes(a) ? list.filter((x: string) => x !== a) : [...list, a] })
   }
 
   const uploadFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files) return
-    const actuales = (p.fotos || []).length
+    const actuales = (p?.fotos || []).length
     const disponibles = 15 - actuales
     if (disponibles <= 0) { setMsg('Ya tenés el máximo de 15 fotos. Eliminá alguna para subir nuevas.'); e.target.value=''; return }
     const filesToUpload = Array.from(files).slice(0, disponibles)
@@ -62,18 +66,18 @@ export default function EditarPropiedad() {
         nuevas.push(urlData.publicUrl)
       }
     }
-    patch({ fotos: [...(p.fotos || []), ...nuevas] })
+    patch({ fotos: [...(p?.fotos || []), ...nuevas] })
     setUploadingPhoto(false)
   }
 
   const quitarFoto = (url: string) => {
-    patch({ fotos: (p.fotos || []).filter((f: string) => f !== url) })
+    patch({ fotos: (p?.fotos || []).filter((f: string) => f !== url) })
   }
 
   const [dragIdx, setDragIdx] = useState<number|null>(null)
 
   const moverFoto = (from: number, to: number) => {
-    const arr = [...(p.fotos || [])]
+    const arr = [...(p?.fotos || [])]
     if (to < 0 || to >= arr.length) return
     const [item] = arr.splice(from, 1)
     arr.splice(to, 0, item)
@@ -92,11 +96,12 @@ export default function EditarPropiedad() {
   }
 
   const guardar = async () => {
+    if (!p) return
     setSaving(true)
     const { error } = await supabase.from('propiedades').update({
       titulo: p.titulo,
       descripcion: p.descripcion,
-      precio: parseInt(p.precio) || 0,
+      precio: parseInt(String(p.precio||0)) || 0,
       zona: p.zona,
       provincia: p.provincia,
       distrito: p.distrito,
@@ -111,7 +116,7 @@ export default function EditarPropiedad() {
       topografia: p.topografia,
       uso_suelo: p.uso_suelo,
       terreno_tipo: p.terreno_tipo,
-      cuota_condominal: p.cuota_condominal ? parseFloat(p.cuota_condominal) : null,
+      cuota_condominal: p.cuota_condominal ? parseFloat(String(p.cuota_condominal)) : null,
       updated_at: new Date().toISOString(),
     }).eq('id', id)
     setSaving(false)
@@ -144,9 +149,11 @@ export default function EditarPropiedad() {
     </main>
   )
 
+  if (!p) return null
+
   const esLote = p.tipo === 'lote'
-  const cantonesDisponibles = COSTA_RICA.find((pr:any) => pr.nombre === p.provincia)?.cantones || []
-  const distritosDisponibles = cantonesDisponibles.find((c:any) => c.nombre === p.zona)?.distritos || []
+  const cantonesDisponibles = COSTA_RICA.find((pr: Provincia) => pr.nombre === p.provincia)?.cantones || []
+  const distritosDisponibles = cantonesDisponibles.find((c: Canton) => c.nombre === p.zona)?.distritos || []
 
   return (
     <main style={{ fontFamily:"'DM Sans',sans-serif", minHeight:'100vh', background:'oklch(0.97 0.005 80)', color:'oklch(0.20 0.005 80)' }}>
@@ -222,11 +229,11 @@ export default function EditarPropiedad() {
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:14 }}>
             <select className="inp" value={p.provincia||''} onChange={e => patch({provincia:e.target.value, zona:'', distrito:''})}>
               <option value="">Provincia</option>
-              {COSTA_RICA.map((pr:any) => <option key={pr.nombre}>{pr.nombre}</option>)}
+              {COSTA_RICA.map((pr: Provincia) => <option key={pr.nombre}>{pr.nombre}</option>)}
             </select>
             <select className="inp" value={p.zona||''} onChange={e => patch({zona:e.target.value, distrito:''})} disabled={!p.provincia}>
               <option value="">Cantón</option>
-              {cantonesDisponibles.map((c:any) => <option key={c.nombre}>{c.nombre}</option>)}
+              {cantonesDisponibles.map((c: Canton) => <option key={c.nombre}>{c.nombre}</option>)}
             </select>
             <select className="inp" value={p.distrito||''} onChange={e => patch({distrito:e.target.value})} disabled={!p.zona}>
               <option value="">Distrito</option>

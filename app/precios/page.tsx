@@ -1,5 +1,7 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 const PLANES = [
   {
@@ -116,6 +118,7 @@ const CSS = `
 `
 
 export default function Precios() {
+  const router = useRouter()
   const [anual, setAnual] = useState(false)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
 
@@ -133,7 +136,7 @@ export default function Precios() {
   }
 
   const handleSuscribirse = async (planId: string) => {
-    if (planId === 'gratis') { window.location.href = '/registro'; return }
+    if (planId === 'gratis') { router.push('/registro'); return }
     setPlanSeleccionado(planId)
     setShowPago(true)
   }
@@ -144,9 +147,9 @@ export default function Precios() {
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1300, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
-            <a href="/propiedades">Portal</a>
+            <Link href="/propiedades">Portal</Link>
             <a href="/nosotros">Nosotros</a>
             <a href="/asesores">Asesores</a>
             <a href="/academia">Academia</a>

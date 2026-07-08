@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 
 export default function Login() {
@@ -55,9 +56,9 @@ export default function Login() {
       {/* Panel izquierdo — formulario */}
       <div className="left-panel" style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', padding:'48px 64px', maxWidth:560, animation:'fadeUp 0.5s ease' }}>
         
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:26, color:'var(--ink)', textDecoration:'none', marginBottom:48, display:'block' }}>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:26, color:'var(--ink)', textDecoration:'none', marginBottom:48, display:'block' }}>
           NIDO<span style={{ color:'var(--accent)' }}>.</span>
-        </a>
+        </Link>
 
         <div style={{ marginBottom:32 }}>
           <div style={{ fontSize:11, letterSpacing:'0.18em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Portal de asesores</div>
@@ -164,7 +165,7 @@ export default function Login() {
               </div>
             </div>
             <p style={{ fontSize:13, color:'rgba(255,255,255,0.65)', lineHeight:1.65, fontStyle:'italic' }}>
-              "Los asesores que responden leads en menos de 2 horas cierran 3× más. Hoy tenés oportunidades esperándote."
+              &quot;Los asesores que responden leads en menos de 2 horas cierran 3× más. Hoy tenés oportunidades esperándote.&quot;
             </p>
           </div>
         </div>

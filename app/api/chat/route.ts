@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   if (messages.length > 20) {
     return NextResponse.json({ error: 'Demasiados mensajes' }, { status: 400 })
   }
-  const totalChars = (system || '').length + messages.reduce((acc: number, m: any) => acc + (m.content?.length || 0), 0)
+  const totalChars = (system || '').length + messages.reduce((acc: number, m: { content?: string }) => acc + (m.content?.length || 0), 0)
   if (totalChars > 8000) {
     return NextResponse.json({ error: 'Contenido demasiado largo' }, { status: 400 })
   }
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ 
       message: response.content[0].type === 'text' ? response.content[0].text : '' 
     })
-  } catch (err: any) {
+  } catch (err) {
     console.error('Chat API error:', err)
     return NextResponse.json({ error: 'Error al procesar la solicitud' }, { status: 500 })
   }

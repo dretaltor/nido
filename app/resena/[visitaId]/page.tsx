@@ -2,11 +2,20 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import Link from 'next/link'
+
+interface VisitaResena {
+  asesor_email: string
+  asesor_nombre?: string | null
+  propiedad_id: string
+  propiedad_titulo?: string | null
+  ya_calificada?: boolean | null
+}
 
 export default function DejarResena() {
   const params = useParams()
   const visitaId = params?.visitaId as string
-  const [visita, setVisita] = useState<any>(null)
+  const [visita, setVisita] = useState<VisitaResena | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [calificacion, setCalificacion] = useState(0)
@@ -28,7 +37,7 @@ export default function DejarResena() {
   }, [visitaId])
 
   const enviar = async () => {
-    if (!calificacion || enviando) return
+    if (!calificacion || enviando || !visita) return
     setEnviando(true)
     const { error: err } = await supabase.from('calificaciones').insert({
       visita_id: visitaId,
@@ -52,7 +61,7 @@ export default function DejarResena() {
       `}</style>
 
       <div style={{ maxWidth:480, width:'100%', background:'white', border:'1px solid oklch(0.88 0.006 80)', borderRadius:20, padding:'36px 32px', textAlign:'center' }}>
-        <a href="/" style={{ fontFamily:'Cormorant Garamond,serif', fontSize:22, color:'oklch(0.20 0.005 80)', display:'block', marginBottom:24 }}>NIDO<span style={{ color:'oklch(0.42 0.06 150)' }}>.</span></a>
+        <Link href="/" style={{ fontFamily:'Cormorant Garamond,serif', fontSize:22, color:'oklch(0.20 0.005 80)', display:'block', marginBottom:24 }}>NIDO<span style={{ color:'oklch(0.42 0.06 150)' }}>.</span></Link>
 
         {loading ? (
           <p style={{ fontSize:14, color:'oklch(0.60 0.005 80)' }}>Cargando...</p>

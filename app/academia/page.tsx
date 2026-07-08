@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { getPlanConfig } from '../../lib/planes'
 import { useTrial } from '../../lib/useTrial'
+import Link from 'next/link'
 
 const CURSOS = [
   { id:1, cat:'Ventas', nivel:'Básico', dur:'2 horas', titulo:'Fundamentos de ventas inmobiliarias', desc:'Aprende las bases para cerrar tu primera venta. Técnicas de prospección, presentación y cierre.', temas:['¿Qué busca un comprador?','Cómo hacer una presentación efectiva','Manejo de objeciones','Técnicas de cierre'], icon:'🏠', gratis:true, hue:150 },
@@ -74,7 +75,7 @@ export default function Academia() {
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1400, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
             <a href="/nosotros" style={{color:"var(--ink-3)",textDecoration:"none",fontSize:13}}>Nosotros</a>
             <a href="/dashboard">Dashboard</a>

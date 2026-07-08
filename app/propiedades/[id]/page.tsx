@@ -1,6 +1,6 @@
 'use client'
-// @ts-nocheck
-import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import { useEffect, useState, use } from 'react'
 import dynamic from 'next/dynamic'
 const MapaUbicacion = dynamic(() => import('../../../components/MapaUbicacion'), { ssr: false })
 import { VisitaForm } from '@/components/visitas/VisitaForm'
@@ -8,12 +8,16 @@ import { supabase } from '../../../lib/supabase'
 import { useAuth } from '@/lib/context/AuthContext'
 import { OfertaForm } from '@/components/ofertas/OfertaForm'
 import { ContactoForm } from '@/components/contacto/ContactoForm'
+import type { CalificacionPublica } from '../../../lib/database.types'
+
+type PerfilAsesorState = { correo?: string, nombre?: string, foto_url?: string, equipo_nido_estado?: string, telefono?: string } | null
 
 interface Propiedad {
   id: string; titulo: string; descripcion: string; precio: number; tipo: string;
   operacion: string; habitaciones: number; banos: number; metros: number;
   zona: string; direccion: string; asesor_nombre: string; asesor_email: string; asesor_telefono?: string; asesor_whatsapp: string; ref_id: string; fotos: string[];
   distrito?: string; provincia?: string; topografia?: string; uso_suelo?: string; terreno_tipo?: string; cuota_condominal?: number;
+  created_at?: string | null;
 }
 
 function Icon({ name }: { name: string }) {
@@ -30,7 +34,7 @@ function Icon({ name }: { name: string }) {
 }
 
 export default function PropiedadDetalle({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = require('react').use(params)
+  const { id } = use(params)
   const [propiedad, setPropiedad] = useState<Propiedad | null>(null)
   const [visitaOpen, setVisitaOpen] = useState<boolean>(false)
   const [visitaExito, setVisitaExito] = useState<boolean>(false)
@@ -48,10 +52,10 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
   const [copied, setCopied] = useState(false)
   const [imgError, setImgError] = useState(false)
   const [activeFoto, setActiveFoto] = useState(0)
-  const [perfilAsesor, setPerfilAsesor] = useState<any>(null)
+  const [perfilAsesor, setPerfilAsesor] = useState<PerfilAsesorState>(null)
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [asesorStats, setAsesorStats] = useState<{promedio:number|null,total:number,cerradas:number,activas:number}>({promedio:null,total:0,cerradas:0,activas:0})
-  const [resenasPropiedad, setResenasPropiedad] = useState<any[]>([])
+  const [resenasPropiedad, setResenasPropiedad] = useState<Partial<CalificacionPublica>[]>([])
 
   useEffect(() => {
 // Auth handled by AuthContext
@@ -107,7 +111,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
       <style>{CSS}</style>
       <div style={{textAlign:'center'}}>
         <p style={{color:'var(--ink-3)',marginBottom:16}}>Propiedad no encontrada</p>
-        <a href="/propiedades" style={{color:'var(--accent)'}}>← Volver al portal</a>
+        <Link href="/propiedades" style={{color:'var(--accent)'}}>← Volver al portal</Link>
       </div>
     </main>
   )
@@ -122,10 +126,10 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
       <nav style={{position:'sticky',top:0,zIndex:50,background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--rule)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 40px',maxWidth:1200,margin:'0 auto'}}>
-          <a href="/propiedades" style={{display:'flex',alignItems:'center',gap:8,color:'var(--ink-2)',textDecoration:'none',fontSize:14}}>
+          <Link href="/propiedades" style={{display:'flex',alignItems:'center',gap:8,color:'var(--ink-2)',textDecoration:'none',fontSize:14}}>
             <Icon name="left"/> Volver
-          </a>
-          <a href="/" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:'var(--ink)',textDecoration:'none'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></a>
+          </Link>
+          <Link href="/" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:'var(--ink)',textDecoration:'none'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></Link>
           <div style={{display:'flex',gap:10}}>
             <button onClick={() => setFav(!fav)} style={{width:36,height:36,borderRadius:'50%',border:'1px solid var(--rule)',background:'white',cursor:'pointer',display:'grid',placeItems:'center',color:fav?'#e11d48':'var(--ink-3)'}}>
               <Icon name="heart"/>
@@ -207,8 +211,8 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
             <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',borderTop:'1px solid var(--rule)',borderBottom:'1px solid var(--rule)',marginBottom:32}}>
               {(propiedad.tipo === 'lote' ? [
                 {icon:'ruler',val:(propiedad.metros||0)+'m²',label:'Área terreno'},
-                {icon:'ruler',val:({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as any)[propiedad.topografia||'']||'—',label:'Topografía'},
-                {icon:'ruler',val:({residencial:'Residencial',comercial:'Comercial',agricola:'Agrícola',mixto:'Mixto',forestal:'Forestal'} as any)[propiedad.uso_suelo||'']||'—',label:'Uso de suelo'},
+                {icon:'ruler',val:({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as Record<string,string>)[propiedad.topografia||'']||'—',label:'Topografía'},
+                {icon:'ruler',val:({residencial:'Residencial',comercial:'Comercial',agricola:'Agrícola',mixto:'Mixto',forestal:'Forestal'} as Record<string,string>)[propiedad.uso_suelo||'']||'—',label:'Uso de suelo'},
                 {icon:'ruler',val:propiedad.terreno_tipo==='condominio'?('Condominio'+(propiedad.cuota_condominal?' · $'+propiedad.cuota_condominal+'/mes':'')):'Residencial libre',label:'Tipo'},
               ] : [
                 {icon:'bed',val:propiedad.habitaciones||0,label:'Habitaciones'},
@@ -386,7 +390,9 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
                 {/* Valor para el comprador */}
                 {(() => {
-                  const dias = (propiedad as any)?.created_at ? Math.floor((Date.now() - new Date((propiedad as any).created_at).getTime())/(1000*60*60*24)) : null
+                  // Etiqueta informativa de "días publicada" — no crítica para memoización.
+                  // eslint-disable-next-line react-hooks/purity
+                  const dias = propiedad?.created_at ? Math.floor((Date.now() - new Date(propiedad.created_at).getTime())/(1000*60*60*24)) : null
                   return (
                     <div style={{margin:'0 16px 16px',background:'var(--accent-tint)',border:'1px solid oklch(0.85 0.04 150)',borderRadius:10,padding:'12px 14px'}}>
                       <div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--accent)',marginBottom:6,fontWeight:500}}>Valeria recomienda</div>
@@ -407,11 +413,11 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
               Reseñas de visitantes {asesorStats.promedio && <span style={{color:'var(--accent)'}}>· {asesorStats.promedio}★</span>}
             </h2>
             <div style={{display:'flex',flexDirection:'column',gap:12}}>
-              {resenasPropiedad.map((r:any,i:number) => (
+              {resenasPropiedad.map((r,i:number) => (
                 <div key={i} style={{background:'white',border:'1px solid var(--rule)',borderRadius:12,padding:'16px 20px'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6}}>
                     <div style={{fontSize:13,fontWeight:500}}>{r.calificador_nombre || 'Visitante NIDO'}</div>
-                    <div style={{color:'oklch(0.62 0.10 75)',fontSize:13}}>{'★'.repeat(r.calificacion)}{'☆'.repeat(5-r.calificacion)}</div>
+                    <div style={{color:'oklch(0.62 0.10 75)',fontSize:13}}>{'★'.repeat(r.calificacion||0)}{'☆'.repeat(5-(r.calificacion||0))}</div>
                   </div>
                   {r.comentario && <p style={{fontSize:13,color:'var(--ink-2)',lineHeight:1.6}}>{r.comentario}</p>}
                 </div>

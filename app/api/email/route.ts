@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { checkRateLimit, getClientIp } from '../../../lib/rateLimit'
 
-function esc(v: any): string {
+function esc(v: unknown): string {
   if (v === null || v === undefined) return ''
   return String(v)
     .replace(/&/g, '&amp;')
@@ -696,8 +696,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true, id: result.id })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Email error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 })
   }
 }

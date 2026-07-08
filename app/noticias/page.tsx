@@ -2,6 +2,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import type { Noticia } from '../../lib/database.types'
+
+type NoticiaCard = Noticia & { fecha?: string; tiempo?: string }
 
 const NOTICIAS_STATIC = [
   {
@@ -107,7 +111,7 @@ const CAT_TEXT: Record<string, string> = {
 export default function Noticias() {
   const router = useRouter()
   const [cat, setCat] = useState('Todas')
-  const [noticias, setNoticias] = useState<any[]>([])
+  const [noticias, setNoticias] = useState<NoticiaCard[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -141,7 +145,7 @@ export default function Noticias() {
     @media(max-width:768px){.news-grid{grid-template-columns:1fr!important}.nav-pad{padding:14px 16px!important}}
   `
 
-  const filtradas = cat === 'Todas' ? noticias : noticias.filter((n:any) => n.categoria === cat)
+  const filtradas = cat === 'Todas' ? noticias : noticias.filter((n) => n.categoria === cat)
 
   return (
     <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', color:'var(--ink)' }}>
@@ -149,13 +153,13 @@ export default function Noticias() {
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1200, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
-            <a href="/propiedades">Portal</a>
+            <Link href="/propiedades">Portal</Link>
             <a href="/asesores">Asesores</a>
-            <a href="/noticias" style={{ color:'var(--accent)', fontWeight:500 }}>Noticias</a>
+            <Link href="/noticias" style={{ color:'var(--accent)', fontWeight:500 }}>Noticias</Link>
           </div>
-          <a href="/propiedades" style={{ background:'var(--ink)', color:'white', padding:'8px 18px', borderRadius:999, fontSize:13 }}>Ver propiedades →</a>
+          <Link href="/propiedades" style={{ background:'var(--ink)', color:'white', padding:'8px 18px', borderRadius:999, fontSize:13 }}>Ver propiedades →</Link>
         </div>
       </nav>
 
@@ -205,7 +209,7 @@ export default function Noticias() {
           {filtradas.map((n, i) => (
             <div key={n.id} className="news-card" onClick={() => router.push('/noticias/'+n.id)} style={{ animation:`fadeUp 0.4s ease ${i*0.06}s both` }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start' }}>
-                <span style={{ padding:'4px 10px', borderRadius:999, fontSize:11, fontWeight:500, background:CAT_COLORS[n.categoria]||'var(--bg)', color:CAT_TEXT[n.categoria]||'var(--ink-3)' }}>
+                <span style={{ padding:'4px 10px', borderRadius:999, fontSize:11, fontWeight:500, background:CAT_COLORS[n.categoria||'']||'var(--bg)', color:CAT_TEXT[n.categoria||'']||'var(--ink-3)' }}>
                   {n.categoria}
                 </span>
                 <span style={{ fontSize:11, color:'var(--ink-3)' }}>{n.fecha}</span>
@@ -238,9 +242,9 @@ export default function Noticias() {
       </div>
 
       <footer style={{ borderTop:'1px solid var(--rule)', padding:'24px 40px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'white' }}>
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:18, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:18, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
         <p style={{ fontSize:12, color:'var(--ink-3)' }}>© 2026 NIDO · Costa Rica</p>
-        <a href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>Ver propiedades →</a>
+        <Link href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>Ver propiedades →</Link>
       </footer>
     </main>
   )

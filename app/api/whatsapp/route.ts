@@ -119,7 +119,7 @@ Para cualquier otra consulta, responde normalmente en texto.`
           const { data: props } = await query
           
           if (props && props.length > 0) {
-            finalReply = '🏠 *Propiedades disponibles en NIDO:*\n\n' + props.map((p: any, i: number) => 
+            finalReply = '🏠 *Propiedades disponibles en NIDO:*\n\n' + props.map((p, i) => 
               `${i+1}. *${p.titulo}*\n📍 ${p.zona} | ${p.tipo}\n💰 $${Number(p.precio).toLocaleString()} USD\n🔖 ${p.ref_id || ''}\n🔗 nido-cr.com/propiedades/${p.id}`
             ).join('\n\n') + '\n\n¿Te interesa alguna? Puedo darte más detalles o agendar una visita. 😊'
           } else {
@@ -131,7 +131,7 @@ Para cualquier otra consulta, responde normalmente en texto.`
           const { data: misProps } = await supabaseAdmin.from('propiedades').select('id, titulo, zona, precio, disponible, verificacion_estado').eq('asesor_email', asesor.correo).order('created_at', { ascending: false }).limit(8)
 
           if (misProps && misProps.length > 0) {
-            finalReply = '🏠 *Tus propiedades en NIDO:*\n\n' + misProps.map((p: any, i: number) => {
+            finalReply = '🏠 *Tus propiedades en NIDO:*\n\n' + misProps.map((p, i) => {
               const estado = p.verificacion_estado === 'pendiente_verificacion' ? '⏳ Pendiente de aprobación' : p.disponible ? '✅ Activa' : '⏸️ Pausada'
               return `${i+1}. *${p.titulo}*\n📍 ${p.zona} | $${Number(p.precio).toLocaleString()}\n${estado}\n🔗 nido-cr.com/propiedades/${p.id}`
             }).join('\n\n') + '\n\n¿Querés que te ayude con alguna de ellas?'

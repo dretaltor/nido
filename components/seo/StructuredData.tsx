@@ -1,3 +1,5 @@
+import type { Propiedad } from '../../lib/database.types'
+
 export function StructuredDataOrg() {
   const data = {
     '@context': 'https://schema.org',
@@ -29,7 +31,7 @@ export function StructuredDataWebsite() {
   return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}/>
 }
 
-export function StructuredDataProperty({ propiedad }: { propiedad: any }) {
+export function StructuredDataProperty({ propiedad }: { propiedad: Partial<Propiedad> }) {
   const data = {
     '@context': 'https://schema.org',
     '@type': propiedad.tipo === 'alquiler' ? 'ApartmentComplex' : 'SingleFamilyResidence',

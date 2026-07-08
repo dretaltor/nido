@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
+import Link from 'next/link'
 
 export default function BajaAlerta() {
   const params = useParams()
@@ -21,7 +22,7 @@ export default function BajaAlerta() {
         {estado === 'cargando' && <p style={{ color: '#6B7280', fontSize: 14 }}>Procesando...</p>}
         {estado === 'ok' && <p style={{ color: '#1B5E3B', fontSize: 15 }}>✓ Listo — ya no vas a recibir alertas de esta búsqueda.</p>}
         {estado === 'error' && <p style={{ color: '#c0392b', fontSize: 15 }}>No pudimos procesar tu solicitud. Escribinos a hola@nido-cr.com.</p>}
-        <a href="/propiedades" style={{ display: 'inline-block', marginTop: 20, color: '#1B5E3B', fontSize: 13, textDecoration: 'none' }}>← Volver a NIDO</a>
+        <Link href="/propiedades" style={{ display: 'inline-block', marginTop: 20, color: '#1B5E3B', fontSize: 13, textDecoration: 'none' }}>← Volver a NIDO</Link>
       </div>
     </main>
   )

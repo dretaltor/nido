@@ -3,6 +3,12 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { exportToCSV } from '../../../lib/csvExport'
+import Link from 'next/link'
+import type { User } from '@supabase/supabase-js'
+import type { Propietario, Referido, Contrato, Propiedad, Lead, Oferta, Visita, CalificacionPublica } from '../../../lib/database.types'
+
+type PerfilProp = Partial<Propietario> & { [key: string]: unknown }
+type ContraModal = Partial<Oferta> | null
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
@@ -40,51 +46,51 @@ const VISITAS_MOCK = [
 ]
 
 
-const OFERTAS_MOCK: any[] = []
+const OFERTAS_MOCK: Partial<Oferta>[] = []
 
 export default function DashboardPropietario() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const initRef = useRef(false)
   const [tab, setTab] = useState('resumen')
-  const [ofertasReales, setOfertasReales] = useState<any[]>([])
-  const [propiedadesReales, setPropiedadesReales] = useState<any[]>([])
-  const [leadsReales, setLeadsReales] = useState<any[]>([])
+  const [ofertasReales, setOfertasReales] = useState<Partial<Oferta>[]>([])
+  const [propiedadesReales, setPropiedadesReales] = useState<Partial<Propiedad>[]>([])
+  const [leadsReales, setLeadsReales] = useState<Partial<Lead>[]>([])
   const [visitasPorLead, setVisitasPorLead] = useState<Record<string,boolean>>({})
-  const [visitasReales, setVisitasReales] = useState<any[]>([])
+  const [visitasReales, setVisitasReales] = useState<Partial<Visita>[]>([])
   const [updatingOferta, setUpdatingOferta] = useState<string|null>(null)
-  const [contraModal, setContraModal] = useState<any>(null)
+  const [contraModal, setContraModal] = useState<ContraModal>(null)
   const [contraValor, setContraValor] = useState('')
-  const [perfilPropietario, setPerfilPropietario] = useState<any>(null)
+  const [perfilPropietario, setPerfilPropietario] = useState<PerfilProp | null>(null)
   const [uploadingDoc, setUploadingDoc] = useState<string|null>(null)
-  const [contrato, setContrato] = useState<any>(null)
+  const [contrato, setContrato] = useState<Partial<Contrato> | null>(null)
   const [loadingContrato, setLoadingContrato] = useState(true)
   const [tourActivo, setTourActivo] = useState(false)
   const [tourPaso, setTourPaso] = useState(0)
   const [loading, setLoading] = useState(true)
   const [nombre, setNombre] = useState('')
-  const [comparables, setComparables] = useState<any[]>([])
+  const [comparables, setComparables] = useState<Partial<Propiedad>[]>([])
   const [loadingComparables, setLoadingComparables] = useState(true)
-  const [feedbacksReales, setFeedbacksReales] = useState<any[]>([])
-  const [referidosReales, setReferidosReales] = useState<any[]>([])
+  const [feedbacksReales, setFeedbacksReales] = useState<Partial<CalificacionPublica>[]>([])
+  const [referidosReales, setReferidosReales] = useState<Referido[]>([])
   const [refLinkCopiado, setRefLinkCopiado] = useState(false)
 
   const actualizarOferta = async (id: string, estado: string) => {
     setUpdatingOferta(id)
     await supabase.from('ofertas').update({ estado, updated_at: new Date().toISOString() }).eq('id', id)
-    setOfertasReales(prev => prev.map((o:any) => o.id === id ? { ...o, estado } : o))
+    setOfertasReales(prev => prev.map((o) => o.id === id ? { ...o, estado } : o))
     setUpdatingOferta(null)
   }
 
   const enviarContraOferta = async () => {
     if (!contraModal || !contraValor) return
-    setUpdatingOferta(contraModal.id)
+    setUpdatingOferta(contraModal.id||null)
     await supabase.from('ofertas').update({
       estado: 'contraoferta',
       contraoferta_valor: parseFloat(contraValor.replace(/[^0-9.]/g,'')),
       updated_at: new Date().toISOString()
     }).eq('id', contraModal.id)
-    setOfertasReales(prev => prev.map((o:any) => o.id === contraModal.id ? { ...o, estado: 'contraoferta' } : o))
+    setOfertasReales(prev => prev.map((o) => o.id === contraModal?.id ? { ...o, estado: 'contraoferta' } : o))
     setContraModal(null)
     setContraValor('')
     setUpdatingOferta(null)
@@ -118,7 +124,7 @@ export default function DashboardPropietario() {
       supabase.from('propiedades').select('id,titulo,zona,precio,disponible,tipo,ref_id,fotos,habitaciones,banos,metros,operacion')
         .eq('propietario_email', user.email!)
         .then(({ data: props }) => {
-          const propsData = props || []
+          const propsData = (props || []) as Partial<Propiedad>[]
           setPropiedadesReales(propsData)
           // Comparables reales de la zona (para la pestaña "Valor de mercado") — otras
           // propiedades activas y aprobadas en la misma zona, sin importar quien las publico.
@@ -134,7 +140,7 @@ export default function DashboardPropietario() {
             setLoadingComparables(false)
           }
           if (propsData.length > 0) {
-            const pids = propsData.map((p:any) => p.id)
+            const pids = propsData.map((p) => p.id)
             // Leads: solo campos no sensibles (sin email ni telefono)
             supabase.from('leads').select('id,nombre,zona_interes,tipo_busqueda,estado,created_at,propiedad_id')
               .in('propiedad_id', pids).order('created_at', { ascending: false })
@@ -145,12 +151,12 @@ export default function DashboardPropietario() {
                 supabase.rpc('leads_con_visita', { prop_ids: pids })
                   .then(({ data: vis }) => {
                     const mapa: Record<string,boolean> = {}
-                    ;(vis || []).forEach((v:any) => { if(v.lead_id) mapa[v.lead_id] = true })
+                    ;(vis || []).forEach((v: { lead_id: string | null }) => { if(v.lead_id) mapa[v.lead_id] = true })
                     setVisitasPorLead(mapa)
                   })
               })
             // Ofertas filtradas por propiedades del propietario
-            supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,valor_oferta,condiciones,estado,tipo_compra,propiedad_id,asesor_email,created_at').in('propiedad_id', pids)
+            supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,valor_oferta,condiciones,estado,tipo_compra,forma_pago,banco,pre_aprobado,monto_prima,propiedad_id,asesor_email,created_at').in('propiedad_id', pids)
               .order('created_at', { ascending: false })
               .then(({ data: ofData }) => setOfertasReales(ofData || []))
             // Fetch visitas del propietario
@@ -200,7 +206,7 @@ export default function DashboardPropietario() {
       {/* Nav */}
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 32px', maxWidth:1400, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:6, overflowX:'auto' }}>
             {TABS.map(t => (
               <button key={t.id} className={'tab'+(tab===t.id?' active':'')} onClick={() => setTab(t.id)}>{t.label}</button>
@@ -244,20 +250,25 @@ export default function DashboardPropietario() {
 
             {/* Resumen propiedades */}
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-              {propiedadesReales.map(p => (
+              {propiedadesReales.map(p => {
+                const foto = (p.fotos as string[] | null)?.[0] || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=60'
+                const leadsDeEsta = leadsReales.filter((l) => l.propiedad_id === p.id).length
+                const ofertasDeEsta = ofertasReales.filter((o) => o.propiedad_id === p.id).length
+                return (
                 <div key={p.id} className="card" style={{ display:'flex', gap:0, overflow:'hidden' }}>
-                  <img src={p.foto} style={{ width:100, height:'100%', objectFit:'cover', flexShrink:0 }} alt={p.titulo}/>
+                  <img src={foto} style={{ width:100, height:'100%', objectFit:'cover', flexShrink:0 }} alt={p.titulo}/>
                   <div className="card-pad" style={{ flex:1 }}>
                     <div style={{ fontSize:14, fontWeight:500, marginBottom:4 }}>{p.titulo}</div>
                     <div style={{ fontSize:12, color:'var(--ink-3)', marginBottom:8 }}>{p.zona}</div>
                     <div style={{ display:'flex', gap:16, fontSize:12, color:'var(--ink-2)' }}>
-                      <span>{p.vistas} vistas</span>
-                      <span>{p.consultas} consultas</span>
+                      <span>{leadsDeEsta} consultas</span>
+                      <span>{ofertasDeEsta} ofertas</span>
                     </div>
-                    <div style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)', marginTop:6 }}>${p.precio.toLocaleString()}</div>
+                    <div style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)', marginTop:6 }}>${(p.precio||0).toLocaleString()}</div>
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
 
             {/* Leads recientes */}
@@ -268,10 +279,10 @@ export default function DashboardPropietario() {
               </div>
               {leadsReales.length === 0 ? (
                 <div style={{ padding:'16px 24px', fontSize:13, color:'var(--ink-3)' }}>Sin consultas aún.</div>
-              ) : leadsReales.slice(0,2).map((l:any) => {
-                const prop = propiedadesReales.find((p:any) => p.id === l.propiedad_id)
+              ) : leadsReales.slice(0,2).map((l) => {
+                const prop = propiedadesReales.find((p) => p.id === l.propiedad_id)
                 const inicial = (l.nombre||'C')[0].toUpperCase()
-                const agendó = !!visitasPorLead[l.id]
+                const agendó = !!(l.id && visitasPorLead[l.id])
                 return (
                 <div key={l.id} style={{ display:'flex', alignItems:'center', gap:14, padding:'14px 24px', borderBottom:'1px solid var(--rule-soft)' }}>
                   <div style={{ width:36, height:36, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{inicial}</div>
@@ -292,7 +303,7 @@ export default function DashboardPropietario() {
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
               <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400 }}>Mis propiedades</h2>
-              <button onClick={() => exportToCSV('nido-propiedades-' + new Date().toISOString().split('T')[0], propiedadesReales.map((p:any) => ({
+              <button onClick={() => exportToCSV('nido-propiedades-' + new Date().toISOString().split('T')[0], propiedadesReales.map((p) => ({
                 titulo: p.titulo, zona: p.zona, precio: p.precio, disponible: p.disponible ? 'Activa' : 'Inactiva',
                 tipo: p.tipo, operacion: p.operacion, ref: p.ref_id, habitaciones: p.habitaciones, banos: p.banos, metros: p.metros,
               })))} disabled={propiedadesReales.length === 0} style={{ background:'transparent', border:'1px solid var(--rule)', color:'var(--ink-2)', padding:'8px 16px', borderRadius:999, fontSize:13, cursor:propiedadesReales.length===0?'not-allowed':'pointer', opacity:propiedadesReales.length===0?0.5:1 }}>
@@ -305,10 +316,10 @@ export default function DashboardPropietario() {
               </div>
             ) : (
             <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:16 }}>
-              {propiedadesReales.map((p:any) => {
-                const foto = p.fotos?.[0] || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=60'
-                const leadsDeEsta = leadsReales.filter((l:any) => l.propiedad_id === p.id)
-                const ofertasDeEsta = ofertasReales.filter((o:any) => o.propiedad_id === p.id)
+              {propiedadesReales.map((p) => {
+                const foto = (p.fotos as string[] | null)?.[0] || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=60'
+                const leadsDeEsta = leadsReales.filter((l) => l.propiedad_id === p.id)
+                const ofertasDeEsta = ofertasReales.filter((o) => o.propiedad_id === p.id)
                 return (
                 <div key={p.id} className="card">
                   <img src={foto} style={{ width:'100%', height:200, objectFit:'cover' }} alt={p.titulo}/>
@@ -327,7 +338,7 @@ export default function DashboardPropietario() {
                         {l:'Ofertas recibidas',v:ofertasDeEsta.length},
                         {l:'Habitaciones',v:p.habitaciones||'—'},
                         {l:'Área',v:p.metros ? p.metros+'m²' : '—'}
-                      ].map((s:any) => (
+                      ].map((s) => (
                         <div key={s.l} style={{ background:'var(--bg)', borderRadius:8, padding:'10px 12px' }}>
                           <div style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)', marginBottom:2 }}>{s.v}</div>
                           <div style={{ fontSize:11, color:'var(--ink-3)' }}>{s.l}</div>
@@ -352,8 +363,8 @@ export default function DashboardPropietario() {
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
               <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400 }}>Leads de compradores</h2>
-              <button onClick={() => exportToCSV('nido-leads-propietario-' + new Date().toISOString().split('T')[0], leadsReales.map((l:any) => ({
-                nombre: l.nombre, propiedad: propiedadesReales.find((p:any) => p.id === l.propiedad_id)?.titulo || '',
+              <button onClick={() => exportToCSV('nido-leads-propietario-' + new Date().toISOString().split('T')[0], leadsReales.map((l) => ({
+                nombre: l.nombre, propiedad: propiedadesReales.find((p) => p.id === l.propiedad_id)?.titulo || '',
                 zona_interes: l.zona_interes, tipo_busqueda: l.tipo_busqueda, estado: l.estado, fecha: l.created_at,
               })))} disabled={leadsReales.length === 0} style={{ background:'transparent', border:'1px solid var(--rule)', color:'var(--ink-2)', padding:'8px 16px', borderRadius:999, fontSize:13, cursor:leadsReales.length===0?'not-allowed':'pointer', opacity:leadsReales.length===0?0.5:1 }}>
                 ⬇ Exportar CSV
@@ -367,11 +378,14 @@ export default function DashboardPropietario() {
                 <div style={{ padding:'32px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>
                   Aún no hay consultas en tus propiedades.
                 </div>
-              ) : leadsReales.map((l:any,i:number) => {
-                const prop = propiedadesReales.find((p:any) => p.id === l.propiedad_id)
+              ) : leadsReales.map((l,i:number) => {
+                const prop = propiedadesReales.find((p) => p.id === l.propiedad_id)
                 const inicial = (l.nombre || 'C')[0].toUpperCase()
                 const nombreCorto = (l.nombre || 'Comprador').split(' ').map((n:string, idx:number) => idx===0 ? n[0]+'.' : n).join(' ')
-                const hace = new Date(l.created_at)
+                // Etiqueta relativa de tiempo ("hace Xh") — no crítica para memoización.
+                // eslint-disable-next-line react-hooks/purity
+                const hace = new Date(l.created_at||Date.now())
+                // eslint-disable-next-line react-hooks/purity
                 const diff = Math.floor((Date.now()-hace.getTime())/(1000*3600))
                 const cuandoFue = diff < 1 ? 'Hace menos de 1h' : diff < 24 ? `Hace ${diff}h` : `Hace ${Math.floor(diff/24)} día${Math.floor(diff/24)>1?'s':''}`
                 return (
@@ -382,8 +396,8 @@ export default function DashboardPropietario() {
                       <div style={{ fontSize:12, color:'var(--ink-3)' }}>{prop?.titulo || 'Tu propiedad'} · {cuandoFue}</div>
                     </div>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:6 }}>
-                      <span style={{ fontSize:11, padding:'3px 10px', borderRadius:999, background: visitasPorLead[l.id] ? 'var(--accent-tint)' : 'oklch(0.93 0.005 80)', color: visitasPorLead[l.id] ? 'var(--accent)' : 'var(--ink-3)', fontWeight:500 }}>
-                        {visitasPorLead[l.id] ? '✓ Visita agendada' : 'Sin visita'}
+                      <span style={{ fontSize:11, padding:'3px 10px', borderRadius:999, background: (l.id && visitasPorLead[l.id]) ? 'var(--accent-tint)' : 'oklch(0.93 0.005 80)', color: (l.id && visitasPorLead[l.id]) ? 'var(--accent)' : 'var(--ink-3)', fontWeight:500 }}>
+                        {(l.id && visitasPorLead[l.id]) ? '✓ Visita agendada' : 'Sin visita'}
                       </span>
                     </div>
                   </div>
@@ -400,7 +414,7 @@ export default function DashboardPropietario() {
             <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
               {visitasReales.length === 0 ? (
                 <div style={{ padding:'32px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>Sin visitas agendadas aún.</div>
-              ) : visitasReales.map((v:any) => (
+              ) : visitasReales.map((v) => (
                 <div key={v.id} className="card card-pad" style={{ display:'flex', alignItems:'center', gap:20 }}>
                   <div style={{ width:60, height:60, borderRadius:10, background:v.estado==='confirmada'?'var(--accent-tint)':'oklch(0.93 0.05 80)', display:'grid', placeItems:'center', flexShrink:0 }}>
                     <span style={{ fontSize:24 }}>{v.estado==='confirmada'?'✓':'⏳'}</span>
@@ -428,7 +442,7 @@ export default function DashboardPropietario() {
             ) : (
               <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
                 {feedbacksReales.map((f, i) => {
-                  const prop = propiedadesReales.find((p:any) => p.id === f.propiedad_id)
+                  const prop = propiedadesReales.find((p) => p.id === f.propiedad_id)
                   const nombre = f.calificador_nombre || 'Visitante anónimo'
                   const fecha = f.created_at ? new Date(f.created_at).toLocaleDateString('es-CR', { day:'numeric', month:'short' }) : ''
                   return (
@@ -440,11 +454,11 @@ export default function DashboardPropietario() {
                           <div style={{ fontSize:12, color:'var(--ink-3)' }}>{prop?.titulo || 'Tu propiedad'} · {fecha}</div>
                         </div>
                         <div style={{ display:'flex', gap:2 }}>
-                          {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize:16, color:s<=f.calificacion?'#C8A96E':'var(--rule)' }}>★</span>)}
+                          {[1,2,3,4,5].map(s => <span key={s} style={{ fontSize:16, color:s<=(f.calificacion||0)?'#C8A96E':'var(--rule)' }}>★</span>)}
                         </div>
                       </div>
                       {f.comentario && (
-                        <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.65, background:'var(--bg)', padding:'12px 14px', borderRadius:8, fontStyle:'italic' }}>"{f.comentario}"</p>
+                        <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.65, background:'var(--bg)', padding:'12px 14px', borderRadius:8, fontStyle:'italic' }}>&quot;{f.comentario}&quot;</p>
                       )}
                     </div>
                   )
@@ -469,7 +483,7 @@ export default function DashboardPropietario() {
                       </div>
                       <div>
                         <div style={{ fontSize:15, fontWeight:500 }}>{o.comprador_nombre}</div>
-                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{new Date(o.created_at).toLocaleDateString('es-CR', {day:'2-digit',month:'long',year:'numeric'})}</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{o.created_at?new Date(o.created_at).toLocaleDateString('es-CR', {day:'2-digit',month:'long',year:'numeric'}):'—'}</div>
                       </div>
                     </div>
                     <span style={{ padding:'4px 12px', borderRadius:999, fontSize:11, fontWeight:500, background:o.estado==='pendiente'?'oklch(0.93 0.05 80)':o.estado==='aceptada'?'var(--accent-tint)':'oklch(0.93 0.005 80)', color:o.estado==='pendiente'?'oklch(0.45 0.08 80)':o.estado==='aceptada'?'var(--accent)':'var(--ink-3)' }}>
@@ -506,7 +520,7 @@ export default function DashboardPropietario() {
                     {o.condiciones && (
                       <div style={{ background:'oklch(0.97 0.03 80)', border:'1px solid oklch(0.90 0.02 80)', borderRadius:8, padding:'12px 14px', marginTop:8 }}>
                         <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Condiciones especiales del comprador</div>
-                        <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6, fontStyle:'italic' }}>"{o.condiciones}"</p>
+                        <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6, fontStyle:'italic' }}>&quot;{o.condiciones}&quot;</p>
                       </div>
                     )}
                   </div>
@@ -514,10 +528,10 @@ export default function DashboardPropietario() {
                   {/* Acciones */}
                   {o.estado === 'pendiente' && (
                     <div style={{ padding:'14px 20px', display:'flex', gap:10, background:'var(--bg-elev)' }}>
-                      <button onClick={() => { if(window.confirm('¿Aceptar esta oferta de $'+Number(o.valor_oferta||0).toLocaleString()+'?')) actualizarOferta(o.id,'aceptada') }} disabled={updatingOferta===o.id} style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:13, cursor:'pointer', fontWeight:500, opacity:updatingOferta===o.id?0.6:1 }}>
+                      <button onClick={() => { if(window.confirm('¿Aceptar esta oferta de $'+Number(o.valor_oferta||0).toLocaleString()+'?')) actualizarOferta(o.id||'','aceptada') }} disabled={updatingOferta===o.id} style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--accent)', color:'white', border:'none', fontSize:13, cursor:'pointer', fontWeight:500, opacity:updatingOferta===o.id?0.6:1 }}>
                         {updatingOferta===o.id ? '...' : '✓ Aceptar oferta'}
                       </button>
-                      <button onClick={() => { if(window.confirm('¿Rechazar esta oferta?')) actualizarOferta(o.id,'rechazada') }} disabled={updatingOferta===o.id} style={{ flex:1, padding:'10px', borderRadius:999, background:'transparent', color:'var(--ink-3)', border:'1px solid var(--rule)', fontSize:13, cursor:'pointer', opacity:updatingOferta===o.id?0.6:1 }}>
+                      <button onClick={() => { if(window.confirm('¿Rechazar esta oferta?')) actualizarOferta(o.id||'','rechazada') }} disabled={updatingOferta===o.id} style={{ flex:1, padding:'10px', borderRadius:999, background:'transparent', color:'var(--ink-3)', border:'1px solid var(--rule)', fontSize:13, cursor:'pointer', opacity:updatingOferta===o.id?0.6:1 }}>
                         ✗ Rechazar
                       </button>
                       <button onClick={() => { setContraModal(o); setContraValor('') }} disabled={updatingOferta===o.id} style={{ flex:1, padding:'10px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, cursor:'pointer', opacity:updatingOferta===o.id?0.6:1 }}>
@@ -542,11 +556,11 @@ export default function DashboardPropietario() {
           // Preferimos comparables del mismo tipo (casa/apartamento/etc); si hay muy pocos, usamos todos los de la zona.
           const compsMismoTipo = propia?.tipo ? comparables.filter(c => c.tipo === propia.tipo) : comparables
           const comps = compsMismoTipo.length >= 3 ? compsMismoTipo : comparables
-          const precios = comps.map((c:any) => c.precio).filter((p:any) => p > 0)
+          const precios = comps.map((c) => c.precio||0).filter((p) => p > 0)
           const precioMercado = precios.length ? Math.round(precios.reduce((a:number,b:number)=>a+b,0)/precios.length) : null
-          const precioM2s = comps.filter((c:any) => c.metros > 0).map((c:any) => c.precio / c.metros)
+          const precioM2s = comps.filter((c) => (c.metros||0) > 0).map((c) => (c.precio||0) / (c.metros||1))
           const precioM2Zona = precioM2s.length ? Math.round(precioM2s.reduce((a:number,b:number)=>a+b,0)/precioM2s.length) : null
-          const precioM2Propia = propia?.metros ? Math.round(propia.precio / propia.metros) : null
+          const precioM2Propia = propia?.metros ? Math.round((propia.precio||0) / propia.metros) : null
           const minPrecio = precios.length ? Math.min(...precios) : null
           const maxPrecio = precios.length ? Math.max(...precios) : null
           const demanda = comps.length >= 6 ? 'Alta' : comps.length >= 2 ? 'Media' : 'Insuficiente'
@@ -720,11 +734,11 @@ export default function DashboardPropietario() {
                             const json = await res.json()
                             if (!res.ok) throw new Error(json.error || 'Error al subir')
                             const publicUrl = json.publicUrl
-                            const update: any = { [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }
+                            const update: Record<string, unknown> = { [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }
                             await supabase.from('propietarios').update(update).eq('correo', user.email!)
-                            setPerfilPropietario((p:any) => ({ ...p, [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }))
-                          } catch (err: any) {
-                            alert('Error al subir documento: ' + err.message)
+                            setPerfilPropietario((p) => ({ ...(p||{}), [doc.key + '_url']: publicUrl, verificacion_estado: 'en_revision' }))
+                          } catch (err) {
+                            alert('Error al subir documento: ' + (err instanceof Error ? err.message : String(err)))
                           } finally {
                             setUploadingDoc(null)
                           }
@@ -845,7 +859,7 @@ export default function DashboardPropietario() {
                     { icon:'📊', t:'Dashboard en tiempo real' },
                     { icon:'⚖️', t:'Asesoría legal incluida' },
                     { icon:'📣', t:'Marketing en redes' },
-                  ].map((b:any) => (
+                  ].map((b) => (
                     <div key={b.t} style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'rgba(255,255,255,0.6)' }}>
                       <span>{b.icon}</span> {b.t}
                     </div>
@@ -901,7 +915,7 @@ export default function DashboardPropietario() {
                     { l:'Estado', v:'Activo ✓' },
                     { l:'Comisión', v:contrato.comision_porcentaje+'% al cierre' },
                     { l:'Firma', v:contrato.firma_tipo === 'digital' ? 'Digital' : 'Física escaneada' },
-                  ].map((f:any) => (
+                  ].map((f) => (
                     <div key={f.l} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:10, padding:'14px 18px' }}>
                       <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>{f.l}</div>
                       <div style={{ fontSize:15, fontWeight:500 }}>{f.v}</div>

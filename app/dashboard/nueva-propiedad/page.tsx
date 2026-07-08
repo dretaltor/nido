@@ -1,6 +1,5 @@
-// @ts-nocheck
 'use client'
-// @ts-nocheck
+import Link from 'next/link'
 import { useState, useRef, useEffect } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { getPlanConfig } from '../../../lib/planes'
@@ -19,6 +18,8 @@ const STEPS = [
 ]
 
 const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la montaña','Pet friendly','Jardín privado','Patio','Terraza','Balcón','Aire acondicionado','Cocina italiana','Isla en cocina','Walk-in closet','Cuarto de servicio','Gimnasio','Salón de eventos','Coworking','Rooftop','BBQ','Jacuzzi','Smart home','Generador eléctrico','Paneles solares','Cisterna','Seguridad 24/7','Acceso controlado','Internet 1 Gbps','Cerca de escuelas']
+
+type Photo = {id:number,url:string,uploading?:boolean}
 
 export default function NuevaPropiedad() {
   const [current, setCurrent] = useState(0)
@@ -66,7 +67,7 @@ export default function NuevaPropiedad() {
       setContratoAceptado(!!data?.contrato_asesor_aceptado)
       setEsIndependiente(data?.equipo_nido_estado !== 'aprobado')
 
-      const { data: sus } = await supabase.from('suscripciones').select('activo,es_trial,trial_fin').eq('correo', user.email).maybeSingle()
+      const { data: sus } = await supabase.from('suscripciones').select('activo,es_trial,trial_fin,plan').eq('correo', user.email).maybeSingle()
       const trialVencido = sus?.es_trial && sus?.trial_fin && new Date(sus.trial_fin) < new Date()
       const tienePlanPagoActivo = sus?.activo && !sus?.es_trial
       setTrialBloqueado(!!(trialVencido && !tienePlanPagoActivo))
@@ -83,10 +84,10 @@ export default function NuevaPropiedad() {
   const [publishing, setPublishing] = useState(false)
   const [aiWriting, setAiWriting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
-  const inputRef = useRef(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const patch = (p: Partial<typeof data>) => setData(d => ({ ...d, ...p }))
-  const setPhotos = (fn: any) => setData(d => ({ ...d, photos: typeof fn === 'function' ? fn(d.photos) : fn }))
+  const setPhotos = (fn: Photo[] | ((prev: Photo[]) => Photo[])) => setData(d => ({ ...d, photos: typeof fn === 'function' ? fn(d.photos) : fn }))
   const next = () => { setCompleted(prev => new Set([...prev, current])); setCurrent(c => Math.min(8, c+1)); window.scrollTo({top:0,behavior:'smooth'}) }
   const back = () => { setCurrent(c => Math.max(0, c-1)); window.scrollTo({top:0,behavior:'smooth'}) }
   const jumpTo = (i: number) => { setCurrent(i); window.scrollTo({top:0,behavior:'smooth'}) }
@@ -111,7 +112,7 @@ export default function NuevaPropiedad() {
           setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => prev.map(p => p.id === id ? { ...p, uploading: false } : p))
         }
       } catch {
-        setPhotos(prev => prev.map(p => p.id === id ? { ...p, uploading: false } : p))
+        setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => prev.map(p => p.id === id ? { ...p, uploading: false } : p))
       }
     }
   }
@@ -154,7 +155,7 @@ export default function NuevaPropiedad() {
         anotaciones: data.anotaciones||'',
         libre_gravamenes: data.libre_gravamenes||false,
         acepta_colaboracion: (!adminMode && esIndependiente) ? data.colaboracion : true,
-        fotos: data.photos.filter((p:any) => !p.uploading && p.url && p.url.includes('supabase')).map((p:any) => p.url),
+        fotos: data.photos.filter((p) => !p.uploading && p.url && p.url.includes('supabase')).map((p) => p.url),
       })
       setPublished(true)
     } catch { alert('Error al publicar.') }
@@ -173,7 +174,7 @@ export default function NuevaPropiedad() {
   }
 
   const suggested = Math.round((data.area||200) * (data.kind==='lote'?800:2400))
-  const fmtP = (n) => '$' + n.toLocaleString('en-US')
+  const fmtP = (n: number) => '$' + n.toLocaleString('en-US')
   const removePhoto = (id: number) => setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => prev.filter(p => p.id !== id))
   const moveToFirst = (id: number) => setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => {
     const idx = prev.findIndex(p => p.id === id)
@@ -268,7 +269,7 @@ export default function NuevaPropiedad() {
               : 'Valeria está optimizando tu publicación. Pronto aparecerá en el portal.'}
           </p>
           <div style={{display:'flex',gap:12,justifyContent:'center'}}>
-            <a href="/propiedades" style={{background:'var(--ink)',color:'var(--bg)',padding:'12px 24px',borderRadius:999,fontSize:14,textDecoration:'none'}}>Ver portal</a>
+            <Link href="/propiedades" style={{background:'var(--ink)',color:'var(--bg)',padding:'12px 24px',borderRadius:999,fontSize:14,textDecoration:'none'}}>Ver portal</Link>
             <a href={adminMode ? '/admin' : (typeof window !== 'undefined' && localStorage.getItem('nido_user_tipo') === 'propietario' ? '/dashboard/propietario' : '/dashboard')} style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'12px 24px',borderRadius:999,fontSize:14,textDecoration:'none'}}>{adminMode ? 'Volver al admin →' : 'Mi panel →'}</a>
           </div>
         </div>
@@ -600,7 +601,7 @@ export default function NuevaPropiedad() {
           {label:'Tipo', body:data.kind+' · '+data.op, step:0},
           {label:'Ubicación', body:[data.canton,data.provincia].filter(Boolean).join(', ')||'—', step:1},
           {label:'Detalles', body: data.kind==='lote'
-            ? (data.area||'—')+'m² · '+({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as any)[data.topografia]||(data.area||'—')+'m²'
+            ? (data.area||'—')+'m² · '+(({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as Record<string,string>)[data.topografia]||(data.area||'—')+'m²')
             : data.beds+' hab · '+data.baths+' baños · '+(data.area||'—')+'m²', step:2},
           {label:'Amenidades', body:data.amenities.length+' seleccionadas', step:3},
           {label:'Fotos', body:data.photos.length+' fotos · '+(data.tour?'Tour 360° solicitado':'Sin tour'), step:4},
@@ -632,7 +633,7 @@ export default function NuevaPropiedad() {
       <style>{CSS}</style>
       <nav style={{position:'sticky',top:0,zIndex:50,background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--rule)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 40px',maxWidth:1500,margin:'0 auto'}}>
-          <a href="/" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:'var(--ink)',textDecoration:'none'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></a>
+          <Link href="/" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:'var(--ink)',textDecoration:'none'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></Link>
           <div style={{fontSize:13,color:'var(--ink-3)'}}>{adminMode ? 'Modo admin' : 'Publicá tu propiedad'} · Paso {current+1} de 8</div>
           <a href={adminMode ? '/admin' : (typeof window !== 'undefined' && localStorage.getItem('nido_user_tipo') === 'propietario' ? '/dashboard/propietario' : '/dashboard')} style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'8px 16px',borderRadius:999,fontSize:13,textDecoration:'none'}}>{adminMode ? 'Volver al admin' : 'Mi panel'}</a>
         </div>

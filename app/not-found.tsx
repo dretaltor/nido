@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 
 export default function NotFound() {
   const [pos, setPos] = useState({ x: 50, y: 50 })
@@ -55,21 +56,21 @@ export default function NotFound() {
             </span>
           </div>
           <p style={{ fontSize:13, color:'rgba(255,255,255,0.55)', lineHeight:1.65, fontStyle:'italic' }}>
-            "¿Perdiste una propiedad? Puedo ayudarte a encontrar algo similar. Solo decime qué buscás."
+            &quot;¿Perdiste una propiedad? Puedo ayudarte a encontrar algo similar. Solo decime qué buscás.&quot;
           </p>
         </div>
 
         {/* Actions */}
         <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
-          <a href="/propiedades" className="link-btn" style={{ background:'oklch(0.42 0.06 150)', color:'white' }}>
+          <Link href="/propiedades" className="link-btn" style={{ background:'oklch(0.42 0.06 150)', color:'white' }}>
             <span>🏠</span> Ver propiedades
-          </a>
-          <a href="/chat" className="link-btn" style={{ background:'rgba(255,255,255,0.07)', color:'rgba(255,255,255,0.7)', border:'1px solid rgba(255,255,255,0.1)' }}>
+          </Link>
+          <Link href="/chat" className="link-btn" style={{ background:'rgba(255,255,255,0.07)', color:'rgba(255,255,255,0.7)', border:'1px solid rgba(255,255,255,0.1)' }}>
             <span>✦</span> Hablar con Valeria
-          </a>
-          <a href="/" className="link-btn" style={{ background:'transparent', color:'rgba(255,255,255,0.4)', border:'1px solid rgba(255,255,255,0.08)' }}>
+          </Link>
+          <Link href="/" className="link-btn" style={{ background:'transparent', color:'rgba(255,255,255,0.4)', border:'1px solid rgba(255,255,255,0.08)' }}>
             ← Inicio
-          </a>
+          </Link>
         </div>
       </div>
 

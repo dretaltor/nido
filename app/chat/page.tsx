@@ -2,6 +2,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '../../lib/supabase'
 import { crearTicketSoporte } from '../../lib/soporte'
+import Link from 'next/link'
+import type { User } from '@supabase/supabase-js'
+
+interface ValeriaPerfil {
+  nombre_asesor?: string; estilo_comunicacion?: string; zonas?: string; tipo_propiedades?: string
+  rango_precio?: string; objetivo_mensual?: string; estilo_cierre?: string; diferenciador?: string
+  disponibilidad?: string; meta_nido?: string
+}
 
 const SUGERENCIAS = [
   { icon: '📋', texto: '¿Qué tengo pendiente esta semana?' },
@@ -14,7 +22,7 @@ const SUGERENCIAS = [
   { icon: '🗺️', texto: '¿Qué zonas de Costa Rica tienen más demanda?' },
 ]
 
-const buildSistema = (perfil: any) => {
+const buildSistema = (perfil: ValeriaPerfil | null) => {
   const base = `Sos Valeria`
   if (!perfil) return SISTEMA_BASE
   return SISTEMA_BASE + `
@@ -75,9 +83,9 @@ export default function Chat() {
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [mostrarSug, setMostrarSug] = useState(true)
-  const [valeriaPerfil, setValeriaPerfil] = useState<any>(null)
+  const [valeriaPerfil, setValeriaPerfil] = useState<ValeriaPerfil | null>(null)
   const [escalando, setEscalando] = useState(false)
   const [ticketAbierto, setTicketAbierto] = useState(false)
   const chatRef = useRef<HTMLDivElement>(null)
@@ -183,7 +191,7 @@ export default function Chat() {
       {/* Nav */}
       <nav style={{ borderBottom:'1px solid var(--rule)', background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', flexShrink:0 }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 32px', maxWidth:1400, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)', textDecoration:'none' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)', textDecoration:'none' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <div style={{ width:28, height:28, borderRadius:'50%', background:'linear-gradient(135deg,var(--accent),oklch(0.30 0.08 150))', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--serif)', fontSize:13, fontStyle:'italic', color:'oklch(0.85 0.06 80)' }}>V</div>
             <span style={{ fontSize:14, fontWeight:500 }}>Valeria</span>

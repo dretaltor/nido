@@ -1,16 +1,19 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
+import type { Map as MapboxMap, Marker as MapboxMarker } from 'mapbox-gl'
 
 const COORDS_FALLBACK: [number, number] = [-84.0875, 9.9281] // San José centro
 
 export default function MapaUbicacion({ distrito, canton, provincia, titulo }: { distrito?: string, canton?: string, provincia?: string, titulo: string }) {
   const mapRef = useRef<HTMLDivElement>(null)
-  const mapInstance = useRef<any>(null)
-  const markerRef = useRef<any>(null)
+  const mapInstance = useRef<MapboxMap | null>(null)
+  const markerRef = useRef<MapboxMarker | null>(null)
   const [loadingMapa, setLoadingMapa] = useState(true)
 
   useEffect(() => {
     const query = [distrito, canton, provincia, 'Costa Rica'].filter(Boolean).join(', ')
+    // Salida temprana si no hay datos de ubicación — sincroniza estado de carga al montar.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (!query) { setLoadingMapa(false); return }
 
     let cancelled = false

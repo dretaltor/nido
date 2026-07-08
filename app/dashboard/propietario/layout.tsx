@@ -1,4 +1,5 @@
 import { SidebarPropietario } from '@/components/propietario/SidebarPropietario'
+import Link from 'next/link'
 
 export default async function LayoutPropietario({ children }: { children: React.ReactNode }) {
   return (
@@ -10,7 +11,7 @@ export default async function LayoutPropietario({ children }: { children: React.
         a{text-decoration:none;color:inherit}
       `}</style>
       <header style={{background:'white',borderBottom:'1px solid rgba(0,0,0,0.08)',padding:'14px 24px',display:'flex',alignItems:'center',justifyContent:'space-between',position:'sticky',top:0,zIndex:10}}>
-        <a href="/" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'oklch(0.20 0.005 80)'}}>NIDO<span style={{color:'oklch(0.42 0.06 150)'}}>.</span></a>
+        <Link href="/" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:22,fontWeight:600,color:'oklch(0.20 0.005 80)'}}>NIDO<span style={{color:'oklch(0.42 0.06 150)'}}>.</span></Link>
         <div style={{display:'flex',alignItems:'center',gap:12}}>
           
           <a href="/login" style={{fontSize:13,color:'rgba(0,0,0,0.4)'}}>Salir</a>

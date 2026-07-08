@@ -47,7 +47,9 @@ const KEYWORDS = [
   'real estate', 'costa rica property', 'zona franca', 'plusvalía'
 ]
 
-async function fetchRSS(url: string): Promise<any[]> {
+interface RSSItem { titulo: string; resumen: string; link: string; pubDate: string }
+
+async function fetchRSS(url: string): Promise<RSSItem[]> {
   try {
     const res = await fetch(url, {
       headers: { 'User-Agent': 'NIDO-Bot/1.0 (nido-cr.com)' },
@@ -56,7 +58,7 @@ async function fetchRSS(url: string): Promise<any[]> {
     const xml = await res.text()
     
     // Parse items from RSS
-    const items: any[] = []
+    const items: RSSItem[] = []
     const itemMatches = xml.matchAll(/<item>([\s\S]*?)<\/item>/g)
     
     for (const match of itemMatches) {
@@ -164,8 +166,8 @@ export async function GET(req: NextRequest) {
         })
         agregadas++
       }
-    } catch (e: any) {
-      errores.push(`${fuente.nombre}: ${e.message}`)
+    } catch (e) {
+      errores.push(`${fuente.nombre}: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
 

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { COSTA_RICA } from '../../../lib/costaRicaData'
 import { zonaSlug } from '../../../lib/zonas'
 import { supabase } from '../../../lib/supabase'
+import Link from 'next/link'
 
 export const revalidate = 3600
 
@@ -18,7 +19,7 @@ export default async function ZonaIndexPage() {
     .eq('disponible', true)
     .eq('verificacion_estado', 'aprobada')
   const conteos: Record<string, number> = {}
-  ;(data || []).forEach((p: any) => { conteos[p.zona] = (conteos[p.zona] || 0) + 1 })
+  ;(data || []).forEach((p) => { conteos[p.zona] = (conteos[p.zona] || 0) + 1 })
 
   return (
     <main style={{ fontFamily: 'var(--sans)', fontSize: 15, color: 'var(--ink)', background: 'var(--bg)', minHeight: '100vh' }}>
@@ -26,8 +27,8 @@ export default async function ZonaIndexPage() {
 
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'oklch(0.97 0.005 80/0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--rule)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', maxWidth: 1600, margin: '0 auto' }}>
-          <a href="/" style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 500 }}>NIDO<span style={{ color: 'var(--accent)' }}>.</span></a>
-          <a href="/propiedades" style={{ fontSize: 13, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Ver todas las propiedades →</a>
+          <Link href="/" style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 500 }}>NIDO<span style={{ color: 'var(--accent)' }}>.</span></Link>
+          <Link href="/propiedades" style={{ fontSize: 13, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>Ver todas las propiedades →</Link>
         </div>
       </header>
 

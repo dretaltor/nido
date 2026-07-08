@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendWhatsApp } from '../../../lib/whatsapp'
+import type { Lead } from '../../../lib/database.types'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -99,7 +100,7 @@ export async function GET(req: NextRequest) {
     .lt('created_at', cortesia.toISOString())
 
   let seguimientosEnviados = 0
-  const sinAsignar: any[] = []
+  const sinAsignar: Partial<Lead>[] = []
 
   for (const l of (leadsFrios || [])) {
     if (l.asesor_email) {

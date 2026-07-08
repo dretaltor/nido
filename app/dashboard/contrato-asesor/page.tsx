@@ -2,10 +2,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import type { User } from '@supabase/supabase-js'
 
 export default function ContratoAsesor() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [aceptado, setAceptado] = useState(false)
   const [checked, setChecked] = useState(false)
   const [saving, setSaving] = useState(false)

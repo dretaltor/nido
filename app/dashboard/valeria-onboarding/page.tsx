@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import type { User } from '@supabase/supabase-js'
 
 const PREGUNTAS = [
   {
@@ -68,9 +69,9 @@ const PREGUNTAS = [
 
 export default function ValeriaOnboarding() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [paso, setPaso] = useState(0)
-  const [respuestas, setRespuestas] = useState<Record<string, any>>({})
+  const [respuestas, setRespuestas] = useState<Record<string, string | string[]>>({})
   const [input, setInput] = useState('')
   const [opcionesSeleccionadas, setOpcionesSeleccionadas] = useState<string[]>([])
   const [mensajes, setMensajes] = useState<{rol: 'valeria'|'asesor', texto: string}[]>([])
@@ -112,7 +113,7 @@ export default function ValeriaOnboarding() {
 
     if (paso < PREGUNTAS.length - 1) {
       const siguientePregunta = PREGUNTAS[paso + 1]
-      const nombre = nuevasRespuestas.nombre || ''
+      const nombre = String(nuevasRespuestas.nombre || '')
       
       setTimeout(() => {
         setMensajes(prev => [...prev, {
@@ -135,7 +136,7 @@ export default function ValeriaOnboarding() {
     }
   }
 
-  const guardarPerfil = async (resp: Record<string, any>) => {
+  const guardarPerfil = async (resp: Record<string, string | string[]>) => {
     if (!user) return
     setGuardando(true)
     

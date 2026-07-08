@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 export default function Privacidad() {
   return (
@@ -18,8 +19,8 @@ export default function Privacidad() {
 
       {/* Nav */}
       <nav style={{ borderBottom:'1px solid var(--rule)', padding:'16px 40px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'white', position:'sticky', top:0, zIndex:50 }}>
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)', textDecoration:'none' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
-        <a href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>Volver al portal →</a>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)', textDecoration:'none' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
+        <Link href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>Volver al portal →</Link>
       </nav>
 
       <div style={{ maxWidth:760, margin:'0 auto', padding:'48px 24px 80px' }}>
@@ -38,7 +39,7 @@ export default function Privacidad() {
         <div className="section">
           <h2>1. Responsable del tratamiento</h2>
           <p>
-            <strong>NIDO</strong> (en adelante "NIDO", "nosotros" o "la plataforma") es responsable del tratamiento de los datos personales recolectados a través de <a href="https://www.nido-cr.com">www.nido-cr.com</a> y sus aplicaciones asociadas.
+            <strong>NIDO</strong> (en adelante &quot;NIDO&quot;, &quot;nosotros&quot; o &quot;la plataforma&quot;) es responsable del tratamiento de los datos personales recolectados a través de <a href="https://www.nido-cr.com">www.nido-cr.com</a> y sus aplicaciones asociadas.
           </p>
           <p>Para consultas sobre privacidad: <a href="mailto:privacidad@nido-cr.com">privacidad@nido-cr.com</a></p>
         </div>
@@ -124,13 +125,13 @@ export default function Privacidad() {
           <ul>
             <li><strong>Acceso:</strong> solicitar información sobre qué datos tuyos tratamos.</li>
             <li><strong>Rectificación:</strong> corregir datos inexactos o incompletos.</li>
-            <li><strong>Supresión:</strong> solicitar la eliminación de tus datos ("derecho al olvido").</li>
+            <li><strong>Supresión:</strong> solicitar la eliminación de tus datos (&quot;derecho al olvido&quot;).</li>
             <li><strong>Oposición:</strong> oponerte al tratamiento de tus datos para finalidades específicas.</li>
             <li><strong>Portabilidad:</strong> recibir tus datos en formato estructurado y legible por máquina.</li>
             <li><strong>Revocación del consentimiento:</strong> retirar tu consentimiento en cualquier momento.</li>
           </ul>
           <p>
-            Para ejercer cualquiera de estos derechos, escribinos a <a href="mailto:privacidad@nido-cr.com">privacidad@nido-cr.com</a> con el asunto "Derechos ARCO" e indicá tu nombre completo y correo registrado. Respondemos en un plazo máximo de 10 días hábiles.
+            Para ejercer cualquiera de estos derechos, escribinos a <a href="mailto:privacidad@nido-cr.com">privacidad@nido-cr.com</a> con el asunto &quot;Derechos ARCO&quot; e indicá tu nombre completo y correo registrado. Respondemos en un plazo máximo de 10 días hábiles.
           </p>
           <p>
             También podés presentar una denuncia ante la <strong>Agencia de Protección de Datos de los Habitantes (PRODHAB)</strong>: <a href="https://www.prodhab.go.cr" target="_blank">www.prodhab.go.cr</a>
@@ -184,9 +185,9 @@ export default function Privacidad() {
 
       {/* Footer */}
       <footer style={{ borderTop:'1px solid var(--rule)', padding:'24px 40px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'white' }}>
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:18, color:'var(--ink)', textDecoration:'none' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:18, color:'var(--ink)', textDecoration:'none' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
         <p style={{ fontSize:12, color:'var(--ink-3)' }}>© 2026 NIDO · Costa Rica · Ley 8968</p>
-        <a href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>Volver al portal →</a>
+        <Link href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>Volver al portal →</Link>
       </footer>
     </main>
   )

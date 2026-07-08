@@ -1,5 +1,5 @@
 'use client'
-// @ts-nocheck
+import Link from 'next/link'
 import { useEffect, useState, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 import { supabase } from '../../lib/supabase'
@@ -136,8 +136,8 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)', marginBottom: 28 }}>
             {(p.tipo === 'lote' ? [
               { num: String(p.lote_m2 || p.metros || 0) + ' m²', label: 'Área terreno' },
-              { num: ({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as any)[(p as any).topografia] || '—', label: 'Topografía' },
-              { num: ({residencial:'Residencial',comercial:'Comercial',agricola:'Agrícola',mixto:'Mixto',forestal:'Forestal'} as any)[(p as any).uso_suelo] || '—', label: 'Uso de suelo' },
+              { num: ({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as Record<string,string>)[p.topografia||''] || '—', label: 'Topografía' },
+              { num: ({residencial:'Residencial',comercial:'Comercial',agricola:'Agrícola',mixto:'Mixto',forestal:'Forestal'} as Record<string,string>)[p.uso_suelo||''] || '—', label: 'Uso de suelo' },
               { num: 'Venta', label: 'Operación' },
             ] : [
               { num: p.habitaciones, label: 'Habitaciones' },
@@ -207,6 +207,8 @@ export default function Propiedades() {
   }
 
   useEffect(() => {
+    // Carga de datos al montar — patrón estándar de sincronización con fuente externa (Supabase).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     cargar()
     window.addEventListener('focus', cargar)
     return () => window.removeEventListener('focus', cargar)
@@ -259,12 +261,12 @@ export default function Propiedades() {
 
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'oklch(0.97 0.005 80/0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--rule)' }}>
         <div className="header-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', maxWidth: 1600, margin: '0 auto' }}>
-          <a href="/" style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 500 }}>NIDO<span style={{ color: 'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily: 'var(--serif)', fontSize: 26, fontWeight: 500 }}>NIDO<span style={{ color: 'var(--accent)' }}>.</span></Link>
           <nav className="header-nav" style={{ display: 'flex', gap: 24, fontSize: 13, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--ink-2)' }}>
-            <a href="/propiedades" style={{ borderBottom: '1px solid var(--ink)', color: 'var(--ink)', paddingBottom: 2 }}>Ver propiedades</a>
+            <Link href="/propiedades" style={{ borderBottom: '1px solid var(--ink)', color: 'var(--ink)', paddingBottom: 2 }}>Ver propiedades</Link>
             <a href="/nosotros">Nosotros</a>
             <a href="/asesores">Asesores</a>
-            <a href="/noticias">Noticias</a>
+            <Link href="/noticias">Noticias</Link>
           </nav>
           <div className="header-btns" style={{ display: 'flex', gap: 10 }}>
 {!authLoading && isAsesor ? (
@@ -420,7 +422,7 @@ export default function Propiedades() {
             <div style={{ fontFamily: 'var(--serif)', fontSize: 24, marginBottom: 6 }}>Explorá cantón por cantón</div>
             <p style={{ fontSize: 13, color: 'var(--ink-3)' }}>Buscá propiedades en las 7 provincias de Costa Rica, zona por zona.</p>
           </div>
-          <a href="/propiedades/zona" style={{ padding: '12px 24px', borderRadius: 999, background: 'var(--ink)', color: 'white', fontSize: 13, fontWeight: 500, textDecoration: 'none', flexShrink: 0 }}>Ver todas las zonas →</a>
+          <Link href="/propiedades/zona" style={{ padding: '12px 24px', borderRadius: 999, background: 'var(--ink)', color: 'white', fontSize: 13, fontWeight: 500, textDecoration: 'none', flexShrink: 0 }}>Ver todas las zonas →</Link>
         </div>
       </section>
 
@@ -428,25 +430,25 @@ export default function Propiedades() {
         <div className="footer-inner" style={{ padding: '32px 40px', fontSize: 12, color: 'var(--ink-3)', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between' }}>
           <span>© 2026 NIDO · Costa Rica</span>
           <div style={{ display: 'flex', gap: 20 }}>
-            <a href="/precios">Precios</a><a href="/noticias">Noticias</a><a href="/contacto">Contacto</a><a href="/soporte">Soporte</a>
+            <Link href="/precios">Precios</Link><Link href="/noticias">Noticias</Link><Link href="/contacto">Contacto</Link><Link href="/soporte">Soporte</Link>
           </div>
         </div>
       </footer>
 
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'white', borderTop: '1px solid var(--rule)', display: 'none', zIndex: 40 }} className="mobile-bar">
         <style>{`@media(max-width:768px){.mobile-bar{display:flex!important}}`}</style>
-        <a href="/propiedades" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--accent)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
+        <Link href="/propiedades" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--accent)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
           <span style={{ fontSize: 20 }}>🏠</span>PROPIEDADES
-        </a>
-        <a href="/soporte" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
+        </Link>
+        <Link href="/soporte" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
           <span style={{ fontSize: 20 }}>💬</span>VALERIA IA
-        </a>
-        <a href="/contacto" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
+        </Link>
+        <Link href="/contacto" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
           <span style={{ fontSize: 20 }}>📞</span>CONTACTO
-        </a>
-        <a href="/login" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
+        </Link>
+        <Link href="/login" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, padding: '8px 0 16px', color: 'var(--ink-3)', fontSize: 10, letterSpacing: '0.06em', textDecoration: 'none' }}>
           <span style={{ fontSize: 20 }}>👤</span>INGRESAR
-        </a>
+        </Link>
       </div>
 
       {open && <Drawer p={open} fav={favs.has(open.id)} onFav={() => toggleFav(open.id)} onClose={() => setOpenId(null)} />}

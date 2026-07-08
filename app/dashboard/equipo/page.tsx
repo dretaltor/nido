@@ -3,6 +3,11 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { exportToCSV } from '../../../lib/csvExport'
+import Link from 'next/link'
+import type { User } from '@supabase/supabase-js'
+import type { Equipo, EquipoMiembro, Comision } from '../../../lib/database.types'
+
+type MiembroConEquipo = EquipoMiembro & { equipos?: { nombre: string, admin_email?: string } | null }
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
@@ -41,15 +46,15 @@ const fmt = (n: number) => '$' + n.toLocaleString('es-CR', { minimumFractionDigi
 
 export default function EquipoPage() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const [equipo, setEquipo] = useState<any>(null) // equipo que administro
-  const [miembros, setMiembros] = useState<any[]>([])
-  const [miembroDe, setMiembroDe] = useState<any>(null) // fila de equipo_miembros donde soy miembro activo de otro equipo
-  const [equipoAjeno, setEquipoAjeno] = useState<any>(null)
-  const [companerosAjenos, setCompanerosAjenos] = useState<any[]>([])
-  const [invitacionPendiente, setInvitacionPendiente] = useState<any>(null)
-  const [comisionesEquipo, setComisionesEquipo] = useState<any[]>([])
+  const [equipo, setEquipo] = useState<Equipo | null>(null) // equipo que administro
+  const [miembros, setMiembros] = useState<EquipoMiembro[]>([])
+  const [miembroDe, setMiembroDe] = useState<MiembroConEquipo | null>(null) // fila de equipo_miembros donde soy miembro activo de otro equipo
+  const [equipoAjeno, setEquipoAjeno] = useState<{ nombre: string, admin_email?: string } | null>(null)
+  const [companerosAjenos, setCompanerosAjenos] = useState<EquipoMiembro[]>([])
+  const [invitacionPendiente, setInvitacionPendiente] = useState<MiembroConEquipo | null>(null)
+  const [comisionesEquipo, setComisionesEquipo] = useState<Comision[]>([])
 
   const [creando, setCreando] = useState(false)
   const [nombreEquipo, setNombreEquipo] = useState('')
@@ -60,7 +65,7 @@ export default function EquipoPage() {
   const [invNombre, setInvNombre] = useState('')
   const [invCorreo, setInvCorreo] = useState('')
 
-  const cargarTodo = async (u: any) => {
+  const cargarTodo = async (u: User) => {
     const [{ data: eq }, { data: miembroActivo }, { data: invitacion }] = await Promise.all([
       supabase.from('equipos').select('*').eq('admin_user_id', u.id).maybeSingle(),
       supabase.from('equipo_miembros').select('*, equipos(nombre, admin_email)').eq('user_id', u.id).eq('estado', 'activo').maybeSingle(),
@@ -138,17 +143,17 @@ export default function EquipoPage() {
     setInvNombre('')
     setInvCorreo('')
     setInvitando(false)
-    await cargarTodo(user)
+    if (user) await cargarTodo(user)
   }
 
   const removerMiembro = async (id: string) => {
     await supabase.from('equipo_miembros').update({ estado: 'removido' }).eq('id', id)
-    await cargarTodo(user)
+    if (user) await cargarTodo(user)
   }
 
   const cambiarRol = async (id: string, rol: string) => {
     await supabase.from('equipo_miembros').update({ rol }).eq('id', id)
-    await cargarTodo(user)
+    if (user) await cargarTodo(user)
   }
 
   const aceptarInvitacion = async () => {
@@ -186,7 +191,7 @@ export default function EquipoPage() {
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 32px', maxWidth:1200, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22 }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22 }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:20, fontSize:13, color:'var(--ink-3)' }}>
             <a href="/dashboard">Dashboard</a>
             <a href="/dashboard/crm">CRM</a>
@@ -286,11 +291,11 @@ export default function EquipoPage() {
               {activos.map(m => (
                 <div key={m.id} className="row">
                   <div style={{ flex:1 }}>
-                    <div style={{ fontSize:14, fontWeight:500 }}>{m.nombre} {m.user_id === user.id && <span style={{ fontSize:11, color:'var(--ink-3)' }}>(vos)</span>}</div>
+                    <div style={{ fontSize:14, fontWeight:500 }}>{m.nombre} {m.user_id === user?.id && <span style={{ fontSize:11, color:'var(--ink-3)' }}>(vos)</span>}</div>
                     <div style={{ fontSize:12, color:'var(--ink-3)' }}>{m.correo}</div>
                   </div>
                   <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)', marginRight:10 }}>{m.rol === 'admin' ? 'Admin' : 'Agente'}</span>
-                  {m.user_id !== user.id && (
+                  {m.user_id !== user?.id && (
                     <div style={{ display:'flex', gap:8 }}>
                       <button onClick={() => cambiarRol(m.id, m.rol === 'admin' ? 'agente' : 'admin')} className="btn btn-outline" style={{ fontSize:11, padding:'6px 12px' }}>
                         {m.rol === 'admin' ? 'Quitar admin' : 'Hacer admin'}
@@ -328,7 +333,7 @@ export default function EquipoPage() {
             {companerosAjenos.map(m => (
               <div key={m.id} className="row">
                 <div style={{ flex:1 }}>
-                  <div style={{ fontSize:14, fontWeight:500 }}>{m.nombre} {m.correo === user.email && <span style={{ fontSize:11, color:'var(--ink-3)' }}>(vos)</span>}</div>
+                  <div style={{ fontSize:14, fontWeight:500 }}>{m.nombre} {m.correo === user?.email && <span style={{ fontSize:11, color:'var(--ink-3)' }}>(vos)</span>}</div>
                   <div style={{ fontSize:12, color:'var(--ink-3)' }}>{m.correo}</div>
                 </div>
                 <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>{m.rol === 'admin' ? 'Admin' : 'Agente'}</span>

@@ -4,8 +4,29 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { getPlanConfig } from '../../../lib/planes'
 import { useTrial } from '../../../lib/useTrial'
 import { supabase } from '../../../lib/supabase'
+import Link from 'next/link'
 
-const CURSOS: Record<number, any> = {
+interface CursoModuloRecurso { nombre: string; tipo: string }
+interface CursoModuloQuizItem { pregunta: string; opciones: string[]; correcta: number }
+interface CursoModulo {
+  id: number
+  titulo: string
+  contenido: string
+  recursos?: CursoModuloRecurso[]
+  quiz: CursoModuloQuizItem[]
+}
+interface Curso {
+  titulo: string
+  cat: string
+  nivel: string
+  dur: string
+  icon: string
+  hue: number
+  gratis?: boolean
+  modulos: CursoModulo[]
+}
+
+const CURSOS: Record<number, Curso> = {
   1: {
     titulo: 'Fundamentos de ventas inmobiliarias',
     cat: 'Ventas', nivel: 'Basico', dur: '2 horas', icon: '🏠', hue: 150,
@@ -779,7 +800,7 @@ function CursoInner() {
   const isDone = completados.includes(mod.id)
 
   const enviar = () => {
-    const ok = mod.quiz.filter((_:any, i:number) => respuestas[i] === mod.quiz[i].correcta).length
+    const ok = mod.quiz.filter((_, i: number) => respuestas[i] === mod.quiz[i].correcta).length
     const pass = ok >= Math.ceil(mod.quiz.length * 0.7)
     setAprobado(pass)
     setEnviado(true)
@@ -799,7 +820,7 @@ function CursoInner() {
       <style>{CSS}</style>
       <nav style={{borderBottom:'1px solid var(--rule)',background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',position:'sticky',top:0,zIndex:50}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 32px',maxWidth:1400,margin:'0 auto'}}>
-          <a href="/" style={{fontFamily:'var(--serif)',fontSize:22,color:'var(--ink)'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></a>
+          <Link href="/" style={{fontFamily:'var(--serif)',fontSize:22,color:'var(--ink)'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></Link>
           <div style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--ink-3)'}}>
             <a href="/academia">Academia</a><span>›</span><span style={{color:'var(--ink)'}}>{curso.titulo}</span>
           </div>
@@ -820,7 +841,7 @@ function CursoInner() {
           </div>
           <div style={{padding:'12px 8px',flex:1}}>
             <div style={{fontSize:10,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--ink-3)',padding:'0 8px',marginBottom:8}}>Modulos</div>
-            {curso.modulos.map((m:any, i:number) => {
+            {curso.modulos.map((m, i: number) => {
               const done = completados.includes(m.id)
               const active = modIdx === i
               const locked = i > 0 && !completados.includes(curso.modulos[i-1].id)
@@ -857,11 +878,11 @@ function CursoInner() {
                 })}
               </div>
 
-              {mod.recursos?.length > 0 && (
+              {(mod.recursos?.length || 0) > 0 && (
                 <div style={{marginBottom:20}}>
                   <div style={{fontSize:10,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:10}}>Recursos descargables</div>
                   <div style={{display:'flex',flexDirection:'column',gap:8}}>
-                    {mod.recursos.map((r:any, i:number) => (
+                    {mod.recursos?.map((r, i: number) => (
                       <button key={i} className="recurso-btn">
                         <span style={{width:36,height:36,borderRadius:8,background:r.tipo==='PDF'?'oklch(0.93 0.04 20)':'oklch(0.93 0.04 200)',display:'grid',placeItems:'center',fontSize:11,fontWeight:600,color:r.tipo==='PDF'?'oklch(0.45 0.08 20)':'oklch(0.35 0.06 200)',flexShrink:0}}>{r.tipo}</span>
                         <div style={{textAlign:'left'}}>
@@ -898,7 +919,7 @@ function CursoInner() {
             <div style={{animation:'fadeUp 0.3s ease'}}>
               <div style={{background:'white',border:'1px solid var(--rule)',borderRadius:12,padding:'28px 32px'}}>
                 <div style={{fontFamily:'var(--serif)',fontSize:22,marginBottom:24}}>Cuestionario del modulo</div>
-                {mod.quiz.map((q:any, qi:number) => (
+                {mod.quiz.map((q, qi: number) => (
                   <div key={qi} style={{marginBottom:24}}>
                     <div style={{fontSize:14,fontWeight:500,marginBottom:12}}>{qi+1}. {q.pregunta}</div>
                     <div style={{display:'flex',flexDirection:'column',gap:8}}>

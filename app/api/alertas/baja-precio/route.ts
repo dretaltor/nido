@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, getClientIp } from '../../../../lib/rateLimit'
+import type { AlertaBusqueda } from '../../../../lib/database.types'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
       .select('id,email,zona,tipo,operacion,precio_max')
       .eq('activa', true)
 
-    const matches = (alertas || []).filter((a: any) => {
+    const matches = (alertas || []).filter((a: Partial<AlertaBusqueda>) => {
       const zonaOk = !a.zona || (prop.zona && (prop.zona.toLowerCase().includes(a.zona.toLowerCase()) || a.zona.toLowerCase().includes(prop.zona.toLowerCase())))
       const tipoOk = !a.tipo || (prop.tipo && a.tipo.toLowerCase() === prop.tipo.toLowerCase())
       const operacionOk = !a.operacion || (prop.operacion && a.operacion.toLowerCase() === prop.operacion.toLowerCase())
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
     let notificados = 0
     if (matches.length > 0 && process.env.RESEND_API_KEY) {
       const base = process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'https://www.nido-cr.com'
-      await Promise.all(matches.map(async (m: any) => {
+      await Promise.all(matches.map(async (m: Partial<AlertaBusqueda>) => {
         try {
           await fetch(base + '/api/email', {
             method: 'POST',
@@ -66,14 +67,14 @@ export async function POST(req: NextRequest) {
           notificados++
         } catch {}
       }))
-      await supabaseAdmin.from('alertas_busqueda').update({ ultima_notificacion_at: new Date().toISOString() }).in('id', matches.map((m: any) => m.id))
+      await supabaseAdmin.from('alertas_busqueda').update({ ultima_notificacion_at: new Date().toISOString() }).in('id', matches.map((m) => m.id))
     }
 
     // Colapsar precio_anterior para no re-notificar esta misma baja en llamadas repetidas
     await supabaseAdmin.from('propiedades').update({ precio_anterior: prop.precio }).eq('id', prop.id)
 
     return NextResponse.json({ ok: true, notificados })
-  } catch (err: any) {
-    return NextResponse.json({ error: err?.message || 'Error interno' }, { status: 500 })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Error interno' }, { status: 500 })
   }
 }

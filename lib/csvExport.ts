@@ -1,14 +1,14 @@
 // Utilidad simple de exportación a CSV para dashboards de asesor y propietario.
 // No depende de librerías externas: arma el CSV en el cliente y dispara la descarga.
 
-export function exportToCSV(filename: string, rows: Record<string, any>[]) {
+export function exportToCSV(filename: string, rows: Record<string, unknown>[]) {
   if (!rows || rows.length === 0) return
 
   const headerSet = new Set<string>()
   rows.forEach(row => Object.keys(row).forEach(k => headerSet.add(k)))
   const headers = Array.from(headerSet)
 
-  const escapeCell = (val: any): string => {
+  const escapeCell = (val: unknown): string => {
     if (val === null || val === undefined) return ''
     const str = typeof val === 'object' ? JSON.stringify(val) : String(val)
     if (/[",\n]/.test(str)) return '"' + str.replace(/"/g, '""') + '"'

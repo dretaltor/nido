@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function Nav({ rol }: { rol?: string }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -20,7 +21,7 @@ export default function Nav({ rol }: { rol?: string }) {
     ? [{ label: 'Dashboard', href: '/dashboard' }, { label: 'CRM', href: '/dashboard/crm' }, { label: 'Academia', href: '/academia' }, { label: 'Precios', href: '/precios' }]
     : rol === 'propietario'
     ? [{ label: 'Mi propiedad', href: '/propietario' }, { label: 'Asesores', href: '/asesores' }, { label: 'Contacto', href: '/contacto' }]
-    : [{ label: 'Propiedades', href: '/propiedades' }, { label: 'Asesores', href: '/asesores' }, { label: 'Calculadora', href: '/calculadora' }, { label: 'Academia', href: '/academia' }, { label: 'Precios', href: '/precios' }]
+    : [{ label: 'Propiedades', href: '/propiedades' }, { label: 'Asesores', href: '/asesores' }, { label: 'Calculadoras', href: '/calculadoras' }, { label: 'Academia', href: '/academia' }, { label: 'Precios', href: '/precios' }]
 
   return (
     <>
@@ -63,20 +64,20 @@ export default function Nav({ rol }: { rol?: string }) {
                 <span style={{ display: 'none' }} className="nav-back-label">Volver</span>
               </button>
             )}
-            <a href="/" style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 26, fontWeight: 500, color: '#1B5E3B', textDecoration: 'none', letterSpacing: '0.02em' }}>
+            <Link href="/" style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 26, fontWeight: 500, color: '#1B5E3B', textDecoration: 'none', letterSpacing: '0.02em' }}>
               NIDO<span style={{ color: '#C8A96E' }}>.</span>
-            </a>
+            </Link>
           </div>
 
           <nav className="nav-links">
             {links.map(l => (
-              <a key={l.href} href={l.href} className={'nav-link' + (pathname === l.href ? ' active' : '')}>{l.label}</a>
+              <Link key={l.href} href={l.href} className={'nav-link' + (pathname === l.href ? ' active' : '')}>{l.label}</Link>
             ))}
           </nav>
 
           <div className="nav-actions">
-            <a href="/login" style={{ border: '1px solid rgba(27,94,59,0.2)', background: 'transparent', color: '#1B5E3B', padding: '8px 16px', borderRadius: 999, fontSize: 13, textDecoration: 'none' }}>Ingresar</a>
-            <a href="/registro" style={{ border: '1px solid #1B5E3B', background: '#1B5E3B', color: 'white', padding: '8px 16px', borderRadius: 999, fontSize: 13, textDecoration: 'none' }}>Comenzar</a>
+            <Link href="/login" style={{ border: '1px solid rgba(27,94,59,0.2)', background: 'transparent', color: '#1B5E3B', padding: '8px 16px', borderRadius: 999, fontSize: 13, textDecoration: 'none' }}>Ingresar</Link>
+            <Link href="/registro" style={{ border: '1px solid #1B5E3B', background: '#1B5E3B', color: 'white', padding: '8px 16px', borderRadius: 999, fontSize: 13, textDecoration: 'none' }}>Comenzar</Link>
           </div>
 
           <button className="hamburger" onClick={() => setMenuOpen(true)} aria-label="Menú">
@@ -87,7 +88,7 @@ export default function Nav({ rol }: { rol?: string }) {
 
       <div className={'mobile-menu' + (menuOpen ? ' open' : '')}>
         <div className="mobile-menu-header">
-          <a href="/" style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 26, fontWeight: 500, color: '#1B5E3B', textDecoration: 'none' }}>NIDO<span style={{ color: '#C8A96E' }}>.</span></a>
+          <Link href="/" style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 26, fontWeight: 500, color: '#1B5E3B', textDecoration: 'none' }}>NIDO<span style={{ color: '#C8A96E' }}>.</span></Link>
           <button onClick={() => setMenuOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1a1a1a" strokeWidth="1.5" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
           </button>
@@ -100,12 +101,12 @@ export default function Nav({ rol }: { rol?: string }) {
             </button>
           )}
           {links.map(l => (
-            <a key={l.href} href={l.href} className="mobile-link" onClick={() => setMenuOpen(false)}>{l.label}</a>
+            <Link key={l.href} href={l.href} className="mobile-link" onClick={() => setMenuOpen(false)}>{l.label}</Link>
           ))}
         </div>
         <div className="mobile-actions">
-          <a href="/login" style={{ display: 'block', padding: '14px', borderRadius: 10, border: '1px solid rgba(27,94,59,0.2)', color: '#1B5E3B', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 500 }}>Ingresar</a>
-          <a href="/registro" style={{ display: 'block', padding: '14px', borderRadius: 10, background: '#1B5E3B', color: 'white', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 500 }}>Comenzar gratis</a>
+          <Link href="/login" style={{ display: 'block', padding: '14px', borderRadius: 10, border: '1px solid rgba(27,94,59,0.2)', color: '#1B5E3B', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 500 }}>Ingresar</Link>
+          <Link href="/registro" style={{ display: 'block', padding: '14px', borderRadius: 10, background: '#1B5E3B', color: 'white', textAlign: 'center', textDecoration: 'none', fontSize: 15, fontWeight: 500 }}>Comenzar gratis</Link>
         </div>
         <p style={{ textAlign: 'center', fontSize: 11, color: '#9CA3AF', marginTop: 24, letterSpacing: '0.08em' }}>NIDO · Costa Rica © 2026</p>
       </div>

@@ -3,6 +3,11 @@ import { useEffect, useState } from 'react'
 import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
+import Link from 'next/link'
+import type { User } from '@supabase/supabase-js'
+import type { Propiedad, Lead, Oferta, Perfil, Visita, Tarea, Suscripcion, AsesorCalificaciones } from '../../lib/database.types'
+
+type OfertaSel = Oferta & { tipo_vista?: string }
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
@@ -46,7 +51,7 @@ const safeDate = (dateStr: string | null | undefined, timeStr?: string): Date =>
     return isNaN(d.getTime()) ? new Date() : d
   } catch { return new Date() }
 }
-const safeFmt = (dateStr: string | null | undefined, opts: any): string => {
+const safeFmt = (dateStr: string | null | undefined, opts: Intl.DateTimeFormatOptions): string => {
   try {
     if (!dateStr) return ''
     const d = new Date(dateStr + 'T12:00:00')
@@ -57,21 +62,21 @@ const safeFmt = (dateStr: string | null | undefined, opts: any): string => {
 
 export default function Dashboard() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const [propiedades, setPropiedades] = useState<any[]>([])
-  const [leads, setLeads] = useState<any[]>([])
-  const [ofertas, setOfertas] = useState<any[]>([])
-  const [ofertasRecibidas, setOfertasRecibidas] = useState<any[]>([])
-  const [ofertaSel, setOfertaSel] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [propiedades, setPropiedades] = useState<Propiedad[]>([])
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [ofertas, setOfertas] = useState<Oferta[]>([])
+  const [ofertasRecibidas, setOfertasRecibidas] = useState<Oferta[]>([])
+  const [ofertaSel, setOfertaSel] = useState<OfertaSel | null>(null)
   const [onboardingDismissed, setOnboardingDismissed] = useState(false)
-  const [valeriaPerfil, setValeraPerfilDash] = useState<any>(null)
-  const [calificacion, setCalificacion] = useState<any>(null)
-  const [visitaDetalle, setVisitaDetalle] = useState<any>(null)
+  const [valeriaPerfil, setValeraPerfilDash] = useState<Partial<Perfil> | null>(null)
+  const [calificacion, setCalificacion] = useState<AsesorCalificaciones | null>(null)
+  const [visitaDetalle, setVisitaDetalle] = useState<Visita | null>(null)
   const [reprogramando, setReprogramando] = useState(false)
   const [nuevaFecha, setNuevaFecha] = useState('')
   const [nuevaHora, setNuevaHora] = useState('10:00')
-  const [visitas, setVisitas] = useState<any[]>([])
-  const [tareas, setTareas] = useState<any[]>([])
+  const [visitas, setVisitas] = useState<Visita[]>([])
+  const [tareas, setTareas] = useState<Tarea[]>([])
   const [nuevaTarea, setNuevaTarea] = useState(false)
   const [formTarea, setFormTarea] = useState({ titulo:'', descripcion:'', prioridad:'media', fecha_vencimiento:'', propiedad_id:'', lead_id:'' })
   const [tourActivo, setTourActivo] = useState(false)
@@ -83,13 +88,13 @@ export default function Dashboard() {
   const updateOfertaEstado = async (id: string, estado: string) => {
     setUpdatingOferta(true)
     await supabase.from('ofertas').update({ estado }).eq('id', id)
-    setOfertas(prev => prev.map((o:any) => o.id===id ? {...o, estado} : o))
-    setOfertasRecibidas(prev => prev.map((o:any) => o.id===id ? {...o, estado} : o))
-    setOfertaSel((prev:any) => prev ? {...prev, estado} : null)
+    setOfertas(prev => prev.map((o) => o.id===id ? {...o, estado} : o))
+    setOfertasRecibidas(prev => prev.map((o) => o.id===id ? {...o, estado} : o))
+    setOfertaSel((prev) => prev ? {...prev, estado} : null)
     setUpdatingOferta(false)
   }
   const [loading, setLoading] = useState(true)
-  const [suscripcion, setSuscripcion] = useState<any>(null)
+  const [suscripcion, setSuscripcion] = useState<Partial<Suscripcion> | null>(null)
   const [checandoTrial, setCheckandoTrial] = useState(true)
 
   useEffect(() => {
@@ -110,21 +115,21 @@ export default function Dashboard() {
       ]).then(([{ data: props }, { data: leadsData }, { data: ofertasData }]) => {
         // Load ofertas received on this asesor's properties
         if (props && props.length > 0) {
-          const propIds = props.map((p:any) => p.id)
+          const propIds = props.map((p) => p.id)
           supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,created_at').in('propiedad_id', propIds).neq('asesor_email', user.email).order('created_at', { ascending: false })
-            .then(({ data }) => { setOfertasRecibidas(data || []) })
+            .then(({ data }) => { setOfertasRecibidas((data || []) as unknown as Oferta[]) })
         }
-        setPropiedades(props || [])
-        setLeads(leadsData || [])
-        setOfertas(ofertasData || [])
+        setPropiedades((props || []) as unknown as Propiedad[])
+        setLeads((leadsData || []) as unknown as Lead[])
+        setOfertas((ofertasData || []) as unknown as Oferta[])
         // Check onboarding status
         supabase.from('perfiles').select('valeria_onboarding_completo,cedula_frente_url,foto_url,nombre,equipo_nido_estado,contrato_equipo_nido_aceptado').eq('id', user.id).maybeSingle().then(({data}) => setValeraPerfilDash(data))
         // Load visitas
-        supabase.from('visitas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,propiedad_titulo,asesor_email,asesor_whatsapp,fecha,hora,tipo,notas,estado,created_at').eq('asesor_email', user.email).order('fecha', { ascending: true }).then(({ data }) => setVisitas(data || []))
+        supabase.from('visitas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,propiedad_titulo,asesor_email,asesor_whatsapp,fecha,hora,tipo,notas,estado,created_at').eq('asesor_email', user.email).order('fecha', { ascending: true }).then(({ data }) => setVisitas((data || []) as unknown as Visita[]))
         // Load tareas
-        supabase.from('tareas').select('id,titulo,descripcion,estado,fecha_vencimiento,propiedad_id,asesor_email,created_at').eq('asesor_email', user.email).order('fecha_vencimiento', { ascending: true }).then(({ data }) => setTareas(data || []))
+        supabase.from('tareas').select('id,titulo,descripcion,estado,fecha_vencimiento,propiedad_id,asesor_email,created_at').eq('asesor_email', user.email).order('fecha_vencimiento', { ascending: true }).then(({ data }) => setTareas((data || []) as unknown as Tarea[]))
         // Load real rating
-        supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', user.email).maybeSingle().then(({data}) => { if(data) setCalificacion(data) })
+        supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', user.email).maybeSingle().then(({data}) => { if(data) setCalificacion(data as unknown as AsesorCalificaciones) })
         // Tour primer ingreso
         const tourVisto = localStorage.getItem('nido_tour_asesor')
         if (!tourVisto) { setTourActivo(true); localStorage.setItem('nido_tour_asesor', '1') }
@@ -157,7 +162,9 @@ export default function Dashboard() {
   const trialVencido = suscripcion?.es_trial && suscripcion?.trial_fin && new Date(suscripcion.trial_fin) < new Date()
   const tienePlanPagoActivo = suscripcion?.activo && !suscripcion?.es_trial
   if (!checandoTrial && trialVencido && !tienePlanPagoActivo) {
-    const diasDesdeVencido = Math.floor((Date.now() - new Date(suscripcion.trial_fin).getTime()) / 86400000)
+    // Etiqueta informativa de "días desde vencido" — no crítica para memoización.
+    // eslint-disable-next-line react-hooks/purity
+    const diasDesdeVencido = Math.floor((Date.now() - new Date(suscripcion.trial_fin as string).getTime()) / 86400000)
     return (
       <main style={{ fontFamily:'var(--sans)', minHeight:'100vh', background:'var(--bg)', display:'flex', alignItems:'center', justifyContent:'center', padding:24 }}>
         <style>{CSS}</style>
@@ -188,11 +195,11 @@ export default function Dashboard() {
       {/* Nav */}
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1400, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:28, alignItems:'center' }}>
             <a href="/dashboard" className="nav-link active">Dashboard</a>
             <a href="/dashboard/crm" className="nav-link">CRM</a>
-            <a href="/propiedades" className="nav-link">Portal</a>
+            <Link href="/propiedades" className="nav-link">Portal</Link>
             <a href="/dashboard/nueva-propiedad" className="nav-link">Nueva propiedad</a>
             <a href="/dashboard/referidos" className="nav-link">Referidos</a>
             <a href="/dashboard/perfil" className="nav-link">Mi perfil</a>
@@ -249,10 +256,10 @@ export default function Dashboard() {
             { label:'Propiedades activas', valor:propActivas, sub:propiedades.length+' en total', color:'var(--accent)', href:'/dashboard#propiedades' },
             { label:'Leads totales', valor:leads.length, sub:leadsNuevos+' nuevos sin atender', color:'var(--accent)', href:'/dashboard/crm' },
             { label:'Leads cerrados', valor:leadsCerrados, sub:'este mes', color:'var(--ink)', href:'/dashboard/crm' },
-            { label:'Ofertas recibidas', valor:ofertasRecibidas.length, sub:ofertasRecibidas.filter((o:any)=>o.estado==='pendiente').length+' pendientes', color:'oklch(0.52 0.08 50)', href:'#ofertas-recibidas' },
+            { label:'Ofertas recibidas', valor:ofertasRecibidas.length, sub:ofertasRecibidas.filter((o)=>o.estado==='pendiente').length+' pendientes', color:'oklch(0.52 0.08 50)', href:'#ofertas-recibidas' },
             { label:'Tasa de cierre', valor:leads.length>0?Math.round((leadsCerrados/leads.length)*100)+'%':'—', sub:'promedio cartera', color:'var(--accent)', href:'/dashboard/crm' },
           ].map((m,i) => (
-            <a key={i} href={(m as any).href||'#'} className="dash-card" style={{ animation:'fadeUp 0.4s ease '+(i*0.08)+'s both', display:'block', textDecoration:'none', cursor:'pointer' }}>
+            <a key={i} href={m.href||'#'} className="dash-card" style={{ animation:'fadeUp 0.4s ease '+(i*0.08)+'s both', display:'block', textDecoration:'none', cursor:'pointer' }}>
               <p style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--ink-3)', marginBottom:8 }}>{m.label}</p>
               <p style={{ fontFamily:'var(--serif)', fontSize:36, color:m.color, lineHeight:1, marginBottom:4 }}>{m.valor}</p>
               <p style={{ fontSize:12, color:'var(--ink-3)' }}>{m.sub}</p>
@@ -324,15 +331,15 @@ export default function Dashboard() {
             <div style={{ marginBottom:24 }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
                 <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400 }}>Ofertas enviadas</h2>
-                <span style={{ fontSize:12, color:'var(--ink-3)' }}>{ofertas.filter((o:any)=>o.estado==='pendiente').length} pendientes</span>
+                <span style={{ fontSize:12, color:'var(--ink-3)' }}>{ofertas.filter((o)=>o.estado==='pendiente').length} pendientes</span>
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {ofertas.slice(0,5).map((o:any) => (
+                {ofertas.slice(0,5).map((o) => (
                   <div key={o.id} className="dash-card" onClick={() => setOfertaSel({...o, tipo_vista:'enviada'})} style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 20px', cursor:'pointer' }}>
                     <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{(o.comprador_nombre||'?')[0]}</div>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:500, marginBottom:2 }}>{o.comprador_nombre}</div>
-                      <div style={{ fontSize:11, color:'var(--ink-3)' }}>{o.tipo_compra==='contado'?'Contado':'Crédito'} · {new Date(o.created_at).toLocaleDateString('es-CR')}</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)' }}>{o.tipo_compra==='contado'?'Contado':'Crédito'} · {o.created_at?new Date(o.created_at).toLocaleDateString('es-CR'):'—'}</div>
                     </div>
                     <div style={{ textAlign:'right', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
                       <div>
@@ -353,15 +360,15 @@ export default function Dashboard() {
             <div style={{ marginBottom:24 }}>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
                 <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400 }}>Ofertas en mis propiedades</h2>
-                <span style={{ fontSize:12, color:'var(--ink-3)' }}>{ofertasRecibidas.filter((o:any)=>o.estado==='pendiente').length} pendientes</span>
+                <span style={{ fontSize:12, color:'var(--ink-3)' }}>{ofertasRecibidas.filter((o)=>o.estado==='pendiente').length} pendientes</span>
               </div>
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {ofertasRecibidas.slice(0,5).map((o:any) => (
+                {ofertasRecibidas.slice(0,5).map((o) => (
                   <div key={o.id} className="dash-card" onClick={() => setOfertaSel({...o, tipo_vista:'recibida'})} style={{ display:'flex', alignItems:'center', gap:16, padding:'14px 20px', cursor:'pointer' }}>
                     <div style={{ width:40, height:40, borderRadius:'50%', background:'oklch(0.93 0.05 80)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'oklch(0.45 0.08 80)', flexShrink:0 }}>{(o.comprador_nombre||'?')[0]}</div>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:500, marginBottom:2 }}>{o.comprador_nombre}</div>
-                      <div style={{ fontSize:11, color:'var(--ink-3)' }}>Por: {o.asesor_nombre||o.asesor_email} · {new Date(o.created_at).toLocaleDateString('es-CR')}</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)' }}>Por: {o.asesor_nombre||o.asesor_email} · {o.created_at?new Date(o.created_at).toLocaleDateString('es-CR'):'—'}</div>
                     </div>
                     <div style={{ textAlign:'right', flexShrink:0, display:'flex', alignItems:'center', gap:10 }}>
                       <div>
@@ -381,7 +388,7 @@ export default function Dashboard() {
         <div style={{ marginBottom:24 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
             <h2 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400 }}>Visitas agendadas</h2>
-            <span style={{ fontSize:12, color:'var(--ink-3)' }}>{visitas.filter((v:any)=>v.estado==='pendiente').length} pendientes de confirmar</span>
+            <span style={{ fontSize:12, color:'var(--ink-3)' }}>{visitas.filter((v)=>v.estado==='pendiente').length} pendientes de confirmar</span>
           </div>
           {visitas.length === 0 ? (
             <div style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'24px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>
@@ -389,10 +396,10 @@ export default function Dashboard() {
             </div>
           ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-              {visitas.slice(0,5).map((v:any) => {
+              {visitas.slice(0,5).map((v) => {
                 const isPendiente = v.estado === 'pendiente'
                 const fechaEvento = safeDate(v.fecha, v.hora)
-                const googleCal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Visita propiedad NIDO: '+v.propiedad_titulo)}&dates=${fechaEvento.toISOString().replace(/[-:]/g,'').split('.')[0]}Z/${new Date(fechaEvento.getTime()+3600000).toISOString().replace(/[-:]/g,'').split('.')[0]}Z&details=${encodeURIComponent('Comprador: '+v.comprador_nombre+' | Tel: '+v.comprador_telefono)}&location=${encodeURIComponent(v.propiedad_titulo)}`
+                const googleCal = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent('Visita propiedad NIDO: '+v.propiedad_titulo)}&dates=${fechaEvento.toISOString().replace(/[-:]/g,'').split('.')[0]}Z/${new Date(fechaEvento.getTime()+3600000).toISOString().replace(/[-:]/g,'').split('.')[0]}Z&details=${encodeURIComponent('Comprador: '+v.comprador_nombre+' | Tel: '+v.comprador_telefono)}&location=${encodeURIComponent(v.propiedad_titulo||'')}`
                 const icsLines = [
                   'BEGIN:VCALENDAR',
                   'VERSION:2.0',
@@ -403,9 +410,9 @@ export default function Dashboard() {
                   'DTSTAMP:' + new Date().toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z',
                   'DTSTART:' + fechaEvento.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z',
                   'DTEND:' + new Date(fechaEvento.getTime()+3600000).toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z',
-                  'SUMMARY:Visita NIDO: ' + v.propiedad_titulo.replace(/[,;]/g,' '),
+                  'SUMMARY:Visita NIDO: ' + (v.propiedad_titulo||'').replace(/[,;]/g,' '),
                   'DESCRIPTION:Comprador: ' + (v.comprador_nombre||'').replace(/[,;]/g,' ') + ' - Tel: ' + (v.comprador_telefono||''),
-                  'LOCATION:' + v.propiedad_titulo.replace(/[,;]/g,' '),
+                  'LOCATION:' + (v.propiedad_titulo||'').replace(/[,;]/g,' '),
                   'STATUS:CONFIRMED',
                   'END:VEVENT',
                   'END:VCALENDAR'
@@ -427,7 +434,7 @@ export default function Dashboard() {
                       {isPendiente && (
                         <button onClick={async (e) => { e.stopPropagation();
                           await supabase.from('visitas').update({ estado:'confirmada' }).eq('id', v.id)
-                          setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'confirmada'} : x))
+                          setVisitas(prev => prev.map((x) => x.id===v.id ? {...x, estado:'confirmada'} : x))
                           // Notify comprador
                           if (v.comprador_telefono) {
                             fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `✅ *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${v.propiedad_titulo}\nFecha: ${safeFmt(v.fecha, {weekday:'long',month:'long',day:'numeric'})}\nHora: ${v.hora}\nTipo: ${v.tipo === 'virtual' ? 'Virtual' : 'Presencial'}\n\nTe enviaremos un recordatorio el día antes. 🏠`, visitaId: v.id }) }).catch(()=>{})
@@ -481,7 +488,7 @@ export default function Dashboard() {
                 <input type="date" value={formTarea.fecha_vencimiento} onChange={e => setFormTarea(p=>({...p,fecha_vencimiento:e.target.value}))} style={{ padding:'9px 12px', border:'1px solid var(--rule)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', outline:'none' }}/>
                 <select value={formTarea.propiedad_id} onChange={e => setFormTarea(p=>({...p,propiedad_id:e.target.value,lead_id:''}))} style={{ padding:'9px 12px', border:'1px solid var(--rule)', borderRadius:8, fontSize:13, fontFamily:'var(--sans)', outline:'none', gridColumn:'1/-1' }}>
                   <option value="">🏠 Sin propiedad asignada</option>
-                  {propiedades.map((p:any) => <option key={p.id} value={p.id}>{p.ref_id ? p.ref_id+' · ' : ''}{p.titulo}</option>)}
+                  {propiedades.map((p) => <option key={p.id} value={p.id}>{p.ref_id ? p.ref_id+' · ' : ''}{p.titulo}</option>)}
                 </select>
               </div>
               <div style={{ display:'flex', gap:8, justifyContent:'flex-end' }}>
@@ -491,7 +498,7 @@ export default function Dashboard() {
                   const { data: u } = await supabase.auth.getUser()
                   await supabase.from('tareas').insert({ asesor_email: u.user?.email, titulo: formTarea.titulo, descripcion: formTarea.descripcion, prioridad: formTarea.prioridad, fecha_vencimiento: formTarea.fecha_vencimiento || null, propiedad_id: formTarea.propiedad_id || null })
                   const { data } = await supabase.from('tareas').select('id,titulo,descripcion,estado,fecha_vencimiento,propiedad_id,asesor_email,created_at').eq('asesor_email', u.user?.email).order('fecha_vencimiento', { ascending: true })
-                  setTareas(data || [])
+                  setTareas((data || []) as unknown as Tarea[])
                   setNuevaTarea(false)
                   setFormTarea({ titulo:'', descripcion:'', prioridad:'media', fecha_vencimiento:'', propiedad_id:'', lead_id:'' })
                 }} style={{ padding:'8px 16px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:12, fontWeight:500, cursor:'pointer' }}>
@@ -507,28 +514,28 @@ export default function Dashboard() {
             </div>
           ) : (
             <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-              {tareas.filter((t:any)=>t.estado!=='completada').map((t:any) => {
+              {tareas.filter((t)=>t.estado!=='completada').map((t) => {
                 const vencida = t.fecha_vencimiento && new Date(t.fecha_vencimiento+'T12:00:00') < new Date()
                 const prioColor = t.prioridad==='alta'?'oklch(0.55 0.08 20)':t.prioridad==='media'?'oklch(0.55 0.08 80)':'oklch(0.55 0.06 150)'
                 return (
                   <div key={t.id} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:10, padding:'12px 16px', display:'flex', alignItems:'center', gap:12 }}>
                     <button onClick={async () => {
                       await supabase.from('tareas').update({ estado:'completada' }).eq('id', t.id)
-                      setTareas(prev => prev.filter((x:any) => x.id !== t.id))
+                      setTareas(prev => prev.filter((x) => x.id !== t.id))
                     }} style={{ width:20, height:20, borderRadius:4, border:'2px solid var(--rule)', background:'transparent', cursor:'pointer', flexShrink:0, display:'grid', placeItems:'center' }}>
                       <span style={{ fontSize:10 }}></span>
                     </button>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:13, fontWeight:500, color:vencida?'oklch(0.45 0.08 20)':'var(--ink)' }}>{t.titulo}</div>
                       {t.descripcion && <div style={{ fontSize:11, color:'var(--ink-3)', marginTop:2 }}>{t.descripcion}</div>}
-                    {t.propiedad_id && propiedades.find((p:any)=>p.id===t.propiedad_id) && (
+                    {t.propiedad_id && propiedades.find((p)=>p.id===t.propiedad_id) && (
                       <div style={{ fontSize:10, color:'var(--accent)', marginTop:2 }}>
-                        🏠 {(propiedades.find((p:any)=>p.id===t.propiedad_id) as any)?.titulo}
+                        🏠 {propiedades.find((p)=>p.id===t.propiedad_id)?.titulo}
                       </div>
                     )}
                     </div>
                     <div style={{ display:'flex', gap:6, alignItems:'center', flexShrink:0 }}>
-                      <span style={{ fontSize:10, fontWeight:600, color:prioColor }}>{t.prioridad.toUpperCase()}</span>
+                      <span style={{ fontSize:10, fontWeight:600, color:prioColor }}>{(t.prioridad||'').toUpperCase()}</span>
                       {t.fecha_vencimiento && <span style={{ fontSize:11, color:vencida?'oklch(0.45 0.08 20)':'var(--ink-3)' }}>{safeFmt(t.fecha_vencimiento, {month:'short',day:'numeric'})}</span>}
                     </div>
                   </div>
@@ -612,8 +619,8 @@ export default function Dashboard() {
                 ofertaSel.banco ? { l:'Banco', v:ofertaSel.banco } : null,
                 ofertaSel.pre_aprobado ? { l:'Pre-aprobación', v:'Sí' } : null,
                 ofertaSel.monto_prima ? { l:'Prima', v:'$'+Number(ofertaSel.monto_prima).toLocaleString()+' USD' } : null,
-                { l:'Fecha', v:new Date(ofertaSel.created_at).toLocaleDateString('es-CR',{day:'2-digit',month:'long',year:'numeric'}) },
-              ].filter(Boolean).map((f:any) => (
+                { l:'Fecha', v:ofertaSel.created_at?new Date(ofertaSel.created_at).toLocaleDateString('es-CR',{day:'2-digit',month:'long',year:'numeric'}):'—' },
+              ].filter((f): f is { l: string; v: string } => f !== null).map((f) => (
                 <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
                   <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
                   <span style={{ fontWeight:500 }}>{f.v}</span>
@@ -625,7 +632,7 @@ export default function Dashboard() {
             {ofertaSel.condiciones && (
               <div style={{ marginBottom:20 }}>
                 <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Condiciones especiales</div>
-                <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65, background:'var(--bg)', padding:'12px 14px', borderRadius:8, fontStyle:'italic' }}>"{ofertaSel.condiciones}"</p>
+                <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65, background:'var(--bg)', padding:'12px 14px', borderRadius:8, fontStyle:'italic' }}>&quot;{ofertaSel.condiciones}&quot;</p>
               </div>
             )}
 
@@ -650,8 +657,8 @@ export default function Dashboard() {
                         if (!contraOferta) return
                         setUpdatingOferta(true)
                         await supabase.from('ofertas').update({ estado: 'contra_oferta', condiciones: (ofertaSel.condiciones||'') + ' | Contra oferta: $'+contraOferta+' USD' }).eq('id', ofertaSel.id)
-                        setOfertaSel((p:any) => ({...p, estado:'contra_oferta'}))
-                        setOfertasRecibidas(prev => prev.map((o:any) => o.id===ofertaSel.id ? {...o, estado:'contra_oferta'} : o))
+                        setOfertaSel((p) => p ? ({...p, estado:'contra_oferta'}) : p)
+                        setOfertasRecibidas(prev => prev.map((o) => o.id===ofertaSel.id ? {...o, estado:'contra_oferta'} : o))
                         setShowContra(false)
                         setContraOferta('')
                         setUpdatingOferta(false)
@@ -686,7 +693,7 @@ export default function Dashboard() {
               {/* Estado final */}
               {ofertaSel.estado !== 'pendiente' && (
                 <div style={{ padding:'12px', borderRadius:10, background:'var(--bg)', border:'1px solid var(--rule)', textAlign:'center', fontSize:13, color:'var(--ink-3)' }}>
-                  Oferta {ofertaSel.estado} · {new Date(ofertaSel.created_at).toLocaleDateString('es-CR')}
+                  Oferta {ofertaSel.estado} · {ofertaSel.created_at?new Date(ofertaSel.created_at).toLocaleDateString('es-CR'):'—'}
                 </div>
               )}
             </div>
@@ -749,7 +756,7 @@ export default function Dashboard() {
 
         const rechazar = async () => {
           await supabase.from('visitas').update({ estado:'rechazada' }).eq('id', v.id)
-          setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'rechazada'} : x))
+          setVisitas(prev => prev.map((x) => x.id===v.id ? {...x, estado:'rechazada'} : x))
           if (v.comprador_telefono) {
             fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `Hola ${v.comprador_nombre||''}, lamentablemente no podemos confirmar la visita a *${v.propiedad_titulo}* para la fecha solicitada. Contactanos para coordinar otra fecha. 🏠 NIDO`, visitaId: v.id }) }).catch(()=>{})
           }
@@ -759,7 +766,7 @@ export default function Dashboard() {
         const enviarNuevaFecha = async () => {
           if (!nuevaFecha) return
           await supabase.from('visitas').update({ fecha: nuevaFecha, hora: nuevaHora, estado:'pendiente' }).eq('id', v.id)
-          setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, fecha:nuevaFecha, hora:nuevaHora, estado:'pendiente'} : x))
+          setVisitas(prev => prev.map((x) => x.id===v.id ? {...x, fecha:nuevaFecha, hora:nuevaHora, estado:'pendiente'} : x))
           if (v.comprador_telefono) {
             const fechaFmt = new Date(nuevaFecha+'T12:00:00').toLocaleDateString('es-CR',{weekday:'long',month:'long',day:'numeric'})
             fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `Hola ${v.comprador_nombre||''}, te propongo una nueva fecha para tu visita a *${v.propiedad_titulo}*:\n\n📅 ${fechaFmt}\n🕐 ${nuevaHora}\n\n¿Te funciona? Respondeme para confirmar. 🏠 NIDO`, visitaId: v.id }) }).catch(()=>{})
@@ -785,7 +792,7 @@ export default function Dashboard() {
                 {v.comprador_email && <div style={{ fontSize:13, color:'var(--ink-2)', marginBottom:4 }}>✉ {v.comprador_email}</div>}
                 <div style={{ fontSize:13, color:'var(--ink-2)', marginBottom:4 }}>📅 {safeFmt(v.fecha, {weekday:'long',month:'long',day:'numeric'})} · {v.hora}</div>
                 <div style={{ fontSize:13, color:'var(--ink-2)' }}>🏠 {v.tipo === 'virtual' ? 'Virtual' : 'Presencial'}</div>
-                {v.notas && <div style={{ fontSize:13, color:'var(--ink-3)', marginTop:8, fontStyle:'italic' }}>"{v.notas}"</div>}
+                {v.notas && <div style={{ fontSize:13, color:'var(--ink-3)', marginTop:8, fontStyle:'italic' }}>&quot;{v.notas}&quot;</div>}
                 <span style={{ display:'inline-block', marginTop:10, padding:'3px 10px', borderRadius:999, fontSize:10, fontWeight:500, background:v.estado==='confirmada'?'var(--accent-tint)':v.estado==='rechazada'?'oklch(0.95 0.04 20)':'oklch(0.93 0.05 80)', color:v.estado==='confirmada'?'var(--accent)':v.estado==='rechazada'?'oklch(0.5 0.1 20)':'oklch(0.45 0.08 80)' }}>{v.estado}</span>
               </div>
 
@@ -806,7 +813,7 @@ export default function Dashboard() {
                   {isPendiente && (
                     <button onClick={async () => {
                       await supabase.from('visitas').update({ estado:'confirmada' }).eq('id', v.id)
-                      setVisitas(prev => prev.map((x:any) => x.id===v.id ? {...x, estado:'confirmada'} : x))
+                      setVisitas(prev => prev.map((x) => x.id===v.id ? {...x, estado:'confirmada'} : x))
                       if (v.comprador_telefono) {
                         fetch('/api/wa-send', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ to: v.comprador_telefono, message: `✅ *Visita confirmada NIDO*\n\nTu visita fue confirmada:\n\nPropiedad: ${v.propiedad_titulo}\nFecha: ${safeFmt(v.fecha, {weekday:'long',month:'long',day:'numeric'})}\nHora: ${v.hora}\n\nTe enviaremos un recordatorio el día antes. 🏠`, visitaId: v.id }) }).catch(()=>{})
                       }

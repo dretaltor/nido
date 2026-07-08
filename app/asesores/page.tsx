@@ -1,6 +1,23 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import Link from 'next/link'
+import type { AsesorPublico } from '../../lib/database.types'
+
+interface AsesorCard extends AsesorPublico {
+  name: string | null
+  role: string
+  initial: string
+  hue: number
+  region: string
+  bio: string
+  listings: number
+  sold: number
+  rating: number | null
+  ratingTotal: number
+  langs: string[]
+  specs: string[]
+}
 
 // AGENTS data loaded from Supabase
 
@@ -8,7 +25,7 @@ const REGIONS = ['Todas','Valle Central','Valle Occidente','Pacífico','Guanacas
 const SPECS = ['Todas','Condominios','Lujo','Beachfront','Inversión','Lofts','Alquiler','Fincas','Eco','Hipoteca','Comercial']
 
 export default function Asesores() {
-  const [asesores, setAsesores] = useState<any[]>([])
+  const [asesores, setAsesores] = useState<AsesorCard[]>([])
   const [loadingAsesores, setLoadingAsesores] = useState(true)
   const [region, setRegion] = useState('Todas')
   const [spec, setSpec] = useState('Todas')
@@ -19,18 +36,18 @@ export default function Asesores() {
       .then(async ({ data }) => {
         if (data) {
           const [conteos, ratings, cerradas] = await Promise.all([
-            Promise.all(data.map((a:any) =>
+            Promise.all(data.map((a) =>
               supabase.from('propiedades').select('id', { count: 'exact', head: true }).eq('asesor_email', a.correo).eq('disponible', true)
             )),
-            Promise.all(data.map((a:any) =>
+            Promise.all(data.map((a) =>
               supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', a.correo).maybeSingle()
             )),
-            Promise.all(data.map((a:any) =>
+            Promise.all(data.map((a) =>
               supabase.from('comisiones').select('id', { count: 'exact', head: true }).eq('asesor_email', a.correo).eq('estado', 'cobrada')
             )),
           ])
-          setAsesores(data.map((a:any, i:number) => {
-            const vp = a.valeria_perfil || {}
+          setAsesores(data.map((a, i): AsesorCard => {
+            const vp = (a.valeria_perfil || {}) as Record<string, string>
             const zonas = (vp.zonas || 'Valle Central').split(',').map((z:string) => z.trim())
             const esEquipoNido = a.equipo_nido_estado === 'aprobado'
             return {
@@ -82,12 +99,12 @@ export default function Asesores() {
 
       <nav style={{position:'sticky',top:0,zIndex:50,background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--rule)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 40px',maxWidth:1600,margin:'0 auto'}}>
-          <a href="/" style={{fontFamily:'var(--serif)',fontSize:26,color:'var(--ink)'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></a>
+          <Link href="/" style={{fontFamily:'var(--serif)',fontSize:26,color:'var(--ink)'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></Link>
           <nav style={{display:'flex',gap:28,fontSize:13,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--ink-2)'}}>
-            <a href="/propiedades">Propiedades</a>
+            <Link href="/propiedades">Propiedades</Link>
             <a href="/nosotros" style={{color:'var(--ink-3)',textDecoration:'none',fontSize:13}}>Nosotros</a>
             <a href="/asesores" style={{color:'var(--ink)',borderBottom:'1px solid var(--ink)',paddingBottom:2}}>Asesores</a>
-            <a href="/noticias">Noticias</a>
+            <Link href="/noticias">Noticias</Link>
           </nav>
           <div style={{display:'flex',gap:10}}>
             <a href="/login" style={{border:'1px solid var(--rule)',padding:'8px 16px',borderRadius:999,fontSize:13}}>Ingresar</a>
@@ -118,7 +135,7 @@ export default function Asesores() {
           {filtered.map(a => (
             <div key={a.id} className="agent-card">
               <div style={{width:56,height:56,borderRadius:'50%',background:`oklch(0.85 0.04 ${a.hue})`,display:'grid',placeItems:'center',fontFamily:'var(--serif)',fontSize:22,color:`oklch(0.35 0.06 ${a.hue})`,flexShrink:0,overflow:'hidden'}}>
-                {a.foto_url ? <img src={a.foto_url} alt={a.nombre} style={{width:'100%',height:'100%',objectFit:'cover'}}/> : a.initial}
+                {a.foto_url ? <img src={a.foto_url} alt={a.nombre||''} style={{width:'100%',height:'100%',objectFit:'cover'}}/> : a.initial}
               </div>
               <div>
                 <div style={{fontFamily:'var(--serif)',fontSize:22,marginBottom:2}}>{a.name}</div>

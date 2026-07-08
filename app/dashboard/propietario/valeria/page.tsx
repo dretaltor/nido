@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
 import { crearTicketSoporte } from '../../../../lib/soporte'
+import type { User } from '@supabase/supabase-js'
+import type { Propiedad } from '../../../../lib/database.types'
 
 const SUGERENCIAS = [
   { icon: '💰', texto: '¿Cuál es el valor de mercado actual de mi propiedad?' },
@@ -17,8 +19,8 @@ interface Msg { role: 'user' | 'assistant'; content: string }
 
 export default function ValeriaPropietario() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const [propiedades, setPropiedades] = useState<any[]>([])
+  const [user, setUser] = useState<User | null>(null)
+  const [propiedades, setPropiedades] = useState<Partial<Propiedad>[]>([])
   const [msgs, setMsgs] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)

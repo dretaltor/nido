@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 const STATS = [
   { val: '2.4×', label: 'más cierres con Valeria IA' },
@@ -61,7 +62,7 @@ export default function Unirse() {
       {/* NAV */}
       <nav style={{position:'sticky',top:0,zIndex:50,background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--rule)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 40px',maxWidth:1400,margin:'0 auto'}}>
-          <a href="/" style={{fontFamily:'var(--serif)',fontSize:24,color:'var(--ink)'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></a>
+          <Link href="/" style={{fontFamily:'var(--serif)',fontSize:24,color:'var(--ink)'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></Link>
           <div className="nav-links" style={{display:'flex',gap:28,fontSize:13,color:'var(--ink-3)'}}>
             <a href="#como-funciona">¿Cómo funciona?</a>
             <a href="#problemas">Qué resuelve</a>
@@ -216,7 +217,7 @@ export default function Unirse() {
                   <div style={{fontSize:12,color:'var(--ink-3)'}}>{t.zona}</div>
                 </div>
               </div>
-              <p style={{fontSize:14,color:'var(--ink-2)',lineHeight:1.7,fontStyle:'italic'}}>"{t.texto}"</p>
+              <p style={{fontSize:14,color:'var(--ink-2)',lineHeight:1.7,fontStyle:'italic'}}>&quot;{t.texto}&quot;</p>
               <div style={{display:'flex',gap:2,marginTop:14}}>
                 {[1,2,3,4,5].map(s => <span key={s} style={{color:'oklch(0.62 0.10 75)',fontSize:14}}>★</span>)}
               </div>
@@ -292,9 +293,9 @@ export default function Unirse() {
       {/* FOOTER */}
       <footer style={{background:'var(--ink)',padding:'40px',borderTop:'1px solid rgba(255,255,255,0.06)'}}>
         <div style={{maxWidth:1400,margin:'0 auto',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:16}}>
-          <a href="/" style={{fontFamily:'var(--serif)',fontSize:22,color:'white'}}>NIDO<span style={{color:'oklch(0.85 0.06 80)'}}>.</span></a>
+          <Link href="/" style={{fontFamily:'var(--serif)',fontSize:22,color:'white'}}>NIDO<span style={{color:'oklch(0.85 0.06 80)'}}>.</span></Link>
           <div style={{display:'flex',gap:24,fontSize:13,color:'rgba(255,255,255,0.4)'}}>
-            <a href="/propiedades" style={{color:'rgba(255,255,255,0.4)'}}>Portal</a>
+            <Link href="/propiedades" style={{color:'rgba(255,255,255,0.4)'}}>Portal</Link>
             <a href="/academia" style={{color:'rgba(255,255,255,0.4)'}}>Academia</a>
             <a href="/precios" style={{color:'rgba(255,255,255,0.4)'}}>Precios</a>
             <a href="/login" style={{color:'rgba(255,255,255,0.4)'}}>Ingresar</a>

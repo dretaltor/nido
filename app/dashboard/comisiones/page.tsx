@@ -3,6 +3,11 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { exportToCSV } from '../../../lib/csvExport'
+import Link from 'next/link'
+import type { User } from '@supabase/supabase-js'
+import type { Comision, ResumenComisiones } from '../../../lib/database.types'
+
+type ComisionExt = Comision & { _soyColaborador?: boolean }
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
@@ -37,11 +42,11 @@ const fmt = (n: number) => '$' + n.toLocaleString('es-CR', { minimumFractionDigi
 
 export default function Comisiones() {
   const router = useRouter()
-  const [user, setUser] = useState<any>(null)
-  const [comisiones, setComisiones] = useState<any[]>([])
-  const [resumen, setResumen] = useState<any>(null)
+  const [user, setUser] = useState<User | null>(null)
+  const [comisiones, setComisiones] = useState<ComisionExt[]>([])
+  const [resumen, setResumen] = useState<Partial<ResumenComisiones> | null>(null)
   const [loading, setLoading] = useState(true)
-  const [sel, setSel] = useState<any>(null)
+  const [sel, setSel] = useState<ComisionExt | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [filtro, setFiltro] = useState('todos')
   const [saving, setSaving] = useState(false)
@@ -58,7 +63,7 @@ export default function Comisiones() {
       supabase.from('comisiones').select('*').eq('asesor_email', email).order('created_at', { ascending: false }),
       supabase.from('comisiones').select('*').eq('colaborador_email', email).order('created_at', { ascending: false }),
     ])
-    const compartidasTag = (compartidas || []).map((c: any) => ({ ...c, _soyColaborador: true }))
+    const compartidasTag = (compartidas || []).map((c) => ({ ...c, _soyColaborador: true }) as ComisionExt)
     return [...(propias || []), ...compartidasTag]
   }
 
@@ -87,7 +92,7 @@ export default function Comisiones() {
   }
 
   const guardar = async () => {
-    if (!form.propiedad_titulo || !form.precio_venta) return
+    if (!form.propiedad_titulo || !form.precio_venta || !user) return
     if (form.tieneColaborador && (!form.colaborador_email || !form.colaborador_nombre)) return
     setSaving(true)
     const precio = parseFloat(form.precio_venta.replace(/[^0-9.]/g, ''))
@@ -127,10 +132,10 @@ export default function Comisiones() {
   }
 
   const actualizarEstado = async (id: string, estado: string) => {
-    const update: any = { estado }
+    const update: Partial<Comision> = { estado }
     if (estado === 'cobrada') update.fecha_cierre_real = new Date().toISOString().split('T')[0]
     await supabase.from('comisiones').update(update).eq('id', id)
-    setSel((p:any) => ({ ...p, estado, ...update }))
+    setSel((p) => p ? ({ ...p, estado, ...update }) : p)
     await reload()
   }
 
@@ -144,7 +149,7 @@ export default function Comisiones() {
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 32px', maxWidth:1200, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22 }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22 }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:20, fontSize:13, color:'var(--ink-3)' }}>
             <a href="/dashboard">Dashboard</a>
             <a href="/dashboard/crm">CRM</a>
@@ -242,7 +247,7 @@ export default function Comisiones() {
             </div>
           )}
           {filtradas.map(c => {
-            const est = ESTADOS[c.estado] || ESTADOS.proyectada
+            const est = ESTADOS[c.estado||'proyectada'] || ESTADOS.proyectada
             return (
               <div key={c.id} className="row" onClick={() => setSel(c)}>
                 <div style={{ width:44, height:44, borderRadius:10, background:'var(--bg)', border:'1px solid var(--rule)', display:'grid', placeItems:'center', fontSize:18, flexShrink:0 }}>🏠</div>
@@ -312,10 +317,10 @@ export default function Comisiones() {
                   { l:'Propiedad', v:sel.propiedad_titulo },
                   { l:'Referencia', v:sel.propiedad_ref||'—' },
                   { l:'Zona', v:sel.propiedad_zona||'—' },
-                  { l:'Estado', v:ESTADOS[sel.estado]?.label },
+                  { l:'Estado', v:ESTADOS[sel.estado||'proyectada']?.label },
                   { l:'Cierre estimado', v:sel.fecha_cierre_estimada?new Date(sel.fecha_cierre_estimada).toLocaleDateString('es-CR'):'—' },
                   { l:'Cierre real', v:sel.fecha_cierre_real?new Date(sel.fecha_cierre_real).toLocaleDateString('es-CR'):'—' },
-                  { l:'Registrado', v:new Date(sel.created_at).toLocaleDateString('es-CR') },
+                  { l:'Registrado', v:sel.created_at?new Date(sel.created_at).toLocaleDateString('es-CR'):'—' },
                 ].map(f => (
                   <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'9px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
                     <span style={{ color:'var(--ink-3)' }}>{f.l}</span>

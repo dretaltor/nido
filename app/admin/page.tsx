@@ -1,8 +1,153 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import type { User } from '@supabase/supabase-js'
 import { supabase } from '../../lib/supabase'
 import { getPlanConfig } from '../../lib/planes'
+import type {
+  Perfil, Propietario, Propiedad, Contrato, Comision, SoporteTicket, SoporteMensaje, Referido,
+  AdminAuditLog, AdminMetricas, Admin, ResumenComisiones, Suscripcion, Lead, Json,
+} from '../../lib/database.types'
+
+// Item polimórfico seleccionado en el drawer lateral: puede ser un asesor, propietario,
+// propiedad, contrato, comisión, ticket o referido. Se define como un objeto plano con
+// todos los campos posibles opcionales (en vez de una intersección de las interfaces reales)
+// porque intersectar tipos con el mismo nombre de campo pero distinta nulabilidad entre
+// entidades colapsa el tipo de forma incorrecta. `_tipo` distingue de cuál entidad viene.
+type SelItem = {
+  acepta_colaboracion?: boolean
+  activo?: boolean | null
+  amenidades?: Json | null
+  anotaciones?: string | null
+  area_registral?: number | null
+  asesor_email?: string
+  asesor_nombre?: string | null
+  asesor_whatsapp?: string | null
+  asunto?: string | null
+  banos?: number | null
+  canal?: string
+  canton?: string | null
+  cedula?: string | null
+  cedula_frente_url?: string | null
+  cedula_reverso_url?: string | null
+  codigo_corredor?: string | null
+  codigo_referido?: string | null
+  codigo_usado?: string
+  colaborador_email?: string | null
+  colaborador_nombre?: string | null
+  colindancias?: string | null
+  comision_porcentaje?: number | null
+  compania?: string | null
+  contrato_asesor_aceptado?: boolean | null
+  contrato_asesor_aceptado_at?: string | null
+  contrato_equipo_nido_aceptado?: boolean | null
+  contrato_equipo_nido_aceptado_at?: string | null
+  correo?: string
+  creado_por?: string | null
+  created_at?: string | null
+  cuota_condominal?: number | null
+  descripcion?: string | null
+  direccion?: string | null
+  disponible?: boolean | null
+  distrito?: string | null
+  equipo_nido_estado?: string | null
+  es_equipo_nido?: boolean | null
+  es_trial?: boolean | null
+  estacionamientos?: number | null
+  estado?: string | null
+  fecha_cierre_estimada?: string | null
+  fecha_cierre_real?: string | null
+  fecha_inicio?: string | null
+  fecha_vencimiento?: string | null
+  firma_tipo?: string | null
+  firma_url?: string | null
+  firmado_at?: string | null
+  firmado_nido?: boolean | null
+  firmado_propietario?: boolean | null
+  foto_url?: string | null
+  fotos?: Json | null
+  gravamenes?: string | null
+  habitaciones?: number | null
+  id?: string
+  imagen_url?: string | null
+  libre_gravamenes?: boolean | null
+  lote_m2?: number | null
+  metros?: number | null
+  monto_asesor?: number | null
+  monto_colaborador_split?: number | null
+  monto_comision?: number | null
+  monto_nido?: number | null
+  monto_principal?: number | null
+  naturaleza?: string | null
+  nombre?: string | null
+  notas?: string | null
+  notas_admin?: string | null
+  numero_finca?: string | null
+  numero_plano?: string | null
+  operacion?: string
+  pagado_asesor?: boolean | null
+  pagado_asesor_at?: string | null
+  periodo?: string | null
+  periodo_dias?: number | null
+  plan?: string | null
+  porcentaje_colaborador?: number | null
+  porcentaje_comision?: number | null
+  porcentaje_principal?: number | null
+  precio?: number
+  precio_anterior?: number | null
+  precio_mensual?: number | null
+  precio_venta?: number | null
+  prioridad?: string
+  propiedad_id?: string | null
+  propiedad_ref?: string | null
+  propiedad_titulo?: string | null
+  propiedad_zona?: string | null
+  propietario_correo?: string
+  propietario_email?: string | null
+  propietario_nombre?: string | null
+  provincia?: string | null
+  recompensa_monto?: number | null
+  ref_id?: string | null
+  referido_email?: string
+  referido_nombre?: string | null
+  referido_por?: string | null
+  referido_tipo?: string
+  referidor_email?: string
+  referidor_tipo?: string
+  relacion?: string
+  selfie_url?: string | null
+  solicita_equipo_nido?: boolean | null
+  split_confirmado_colaborador?: boolean | null
+  split_registrado_at?: string | null
+  suspendido?: boolean
+  telefono?: string | null
+  terreno_tipo?: string | null
+  tipo?: string | null
+  titulo?: string
+  topografia?: string | null
+  trial_fin?: string | null
+  updated_at?: string | null
+  user_id?: string | null
+  uso_suelo?: string | null
+  usuario_email?: string
+  usuario_nombre?: string | null
+  usuario_telefono?: string | null
+  usuario_tipo?: string
+  valeria_onboarding_completo?: boolean | null
+  valeria_perfil?: Json | null
+  verificacion_estado?: string | null
+  verificacion_notas?: string | null
+  verificado?: boolean | null
+  verificado_at?: string | null
+  verificado_por?: string | null
+  visita_agendada?: boolean | null
+  visita_fecha?: string | null
+  visita_tipo?: string | null
+  whatsapp?: string | null
+  zona?: string
+  _tipo?: string
+  _sus?: Suscripcion
+}
 
 const CSS = `
   @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=JetBrains+Mono:wght@400&display=swap');
@@ -57,37 +202,27 @@ export default function AdminPanel() {
   const router = useRouter()
   const [modulo, setModulo] = useState('dashboard')
   const [loading, setLoading] = useState(true)
-  const [metricas, setMetricas] = useState<any>(null)
-  const [asesores, setAsesores] = useState<any[]>([])
-  const [propietarios, setPropietarios] = useState<any[]>([])
-  const [comisiones, setComisiones] = useState<any[]>([])
-  const [contratos, setContratos] = useState<any[]>([])
-  const [resumenComisiones, setResumenComisiones] = useState<any[]>([])
-  const [propiedades, setPropiedades] = useState<any[]>([])
-  const [suscripciones, setSuscripciones] = useState<any[]>([])
-  const [tickets, setTickets] = useState<any[]>([])
-  const [referidos, setReferidos] = useState<any[]>([])
-  const [leads, setLeads] = useState<any[]>([])
-  const [auditoria, setAuditoria] = useState<any[]>([])
-  const [admins, setAdmins] = useState<any[]>([])
-  const [sel, setSel] = useState<any>(null)
+  const [metricas, setMetricas] = useState<AdminMetricas | null>(null)
+  const [asesores, setAsesores] = useState<Perfil[]>([])
+  const [propietarios, setPropietarios] = useState<Propietario[]>([])
+  const [comisiones, setComisiones] = useState<Comision[]>([])
+  const [contratos, setContratos] = useState<Contrato[]>([])
+  const [resumenComisiones, setResumenComisiones] = useState<ResumenComisiones[]>([])
+  const [propiedades, setPropiedades] = useState<Propiedad[]>([])
+  const [suscripciones, setSuscripciones] = useState<Suscripcion[]>([])
+  const [tickets, setTickets] = useState<SoporteTicket[]>([])
+  const [referidos, setReferidos] = useState<Referido[]>([])
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [auditoria, setAuditoria] = useState<AdminAuditLog[]>([])
+  const [admins, setAdmins] = useState<Admin[]>([])
+  const [sel, setSel] = useState<SelItem | null>(null)
   const [filtro, setFiltro] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
   const [busquedaGlobal, setBusquedaGlobal] = useState('')
   const [kycSeleccionados, setKycSeleccionados] = useState<string[]>([])
   const [aprobandoLote, setAprobandoLote] = useState(false)
   const [msg, setMsg] = useState('')
-  const [adminUser, setAdminUser] = useState<any>(null)
-
-  useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { window.location.href = '/admin/login'; return }
-      const { data: admin } = await supabase.from('admins').select('*').eq('correo', user.email!).maybeSingle()
-      if (!admin) { window.location.href = '/admin/login'; return }
-      setAdminUser(user)
-      loadAll()
-    })
-  }, [])
+  const [adminUser, setAdminUser] = useState<User | null>(null)
 
   const loadAll = async () => {
     const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }, { data: lds }, { data: audit }, { data: adms }] = await Promise.all([
@@ -105,19 +240,31 @@ export default function AdminPanel() {
       supabase.from('admins').select('*').order('created_at', { ascending: false }),
     ])
     setMetricas(met)
-    setAsesores(as || [])
-    setPropietarios(pr || [])
-    setPropiedades(pp || [])
-    setSuscripciones(sus || [])
+    // Estas queries seleccionan solo un subconjunto de columnas (no '*'), por eso el cast:
+    // la forma real en runtime es un subconjunto válido del tipo completo de la fila.
+    setAsesores((as || []) as unknown as Perfil[])
+    setPropietarios((pr || []) as unknown as Propietario[])
+    setPropiedades((pp || []) as unknown as Propiedad[])
+    setSuscripciones((sus || []) as unknown as Suscripcion[])
     setComisiones(coms || [])
-    setContratos(cons || [])
+    setContratos((cons || []) as unknown as Contrato[])
     setTickets(tks || [])
     setReferidos(refs || [])
-    setLeads(lds || [])
+    setLeads((lds || []) as unknown as Lead[])
     setAuditoria(audit || [])
     setAdmins(adms || [])
     setLoading(false)
   }
+
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user) { window.location.href = '/admin/login'; return }
+      const { data: admin } = await supabase.from('admins').select('*').eq('correo', user.email!).maybeSingle()
+      if (!admin) { window.location.href = '/admin/login'; return }
+      setAdminUser(user)
+      loadAll()
+    })
+  }, [])
 
   const logAccion = async (accion: string, entidadTipo?: string, entidadId?: string, detalle?: string) => {
     await supabase.from('admin_audit_log').insert({
@@ -166,14 +313,14 @@ export default function AdminPanel() {
         })
         if (matches && matches.length > 0) {
           const { data: { session: ses5 } } = await supabase.auth.getSession()
-          await Promise.all(matches.map((m: any) =>
+          await Promise.all(matches.map((m: { id: string; email: string }) =>
             fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
               to: m.email,
               tipo: 'alerta_nueva_propiedad',
               data: { titulo: prop.titulo, zona: prop.zona, precio: prop.precio, link: 'https://www.nido-cr.com/propiedades/'+id, bajaLink: 'https://www.nido-cr.com/alertas/baja/'+m.id }
             }) }).catch(() => {})
           ))
-          await supabase.from('alertas_busqueda').update({ ultima_notificacion_at: new Date().toISOString() }).in('id', matches.map((m: any) => m.id))
+          await supabase.from('alertas_busqueda').update({ ultima_notificacion_at: new Date().toISOString() }).in('id', matches.map((m: { id: string; email: string }) => m.id))
         }
       } catch {}
     }
@@ -200,10 +347,10 @@ export default function AdminPanel() {
     }
     logAccion(aprobar ? 'Aprobó KYC' : 'Rechazó KYC', 'asesor', id, asesorRow?.correo)
     loadAll()
-    setSel((p:any) => p ? {...p, verificado: aprobar, verificacion_estado: aprobar ? 'aprobado' : 'rechazado'} : null)
+    setSel((p: SelItem | null) => p ? {...p, verificado: aprobar, verificacion_estado: aprobar ? 'aprobado' : 'rechazado'} : null)
   }
 
-  const responderEquipoNido = async (asesor: any, aprobar: boolean) => {
+  const responderEquipoNido = async (asesor: Perfil, aprobar: boolean) => {
     await supabase.from('perfiles').update({
       equipo_nido_estado: aprobar ? 'aprobado' : 'rechazado',
     }).eq('id', asesor.id)
@@ -221,7 +368,7 @@ export default function AdminPanel() {
       }, { onConflict: 'correo' })
     }
 
-    setAsesores(prev => prev.map((a:any) => a.id===asesor.id ? {...a, equipo_nido_estado: aprobar?'aprobado':'rechazado'} : a))
+    setAsesores(prev => prev.map((a: Perfil) => a.id===asesor.id ? {...a, equipo_nido_estado: aprobar?'aprobado':'rechazado'} : a))
     const { data: { session: ses3 } } = await supabase.auth.getSession()
     fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+ses3?.access_token}, body: JSON.stringify({
       to: asesor.correo,
@@ -235,9 +382,9 @@ export default function AdminPanel() {
   const suspenderCuenta = async (tabla: 'perfiles'|'propietarios', id: string, correo: string, suspender: boolean) => {
     await supabase.from(tabla).update({ suspendido: suspender }).eq('id', id)
     logAccion(suspender ? 'Suspendió cuenta' : 'Reactivó cuenta', tabla==='perfiles'?'asesor':'propietario', id, correo)
-    if (tabla === 'perfiles') setAsesores(prev => prev.map((a:any) => a.id===id ? {...a, suspendido: suspender} : a))
-    else setPropietarios(prev => prev.map((p:any) => p.id===id ? {...p, suspendido: suspender} : p))
-    setSel((p:any) => p ? {...p, suspendido: suspender} : null)
+    if (tabla === 'perfiles') setAsesores(prev => prev.map((a: Perfil) => a.id===id ? {...a, suspendido: suspender} : a))
+    else setPropietarios(prev => prev.map((p: Propietario) => p.id===id ? {...p, suspendido: suspender} : p))
+    setSel((p: SelItem | null) => p ? {...p, suspendido: suspender} : null)
     setMsg(suspender ? '✓ Cuenta suspendida' : '✓ Cuenta reactivada')
     setTimeout(() => setMsg(''), 3000)
   }
@@ -254,20 +401,20 @@ export default function AdminPanel() {
     setTimeout(() => setMsg(''), 3000)
   }
 
-  const editarPropiedad = async (id: string, patch: any) => {
+  const editarPropiedad = async (id: string, patch: Partial<Propiedad>) => {
     await supabase.from('propiedades').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)
     logAccion('Editó propiedad', 'propiedad', id, Object.keys(patch).join(', '))
     loadAll()
-    setSel((p:any) => p ? {...p, ...patch} : null)
+    setSel((p: SelItem | null) => p ? {...p, ...patch} : null)
     setMsg('✓ Propiedad actualizada')
     setTimeout(() => setMsg(''), 3000)
   }
 
-  const actualizarComision = async (id: string, patch: any) => {
+  const actualizarComision = async (id: string, patch: Partial<Comision>) => {
     await supabase.from('comisiones').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id)
     logAccion('Actualizó comisión', 'comision', id, JSON.stringify(patch))
     loadAll()
-    setSel((p:any) => p ? {...p, ...patch} : null)
+    setSel((p: SelItem | null) => p ? {...p, ...patch} : null)
     setMsg('✓ Comisión actualizada')
     setTimeout(() => setMsg(''), 3000)
   }
@@ -281,7 +428,7 @@ export default function AdminPanel() {
     }).eq('id', id)
     logAccion('Actualizó referido', 'referido', id, 'Estado: ' + estado)
     loadAll()
-    setSel((p:any) => p ? {...p, estado, recompensa_monto: recompensaMonto ?? null, notas_admin: notas || null} : null)
+    setSel((p: SelItem | null) => p ? {...p, estado, recompensa_monto: recompensaMonto ?? null, notas_admin: notas || null} : null)
     setMsg('✓ Referido actualizado')
     setTimeout(() => setMsg(''), 3000)
   }
@@ -305,10 +452,10 @@ export default function AdminPanel() {
 
   const q = busquedaGlobal.trim().toLowerCase()
   const resultadosGlobal = q.length < 2 ? [] : [
-    ...asesores.filter((a:any) => (a.nombre||'').toLowerCase().includes(q) || (a.correo||'').toLowerCase().includes(q)).slice(0,5).map((a:any) => ({ tipo:'Asesor', label:a.nombre||a.correo, sub:a.correo, onClick:() => { setModulo(a.equipo_nido_estado==='aprobado'?'equipo_nido':'asesores'); setSel({...a,_tipo:'asesor'}) } })),
-    ...propietarios.filter((p:any) => (p.nombre||'').toLowerCase().includes(q) || (p.correo||'').toLowerCase().includes(q)).slice(0,5).map((p:any) => ({ tipo:'Propietario', label:p.nombre||p.correo, sub:p.correo, onClick:() => { setModulo('propietarios'); setSel({...p,_tipo:'propietario'}) } })),
-    ...propiedades.filter((p:any) => (p.titulo||'').toLowerCase().includes(q) || (p.zona||'').toLowerCase().includes(q) || (p.asesor_email||'').toLowerCase().includes(q)).slice(0,5).map((p:any) => ({ tipo:'Propiedad', label:p.titulo, sub:p.zona, onClick:() => { setModulo('propiedades'); setSel({...p,_tipo:'propiedad'}) } })),
-    ...tickets.filter((t:any) => (t.asunto||'').toLowerCase().includes(q) || (t.usuario_email||'').toLowerCase().includes(q) || (t.usuario_nombre||'').toLowerCase().includes(q)).slice(0,5).map((t:any) => ({ tipo:'Ticket', label:t.asunto||'Consulta de soporte', sub:t.usuario_email, onClick:() => { setModulo('soporte'); setSel({...t,_tipo:'ticket'}) } })),
+    ...asesores.filter((a: Perfil) => (a.nombre||'').toLowerCase().includes(q) || (a.correo||'').toLowerCase().includes(q)).slice(0,5).map((a: Perfil) => ({ tipo:'Asesor', label:a.nombre||a.correo, sub:a.correo, onClick:() => { setModulo(a.equipo_nido_estado==='aprobado'?'equipo_nido':'asesores'); setSel({...a,_tipo:'asesor'}) } })),
+    ...propietarios.filter((p: Propietario) => (p.nombre||'').toLowerCase().includes(q) || (p.correo||'').toLowerCase().includes(q)).slice(0,5).map((p: Propietario) => ({ tipo:'Propietario', label:p.nombre||p.correo, sub:p.correo, onClick:() => { setModulo('propietarios'); setSel({...p,_tipo:'propietario'}) } })),
+    ...propiedades.filter((p: Propiedad) => (p.titulo||'').toLowerCase().includes(q) || (p.zona||'').toLowerCase().includes(q) || (p.asesor_email||'').toLowerCase().includes(q)).slice(0,5).map((p: Propiedad) => ({ tipo:'Propiedad', label:p.titulo, sub:p.zona, onClick:() => { setModulo('propiedades'); setSel({...p,_tipo:'propiedad'}) } })),
+    ...tickets.filter((t: SoporteTicket) => (t.asunto||'').toLowerCase().includes(q) || (t.usuario_email||'').toLowerCase().includes(q) || (t.usuario_nombre||'').toLowerCase().includes(q)).slice(0,5).map((t: SoporteTicket) => ({ tipo:'Ticket', label:t.asunto||'Consulta de soporte', sub:t.usuario_email, onClick:() => { setModulo('soporte'); setSel({...t,_tipo:'ticket'}) } })),
   ]
 
   return (
@@ -394,12 +541,12 @@ export default function AdminPanel() {
             {/* Pendientes de atención */}
             {(() => {
               const pendientes = [
-                { n:asesores.filter((a:any)=>!a.verificado && [a.cedula_frente_url,a.cedula_reverso_url,a.selfie_url].filter(Boolean).length>0).length, label:'KYC de asesores por revisar', modulo:'kyc' },
-                { n:propietarios.filter((p:any)=>!p.verificado && [p.cedula_frente_url,p.cedula_reverso_url,p.selfie_url].filter(Boolean).length>0).length, label:'KYC de propietarios por revisar', modulo:'kyc_propietarios' },
-                { n:propiedades.filter((p:any)=>p.verificacion_estado==='pendiente_verificacion').length, label:'Propiedades por verificar', modulo:'propiedades' },
-                { n:tickets.filter((t:any)=>t.estado==='abierto').length, label:'Tickets de soporte abiertos', modulo:'soporte' },
-                { n:asesores.filter((a:any)=>a.solicita_equipo_nido && a.equipo_nido_estado!=='aprobado' && a.equipo_nido_estado!=='rechazado').length, label:'Solicitudes de Equipo NIDO', modulo:'equipo_nido' },
-                { n:contratos.filter((c:any)=>c.estado==='pendiente').length, label:'Contratos por contrafirmar', modulo:'contratos' },
+                { n:asesores.filter((a: Perfil)=>!a.verificado && [a.cedula_frente_url,a.cedula_reverso_url,a.selfie_url].filter(Boolean).length>0).length, label:'KYC de asesores por revisar', modulo:'kyc' },
+                { n:propietarios.filter((p: Propietario)=>!p.verificado && [p.cedula_frente_url,p.cedula_reverso_url,p.selfie_url].filter(Boolean).length>0).length, label:'KYC de propietarios por revisar', modulo:'kyc_propietarios' },
+                { n:propiedades.filter((p: Propiedad)=>p.verificacion_estado==='pendiente_verificacion').length, label:'Propiedades por verificar', modulo:'propiedades' },
+                { n:tickets.filter((t: SoporteTicket)=>t.estado==='abierto').length, label:'Tickets de soporte abiertos', modulo:'soporte' },
+                { n:asesores.filter((a: Perfil)=>a.solicita_equipo_nido && a.equipo_nido_estado!=='aprobado' && a.equipo_nido_estado!=='rechazado').length, label:'Solicitudes de Equipo NIDO', modulo:'equipo_nido' },
+                { n:contratos.filter((c: Contrato)=>c.estado==='pendiente').length, label:'Contratos por contrafirmar', modulo:'contratos' },
               ].filter(p => p.n > 0)
               if (pendientes.length === 0) return (
                 <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:14, padding:'18px 22px', marginBottom:20, fontSize:13, color:'var(--accent)', fontWeight:500 }}>
@@ -545,7 +692,7 @@ export default function AdminPanel() {
                     <div style={{ fontSize:12, color:'var(--ink-3)' }}>{p.correo} · {p.relacion||'Propietario'}</div>
                   </div>
                   <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                    <span style={{ fontSize:12, color:'var(--ink-3)' }}>{new Date(p.created_at).toLocaleDateString('es-CR')}</span>
+                    <span style={{ fontSize:12, color:'var(--ink-3)' }}>{p.created_at ? new Date(p.created_at).toLocaleDateString('es-CR') : '—'}</span>
                     <span style={{ color:'var(--ink-3)', fontSize:16 }}>›</span>
                   </div>
                 </div>
@@ -611,7 +758,7 @@ export default function AdminPanel() {
                 <div key={s.id} className="row" onClick={() => setSel({...s, _tipo:'suscripcion'})}>
                   <div style={{ flex:1 }}>
                     <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{s.correo}</div>
-                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{s.periodo} · {new Date(s.created_at).toLocaleDateString('es-CR')}</div>
+                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{s.periodo} · {s.created_at ? new Date(s.created_at).toLocaleDateString('es-CR') : '—'}</div>
                   </div>
                   <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
                     <span style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)' }}>${getPlanConfig(s.plan).precioMensual}/mes</span>
@@ -728,8 +875,8 @@ export default function AdminPanel() {
                 <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr', gap:8, padding:'10px 20px', borderBottom:'1px solid var(--rule)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', fontWeight:500 }}>
                   <span>Propietario</span><span>Tipo</span><span>Firma</span><span>Vence</span><span>Estado</span>
                 </div>
-                {contratos.map((c:any) => {
-                  const est = ESTADOS[c.estado] || ESTADOS.pendiente
+                {contratos.map((c: Contrato) => {
+                  const est = ESTADOS[c.estado||'pendiente'] || ESTADOS.pendiente
                   return (
                     <div key={c.id} className="row" onClick={() => setSel({...c, _tipo:'contrato'})}>
                       <div style={{ flex:1 }}>
@@ -791,14 +938,14 @@ export default function AdminPanel() {
                   <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr', gap:8, padding:'10px 20px', borderBottom:'1px solid var(--rule)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', fontWeight:500 }}>
                     <span>Asesor</span><span>Cobrado</span><span>Pipeline</span><span>Negocios</span><span>Cerrados</span>
                   </div>
-                  {resumenComisiones.map((r:any, i:number) => (
-                    <div key={r.asesor_email} style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr', gap:8, padding:'12px 20px', borderBottom:'1px solid var(--rule-soft)', fontSize:13, alignItems:'center' }} onClick={() => setFiltro(r.asesor_email)}>
+                  {resumenComisiones.map((r: ResumenComisiones, i: number) => (
+                    <div key={r.asesor_email} style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr', gap:8, padding:'12px 20px', borderBottom:'1px solid var(--rule-soft)', fontSize:13, alignItems:'center' }} onClick={() => setFiltro(r.asesor_email||'')}>
                       <div>
                         <div style={{ fontWeight:500, marginBottom:2 }}>{r.asesor_nombre||r.asesor_email}</div>
                         <div style={{ fontSize:11, color:'var(--ink-3)' }}>{r.asesor_email}</div>
                       </div>
-                      <div style={{ fontFamily:'var(--mono)', color:'var(--accent)', fontWeight:500 }}>{fmt(r.total_cobrado)}</div>
-                      <div style={{ fontFamily:'var(--mono)', color:'oklch(0.45 0.08 80)' }}>{fmt(r.total_proyectado)}</div>
+                      <div style={{ fontFamily:'var(--mono)', color:'var(--accent)', fontWeight:500 }}>{fmt(r.total_cobrado||0)}</div>
+                      <div style={{ fontFamily:'var(--mono)', color:'oklch(0.45 0.08 80)' }}>{fmt(r.total_proyectado||0)}</div>
                       <div style={{ color:'var(--ink-2)' }}>{r.total_negocios}</div>
                       <div style={{ color:'var(--accent)' }}>{r.cerrados}</div>
                     </div>
@@ -823,8 +970,8 @@ export default function AdminPanel() {
                 <div className="card">
                   {comisiones
                     .filter(c => filtro==='todos'||c.estado===filtro||c.asesor_email===filtro)
-                    .map((c:any) => {
-                      const est = ESTADOS[c.estado]||ESTADOS.proyectada
+                    .map((c: Comision) => {
+                      const est = ESTADOS[c.estado||'proyectada']||ESTADOS.proyectada
                       return (
                         <div key={c.id} className="row" onClick={() => setSel({...c, _tipo:'comision'})}>
                           <div style={{ flex:1 }}>
@@ -863,15 +1010,15 @@ export default function AdminPanel() {
                 <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
                   {f==='todos'?'Todos':f==='pendiente_docs'?'Sin docs':f==='en_revision'?'En revisión':f.charAt(0).toUpperCase()+f.slice(1)}
                   <span style={{ marginLeft:6, opacity:0.6 }}>
-                    ({f==='todos'?propietarios.length:propietarios.filter((p:any)=>p.verificacion_estado===f||(f==='pendiente_docs'&&!p.verificacion_estado)).length})
+                    ({f==='todos'?propietarios.length:propietarios.filter((p: Propietario)=>p.verificacion_estado===f||(f==='pendiente_docs'&&!p.verificacion_estado)).length})
                   </span>
                 </button>
               ))}
             </div>
             <div className="card">
               {propietarios
-                .filter((p:any) => filtro==='todos'||p.verificacion_estado===filtro||(filtro==='pendiente_docs'&&!p.verificacion_estado))
-                .map((p:any) => {
+                .filter((p: Propietario) => filtro==='todos'||p.verificacion_estado===filtro||(filtro==='pendiente_docs'&&!p.verificacion_estado))
+                .map((p: Propietario) => {
                   const docs = [p.cedula_frente_url, p.cedula_reverso_url, p.selfie_url].filter(Boolean).length
                   return (
                     <div key={p.id} className="row" onClick={() => setSel({...p, _tipo:'kyc_propietario'})}>
@@ -896,9 +1043,9 @@ export default function AdminPanel() {
 
         {/* ── EQUIPO NIDO ── */}
         {modulo === 'equipo_nido' && (() => {
-          const miembros = asesores.filter((a:any) => a.equipo_nido_estado === 'aprobado')
-          const pendientes = asesores.filter((a:any) => a.solicita_equipo_nido && a.equipo_nido_estado !== 'aprobado' && a.equipo_nido_estado !== 'rechazado')
-          const rechazados = asesores.filter((a:any) => a.equipo_nido_estado === 'rechazado')
+          const miembros = asesores.filter((a: Perfil) => a.equipo_nido_estado === 'aprobado')
+          const pendientes = asesores.filter((a: Perfil) => a.solicita_equipo_nido && a.equipo_nido_estado !== 'aprobado' && a.equipo_nido_estado !== 'rechazado')
+          const rechazados = asesores.filter((a: Perfil) => a.equipo_nido_estado === 'rechazado')
           return (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <div style={{ marginBottom:24 }}>
@@ -912,12 +1059,12 @@ export default function AdminPanel() {
               <div className="card">
                 {miembros.length === 0 ? (
                   <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>Todavía no hay asesores formalizados en Equipo NIDO.</div>
-                ) : miembros.map((a:any) => {
-                  const sus = suscripciones.find(s => s.correo === a.correo && s.activo)
+                ) : miembros.map((a: Perfil) => {
+                  const sus = suscripciones.find((s: Suscripcion) => s.correo === a.correo && s.activo)
                   return (
                     <div key={a.id} className="row" onClick={() => setSel({...a, _tipo:'asesor', _sus:sus})}>
                       <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0, overflow:'hidden' }}>
-                        {a.foto_url ? <img src={a.foto_url} alt={a.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (a.nombre||'?')[0]}
+                        {a.foto_url ? <img src={a.foto_url} alt={a.nombre||''} style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (a.nombre||'?')[0]}
                       </div>
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{a.nombre||'Sin nombre'}</div>
@@ -939,10 +1086,10 @@ export default function AdminPanel() {
               <div className="card">
                 {pendientes.length === 0 ? (
                   <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay solicitudes de Equipo NIDO por el momento.</div>
-                ) : pendientes.map((a:any) => (
+                ) : pendientes.map((a: Perfil) => (
                   <div key={a.id} className="row" style={{ alignItems:'center' }}>
                     <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0, overflow:'hidden' }}>
-                      {a.foto_url ? <img src={a.foto_url} alt={a.nombre} style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (a.nombre||'?')[0]}
+                      {a.foto_url ? <img src={a.foto_url} alt={a.nombre||''} style={{ width:'100%', height:'100%', objectFit:'cover' }}/> : (a.nombre||'?')[0]}
                     </div>
                     <div style={{ flex:1 }}>
                       <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{a.nombre||'Sin nombre'}</div>
@@ -974,7 +1121,7 @@ export default function AdminPanel() {
             <div className="card">
               {auditoria.length === 0 ? (
                 <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>Todavía no hay actividad registrada.</div>
-              ) : auditoria.map((a:any) => (
+              ) : auditoria.map((a: AdminAuditLog) => (
                 <div key={a.id} className="row" style={{ cursor:'default' }}>
                   <div style={{ width:32, height:32, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontSize:14, flexShrink:0 }}>🕐</div>
                   <div style={{ flex:1 }}>
@@ -1112,8 +1259,8 @@ export default function AdminPanel() {
           leads.forEach(l => { if (l.zona_interes) porZona[l.zona_interes] = (porZona[l.zona_interes]||0)+1 })
           const zonasOrdenadas = Object.entries(porZona).sort((a,b) => b[1]-a[1]).slice(0, 8)
 
-          const asesoresReferidos = asesores.filter((a:any) => a.referido_por).length
-          const propietariosReferidos = propietarios.filter((p:any) => p.referido_por).length
+          const asesoresReferidos = asesores.filter((a: Perfil) => a.referido_por).length
+          const propietariosReferidos = propietarios.filter((p: Propietario) => p.referido_por).length
           const totalCuentas = asesores.length + propietarios.length || 1
           const totalReferidas = asesoresReferidos + propietariosReferidos
 
@@ -1222,7 +1369,13 @@ export default function AdminPanel() {
 
 // ── MENSAJE FORM ──
 // ── ADMINISTRADORES ──
-function AdministradoresPanel({ admins, adminUser, onReload, onLog, onMsg }: any) {
+function AdministradoresPanel({ admins, adminUser, onReload, onLog, onMsg }: {
+  admins: Admin[]
+  adminUser: User | null
+  onReload: () => void
+  onLog: (accion: string, entidadTipo?: string, entidadId?: string, detalle?: string) => void
+  onMsg: (msg: string) => void
+}) {
   const [correo, setCorreo] = useState('')
   const [nombre, setNombre] = useState('')
   const [agregando, setAgregando] = useState(false)
@@ -1243,7 +1396,7 @@ function AdministradoresPanel({ admins, adminUser, onReload, onLog, onMsg }: any
     setTimeout(() => onMsg(''), 3000)
   }
 
-  const quitar = async (a: any) => {
+  const quitar = async (a: Admin) => {
     if (a.correo === adminUser?.email) { onMsg('✗ No podés quitarte a vos mismo'); setTimeout(() => onMsg(''), 3000); return }
     if (!window.confirm('¿Quitar acceso de admin a ' + a.correo + '?')) return
     await supabase.from('admins').delete().eq('id', a.id)
@@ -1273,7 +1426,7 @@ function AdministradoresPanel({ admins, adminUser, onReload, onLog, onMsg }: any
       <div className="card">
         {admins.length === 0 ? (
           <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay administradores registrados.</div>
-        ) : admins.map((a:any) => (
+        ) : admins.map((a: Admin) => (
           <div key={a.id} className="row" style={{ cursor:'default' }}>
             <div style={{ width:36, height:36, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:15, color:'var(--accent)', flexShrink:0 }}>{(a.nombre||a.correo||'?')[0].toUpperCase()}</div>
             <div style={{ flex:1 }}>
@@ -1290,7 +1443,11 @@ function AdministradoresPanel({ admins, adminUser, onReload, onLog, onMsg }: any
   )
 }
 
-function MensajeForm({ asesores, propietarios, onSend }: any) {
+function MensajeForm({ asesores, propietarios, onSend }: {
+  asesores: Perfil[]
+  propietarios: Propietario[]
+  onSend: (correo: string, asunto: string, mensaje: string) => Promise<void>
+}) {
   const [destinatario, setDestinatario] = useState('')
   const [asunto, setAsunto] = useState('')
   const [mensaje, setMensaje] = useState('')
@@ -1298,8 +1455,8 @@ function MensajeForm({ asesores, propietarios, onSend }: any) {
   const [exito, setExito] = useState(false)
 
   const todos = [
-    ...asesores.map((a:any) => ({ correo:a.correo, nombre:a.nombre||a.correo, tipo:'Asesor' })),
-    ...propietarios.map((p:any) => ({ correo:p.correo, nombre:p.nombre||p.correo, tipo:'Propietario' })),
+    ...asesores.map((a: Perfil) => ({ correo:a.correo, nombre:a.nombre||a.correo, tipo:'Asesor' })),
+    ...propietarios.map((p: Propietario) => ({ correo:p.correo, nombre:p.nombre||p.correo, tipo:'Propietario' })),
   ]
 
   const enviar = async () => {
@@ -1342,7 +1499,24 @@ function MensajeForm({ asesores, propietarios, onSend }: any) {
 }
 
 // ── DRAWER DETALLE ──
-function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onActualizarReferido, onResponderEquipoNido, onSuspender, onActualizarComision, onEditarPropiedad, onLog, onMsg, onReload }: any) {
+function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onActualizarReferido, onResponderEquipoNido, onSuspender, onActualizarComision, onEditarPropiedad, onLog, onMsg, onReload }: {
+  sel: SelItem
+  suscripciones: Suscripcion[]
+  onClose: () => void
+  onCambiarPlan: (correo: string, plan: string) => void
+  onAprobarKYC: (id: string, aprobar: boolean, notas?: string) => void
+  onTogglePropiedad: (id: string, disponible: boolean) => void
+  onVerificarPropiedad: (id: string, aprobar: boolean, notas?: string) => void
+  onEnviarMensaje: (correo: string, asunto: string, mensaje: string) => void
+  onActualizarReferido: (id: string, estado: string, recompensaMonto?: number | null, notas?: string) => void
+  onResponderEquipoNido: (asesor: Perfil, aprobar: boolean) => void
+  onSuspender: (tabla: 'perfiles'|'propietarios', id: string, correo: string, suspender: boolean) => void
+  onActualizarComision: (id: string, patch: Partial<Comision>) => void
+  onEditarPropiedad: (id: string, patch: Partial<Propiedad>) => void
+  onLog: (accion: string, entidadTipo?: string, entidadId?: string, detalle?: string) => void
+  onMsg: (msg: string) => void
+  onReload: () => void
+}) {
   const [nuevoPlan, setNuevoPlan] = useState('')
   const [notasKYC, setNotasKYC] = useState(sel?.verificacion_notas||'')
   const [msgInterno, setMsgInterno] = useState('')
@@ -1351,9 +1525,9 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
   const [contratoLoadError, setContratoLoadError] = useState('')
   const [notasComision, setNotasComision] = useState(sel?.notas||'')
   const [editandoProp, setEditandoProp] = useState(false)
-  const [propEdit, setPropEdit] = useState<any>(null)
+  const [propEdit, setPropEdit] = useState<Partial<Propiedad> | null>(null)
 
-  const sus = suscripciones.find((s:any) => s.correo === sel.correo && s.activo)
+  const sus = suscripciones.find((s: Suscripcion) => s.correo === sel.correo && s.activo)
 
   if (sel._tipo === 'asesor' || sel._tipo === 'kyc') return (
     <div>
@@ -1385,7 +1559,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
         <div style={{ marginBottom:20, display:'flex', flexDirection:'column', gap:8 }}>
           <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:4 }}>Gestión</div>
           <a
-            href={'/dashboard/nueva-propiedad?admin=1&asesorEmail='+encodeURIComponent(sel.correo)+'&asesorNombre='+encodeURIComponent(sel.nombre||'')+'&asesorWhatsapp='+encodeURIComponent(sel.telefono||'')}
+            href={'/dashboard/nueva-propiedad?admin=1&asesorEmail='+encodeURIComponent(sel.correo||'')+'&asesorNombre='+encodeURIComponent(sel.nombre||'')+'&asesorWhatsapp='+encodeURIComponent(sel.telefono||'')}
             className="btn btn-dark"
             style={{ textAlign:'center', textDecoration:'none' }}
           >
@@ -1395,7 +1569,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
             <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)', textAlign:'center', padding:'8px 12px' }}>⭐ Ya está en Equipo NIDO</span>
           ) : (
             <button
-              onClick={async () => { setUpdating(true); await onResponderEquipoNido(sel, true); setUpdating(false); onMsg('✓ '+(sel.nombre||sel.correo)+' agregado a Equipo NIDO'); onClose() }}
+              onClick={async () => { setUpdating(true); await onResponderEquipoNido(sel as Perfil, true); setUpdating(false); onMsg('✓ '+(sel.nombre||sel.correo)+' agregado a Equipo NIDO'); onClose() }}
               disabled={updating}
               className="btn btn-outline"
               style={{ opacity:updating?0.6:1 }}
@@ -1404,7 +1578,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
             </button>
           )}
           <button
-            onClick={async () => { setUpdating(true); await onSuspender('perfiles', sel.id, sel.correo, !sel.suspendido); setUpdating(false) }}
+            onClick={async () => { setUpdating(true); await onSuspender('perfiles', sel.id||'', sel.correo||'', !sel.suspendido); setUpdating(false) }}
             disabled={updating}
             className="btn"
             style={{ background:sel.suspendido?'var(--accent-tint)':'transparent', color:sel.suspendido?'var(--accent)':'oklch(0.45 0.08 20)', border:'1px solid '+(sel.suspendido?'oklch(0.85 0.04 150)':'oklch(0.85 0.06 20)'), opacity:updating?0.6:1 }}
@@ -1455,10 +1629,10 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
             <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Notas para el asesor</div>
             <textarea value={notasKYC} onChange={e => setNotasKYC(e.target.value)} rows={3} placeholder="Motivo de rechazo o instrucciones..." className="field" style={{ marginBottom:10, resize:'vertical' }}/>
             <div style={{ display:'flex', gap:8 }}>
-              <button onClick={async () => { setUpdating(true); await onAprobarKYC(sel.id, true, notasKYC); setUpdating(false) }} disabled={updating||!sel.cedula_frente_url||!sel.cedula_reverso_url||!sel.selfie_url} className="btn btn-primary" style={{ flex:2, opacity:updating||!sel.cedula_frente_url?0.5:1 }}>
+              <button onClick={async () => { setUpdating(true); await onAprobarKYC(sel.id||'', true, notasKYC); setUpdating(false) }} disabled={updating||!sel.cedula_frente_url||!sel.cedula_reverso_url||!sel.selfie_url} className="btn btn-primary" style={{ flex:2, opacity:updating||!sel.cedula_frente_url?0.5:1 }}>
                 ✓ Aprobar KYC
               </button>
-              <button onClick={async () => { setUpdating(true); await onAprobarKYC(sel.id, false, notasKYC); setUpdating(false) }} disabled={updating} className="btn btn-danger" style={{ flex:1 }}>
+              <button onClick={async () => { setUpdating(true); await onAprobarKYC(sel.id||'', false, notasKYC); setUpdating(false) }} disabled={updating} className="btn btn-danger" style={{ flex:1 }}>
                 ✗ Rechazar
               </button>
             </div>
@@ -1475,7 +1649,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               <option value="pro">{getPlanConfig('pro').nombrePublico} — ${getPlanConfig('pro').precioMensual}/mes</option>
               <option value="enterprise">{getPlanConfig('enterprise').nombrePublico} — ${getPlanConfig('enterprise').precioMensual}/mes</option>
             </select>
-            <button onClick={async () => { if (!nuevoPlan) return; await onCambiarPlan(sel.correo, nuevoPlan); onMsg('✓ Plan cambiado a '+nuevoPlan) }} disabled={!nuevoPlan} className="btn btn-dark" style={{ opacity:!nuevoPlan?0.5:1 }}>
+            <button onClick={async () => { if (!nuevoPlan) return; await onCambiarPlan(sel.correo||'', nuevoPlan); onMsg('✓ Plan cambiado a '+nuevoPlan) }} disabled={!nuevoPlan} className="btn btn-dark" style={{ opacity:!nuevoPlan?0.5:1 }}>
               Aplicar
             </button>
           </div>
@@ -1486,7 +1660,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
           <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Enviar mensaje</div>
           <input value={asuntoInterno} onChange={e => setAsuntoInterno(e.target.value)} placeholder="Asunto" className="field" style={{ marginBottom:8 }}/>
           <textarea value={msgInterno} onChange={e => setMsgInterno(e.target.value)} rows={3} placeholder="Mensaje para el asesor..." className="field" style={{ marginBottom:8, resize:'vertical' }}/>
-          <button onClick={async () => { if (!msgInterno||!asuntoInterno) return; await onEnviarMensaje(sel.correo, asuntoInterno, msgInterno); setMsgInterno(''); setAsuntoInterno('') }} disabled={!msgInterno||!asuntoInterno} className="btn btn-dark" style={{ width:'100%', opacity:!msgInterno||!asuntoInterno?0.5:1 }}>
+          <button onClick={async () => { if (!msgInterno||!asuntoInterno) return; await onEnviarMensaje(sel.correo||'', asuntoInterno, msgInterno); setMsgInterno(''); setAsuntoInterno('') }} disabled={!msgInterno||!asuntoInterno} className="btn btn-dark" style={{ width:'100%', opacity:!msgInterno||!asuntoInterno?0.5:1 }}>
             ✉ Enviar mensaje al asesor
           </button>
         </div>
@@ -1513,7 +1687,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
           { l:'Teléfono', v:sel.telefono||'—' },
           { l:'Cédula', v:sel.cedula||'—' },
           { l:'Relación', v:sel.relacion||'—' },
-          { l:'Registro', v:new Date(sel.created_at).toLocaleDateString('es-CR') },
+          { l:'Registro', v:sel.created_at?new Date(sel.created_at).toLocaleDateString('es-CR'):'—' },
         ].map(f => (
           <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
             <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
@@ -1521,7 +1695,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
           </div>
         ))}
         <button
-          onClick={async () => { setUpdating(true); await onSuspender('propietarios', sel.id, sel.correo, !sel.suspendido); setUpdating(false) }}
+          onClick={async () => { setUpdating(true); await onSuspender('propietarios', sel.id||'', sel.correo||'', !sel.suspendido); setUpdating(false) }}
           disabled={updating}
           className="btn"
           style={{ width:'100%', marginTop:16, background:sel.suspendido?'var(--accent-tint)':'transparent', color:sel.suspendido?'var(--accent)':'oklch(0.45 0.08 20)', border:'1px solid '+(sel.suspendido?'oklch(0.85 0.04 150)':'oklch(0.85 0.06 20)'), opacity:updating?0.6:1 }}
@@ -1531,7 +1705,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
         <div style={{ marginTop:16 }}>
           <input value={asuntoInterno} onChange={e => setAsuntoInterno(e.target.value)} placeholder="Asunto" className="field" style={{ marginBottom:8 }}/>
           <textarea value={msgInterno} onChange={e => setMsgInterno(e.target.value)} rows={3} placeholder="Mensaje para el propietario..." className="field" style={{ marginBottom:8, resize:'vertical' }}/>
-          <button onClick={async () => { await onEnviarMensaje(sel.correo, asuntoInterno, msgInterno); setMsgInterno(''); setAsuntoInterno('') }} disabled={!msgInterno||!asuntoInterno} className="btn btn-dark" style={{ width:'100%', opacity:!msgInterno||!asuntoInterno?0.5:1 }}>
+          <button onClick={async () => { await onEnviarMensaje(sel.correo||'', asuntoInterno, msgInterno); setMsgInterno(''); setAsuntoInterno('') }} disabled={!msgInterno||!asuntoInterno} className="btn btn-dark" style={{ width:'100%', opacity:!msgInterno||!asuntoInterno?0.5:1 }}>
             ✉ Enviar mensaje
           </button>
         </div>
@@ -1582,23 +1756,23 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:8 }}>
                 <div>
                   <label style={{ fontSize:11, color:'var(--ink-3)', display:'block', marginBottom:4 }}>Hab.</label>
-                  <input type="number" className="field" value={propEdit.habitaciones} onChange={e => setPropEdit({...propEdit, habitaciones:parseInt(e.target.value)||0})}/>
+                  <input type="number" className="field" value={propEdit?.habitaciones ?? ''} onChange={e => setPropEdit({...propEdit, habitaciones:parseInt(e.target.value)||0})}/>
                 </div>
                 <div>
                   <label style={{ fontSize:11, color:'var(--ink-3)', display:'block', marginBottom:4 }}>Baños</label>
-                  <input type="number" className="field" value={propEdit.banos} onChange={e => setPropEdit({...propEdit, banos:parseInt(e.target.value)||0})}/>
+                  <input type="number" className="field" value={propEdit?.banos ?? ''} onChange={e => setPropEdit({...propEdit, banos:parseInt(e.target.value)||0})}/>
                 </div>
                 <div>
                   <label style={{ fontSize:11, color:'var(--ink-3)', display:'block', marginBottom:4 }}>m²</label>
-                  <input type="number" className="field" value={propEdit.metros} onChange={e => setPropEdit({...propEdit, metros:parseInt(e.target.value)||0})}/>
+                  <input type="number" className="field" value={propEdit?.metros ?? ''} onChange={e => setPropEdit({...propEdit, metros:parseInt(e.target.value)||0})}/>
                 </div>
               </div>
               <div>
                 <label style={{ fontSize:11, color:'var(--ink-3)', display:'block', marginBottom:4 }}>Descripción</label>
-                <textarea className="field" rows={4} style={{ resize:'vertical' }} value={propEdit.descripcion} onChange={e => setPropEdit({...propEdit, descripcion:e.target.value})}/>
+                <textarea className="field" rows={4} style={{ resize:'vertical' }} value={propEdit?.descripcion ?? ''} onChange={e => setPropEdit({...propEdit, descripcion:e.target.value})}/>
               </div>
               <button
-                onClick={async () => { setUpdating(true); await onEditarPropiedad(sel.id, propEdit); setUpdating(false); setEditandoProp(false) }}
+                onClick={async () => { setUpdating(true); await onEditarPropiedad(sel.id||'', propEdit||{}); setUpdating(false); setEditandoProp(false) }}
                 disabled={updating}
                 className="btn btn-primary"
                 style={{ opacity:updating?0.5:1 }}
@@ -1615,7 +1789,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
             { l:'Hab. / Baños / m²', v:(sel.habitaciones??'—')+' / '+(sel.banos??'—')+' / '+(sel.metros||sel.lote_m2||'—') },
             { l:'Asesor/Propietario', v:sel.asesor_email||'—' },
             { l:'Colaboración 50/50', v:sel.acepta_colaboracion===false?'✗ No, el asesor la maneja solo':'✓ Abierta a otros asesores' },
-            { l:'Publicada', v:new Date(sel.created_at).toLocaleDateString('es-CR') },
+            { l:'Publicada', v:sel.created_at?new Date(sel.created_at).toLocaleDateString('es-CR'):'—' },
           ].map(f => (
             <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
               <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
@@ -1653,10 +1827,10 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
         {/* Acciones verificación */}
         {sel.verificacion_estado !== 'aprobada' && (
           <div style={{ display:'flex', gap:10, marginBottom:12 }}>
-            <button onClick={() => onVerificarPropiedad(sel.id, true, notasKYC)} disabled={!sel.libre_gravamenes} className="btn btn-primary" style={{ flex:2, opacity:!sel.libre_gravamenes?0.5:1 }}>
+            <button onClick={() => onVerificarPropiedad(sel.id||'', true, notasKYC)} disabled={!sel.libre_gravamenes} className="btn btn-primary" style={{ flex:2, opacity:!sel.libre_gravamenes?0.5:1 }}>
               ✓ Aprobar y publicar
             </button>
-            <button onClick={() => onVerificarPropiedad(sel.id, false, notasKYC)} className="btn btn-danger" style={{ flex:1 }}>
+            <button onClick={() => onVerificarPropiedad(sel.id||'', false, notasKYC)} className="btn btn-danger" style={{ flex:1 }}>
               ✗ Rechazar
             </button>
           </div>
@@ -1666,7 +1840,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
         )}
 
         <div style={{ display:'flex', gap:10 }}>
-          <button onClick={() => { onTogglePropiedad(sel.id, sel.disponible); onClose() }} className={'btn btn-outline'} style={{ flex:1 }}>
+          <button onClick={() => { onTogglePropiedad(sel.id||'', !!sel.disponible); onClose() }} className={'btn btn-outline'} style={{ flex:1 }}>
             {sel.disponible ? '⏸ Pausar' : '▶ Activar'}
           </button>
           <a href={'/propiedades/'+sel.id} target="_blank" className="btn btn-outline" style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -1692,8 +1866,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
           { l:'Plan', v:sel.plan },
           { l:'Período', v:sel.periodo },
           { l:'Estado', v:sel.activo?'Activa':'Inactiva' },
-          { l:'Stripe ID', v:sel.stripe_subscription_id||'—' },
-          { l:'Inicio', v:new Date(sel.created_at).toLocaleDateString('es-CR') },
+          { l:'Inicio', v:sel.created_at?new Date(sel.created_at).toLocaleDateString('es-CR'):'—' },
         ].map(f => (
           <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
             <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
@@ -1709,7 +1882,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               <option value="pro">Pro</option>
               <option value="enterprise">Enterprise</option>
             </select>
-            <button onClick={async () => { if (!nuevoPlan) return; await onCambiarPlan(sel.correo, nuevoPlan); onMsg('✓ Plan actualizado') }} disabled={!nuevoPlan} className="btn btn-dark">Aplicar</button>
+            <button onClick={async () => { if (!nuevoPlan) return; await onCambiarPlan(sel.correo||'', nuevoPlan); onMsg('✓ Plan actualizado') }} disabled={!nuevoPlan} className="btn btn-dark">Aplicar</button>
           </div>
         </div>
       </div>
@@ -1737,7 +1910,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
             { l:'Inicio', v:sel.fecha_inicio?new Date(sel.fecha_inicio).toLocaleDateString('es-CR'):'—' },
             { l:'Vencimiento', v:sel.fecha_vencimiento?new Date(sel.fecha_vencimiento).toLocaleDateString('es-CR'):'—' },
             { l:'Comisión', v:sel.comision_porcentaje+'%' },
-          ].map((f:any) => (
+          ].map((f) => (
             <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'9px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
               <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
               <span style={{ fontWeight:500 }}>{f.v}</span>
@@ -1938,7 +2111,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               {ESTADOS.map(e => (
                 <button
                   key={e}
-                  onClick={async () => { setUpdating(true); await onActualizarComision(sel.id, { estado: e, ...(e==='cobrada'?{fecha_cierre_real:new Date().toISOString().slice(0,10)}:{}) }); setUpdating(false) }}
+                  onClick={async () => { setUpdating(true); await onActualizarComision(sel.id||'', { estado: e, ...(e==='cobrada'?{fecha_cierre_real:new Date().toISOString().slice(0,10)}:{}) }); setUpdating(false) }}
                   disabled={updating || sel.estado===e}
                   className={sel.estado===e?'tab active':'tab'}
                   style={{ opacity:updating?0.6:1 }}
@@ -1957,22 +2130,22 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               { l:'Zona', v:sel.propiedad_zona||'—' },
               { l:'Precio de venta', v:sel.precio_venta?fmt(sel.precio_venta):'—' },
               { l:'% Comisión', v:(sel.porcentaje_comision||0)+'%' },
-              { l:'Monto total comisión', v:fmt(sel.monto_comision) },
+              { l:'Monto total comisión', v:fmt(sel.monto_comision||0) },
               ...(sel.es_equipo_nido ? [
-                { l:'Monto asesor (Equipo NIDO)', v:fmt(sel.monto_asesor) },
-                { l:'Monto NIDO', v:fmt(sel.monto_nido) },
+                { l:'Monto asesor (Equipo NIDO)', v:fmt(sel.monto_asesor||0) },
+                { l:'Monto NIDO', v:fmt(sel.monto_nido||0) },
               ] : []),
               ...(sel.colaborador_email ? [
                 { l:'Colaborador', v:sel.colaborador_nombre||sel.colaborador_email },
                 { l:'Split principal / colaborador', v:(sel.porcentaje_principal||100)+'% / '+(sel.porcentaje_colaborador||0)+'%' },
-                { l:'Monto principal', v:fmt(sel.monto_principal) },
-                { l:'Monto colaborador', v:fmt(sel.monto_colaborador_split) },
+                { l:'Monto principal', v:fmt(sel.monto_principal||0) },
+                { l:'Monto colaborador', v:fmt(sel.monto_colaborador_split||0) },
                 { l:'Split confirmado por colaborador', v:sel.split_confirmado_colaborador?'✓ Sí':'Pendiente' },
               ] : []),
               { l:'Cierre estimado', v:sel.fecha_cierre_estimada?new Date(sel.fecha_cierre_estimada).toLocaleDateString('es-CR'):'—' },
               { l:'Cierre real', v:sel.fecha_cierre_real?new Date(sel.fecha_cierre_real).toLocaleDateString('es-CR'):'—' },
               { l:'Registrado por', v:sel.creado_por||'—' },
-            ].map((f:any) => (
+            ].map((f) => (
               <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
                 <span style={{ color:'var(--ink-3)', flexShrink:0, marginRight:12 }}>{f.l}</span>
                 <span style={{ fontWeight:500, textAlign:'right' }}>{f.v}</span>
@@ -1985,7 +2158,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
             <div style={{ marginBottom:20 }}>
               <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Pago al asesor</div>
               <button
-                onClick={async () => { setUpdating(true); await onActualizarComision(sel.id, { pagado_asesor: !sel.pagado_asesor, pagado_asesor_at: !sel.pagado_asesor ? new Date().toISOString() : null }); setUpdating(false) }}
+                onClick={async () => { setUpdating(true); await onActualizarComision(sel.id||'', { pagado_asesor: !sel.pagado_asesor, pagado_asesor_at: !sel.pagado_asesor ? new Date().toISOString() : null }); setUpdating(false) }}
                 disabled={updating}
                 className="btn"
                 style={{ width:'100%', background:sel.pagado_asesor?'var(--accent-tint)':'transparent', color:sel.pagado_asesor?'var(--accent)':'var(--ink-2)', border:'1px solid '+(sel.pagado_asesor?'oklch(0.85 0.04 150)':'var(--rule)'), opacity:updating?0.6:1 }}
@@ -1999,7 +2172,7 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
           <div style={{ marginBottom:8 }}>
             <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Notas internas</div>
             <textarea value={notasComision} onChange={e => setNotasComision(e.target.value)} rows={3} placeholder="Notas sobre este negocio..." className="field" style={{ marginBottom:10, resize:'vertical' }}/>
-            <button onClick={async () => { setUpdating(true); await onActualizarComision(sel.id, { notas: notasComision }); setUpdating(false) }} disabled={updating} className="btn btn-dark" style={{ width:'100%', opacity:updating?0.5:1 }}>
+            <button onClick={async () => { setUpdating(true); await onActualizarComision(sel.id||'', { notas: notasComision }); setUpdating(false) }} disabled={updating} className="btn btn-dark" style={{ width:'100%', opacity:updating?0.5:1 }}>
               Guardar notas
             </button>
           </div>
@@ -2012,7 +2185,11 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
 }
 
 // ── REFERIDO ──
-function ReferidoDetalle({ referido, onClose, onActualizar }: any) {
+function ReferidoDetalle({ referido, onClose, onActualizar }: {
+  referido: SelItem
+  onClose: () => void
+  onActualizar: (id: string, estado: string, recompensaMonto?: number | null, notas?: string) => void
+}) {
   const [monto, setMonto] = useState(referido.recompensa_monto ? String(referido.recompensa_monto) : '')
   const [notas, setNotas] = useState(referido.notas_admin || '')
   const [guardando, setGuardando] = useState(false)
@@ -2020,7 +2197,7 @@ function ReferidoDetalle({ referido, onClose, onActualizar }: any) {
   const cambiarEstado = async (estado: string) => {
     setGuardando(true)
     const montoNum = monto.trim() ? Number(monto) : null
-    await onActualizar(referido.id, estado, montoNum, notas)
+    await onActualizar(referido.id||'', estado, montoNum, notas)
     setGuardando(false)
   }
 
@@ -2041,7 +2218,7 @@ function ReferidoDetalle({ referido, onClose, onActualizar }: any) {
         <div style={{ display:'flex', flexDirection:'column', gap:6, marginBottom:20, fontSize:13, color:'var(--ink-2)' }}>
           <div><strong>Referido por:</strong> {referido.referidor_email} ({referido.referidor_tipo === 'asesor' ? 'Asesor' : 'Propietario'})</div>
           <div><strong>Código usado:</strong> {referido.codigo_usado}</div>
-          <div><strong>Fecha:</strong> {new Date(referido.created_at).toLocaleDateString('es-CR')}</div>
+          <div><strong>Fecha:</strong> {referido.created_at?new Date(referido.created_at).toLocaleDateString('es-CR'):'—'}</div>
           <div><strong>Estado actual:</strong> {referido.estado}</div>
         </div>
 
@@ -2066,8 +2243,13 @@ function ReferidoDetalle({ referido, onClose, onActualizar }: any) {
 }
 
 // ── TICKET DE SOPORTE ──
-function TicketDetalle({ ticket, onClose, onReload, onMsg }: any) {
-  const [mensajes, setMensajes] = useState<any[]>([])
+function TicketDetalle({ ticket, onClose, onReload, onMsg }: {
+  ticket: SelItem
+  onClose: () => void
+  onReload: () => void
+  onMsg: (msg: string) => void
+}) {
+  const [mensajes, setMensajes] = useState<SoporteMensaje[]>([])
   const [loadingMsgs, setLoadingMsgs] = useState(true)
   const [respuesta, setRespuesta] = useState('')
   const [enviando, setEnviando] = useState(false)
@@ -2094,7 +2276,7 @@ function TicketDetalle({ ticket, onClose, onReload, onMsg }: any) {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
       body: JSON.stringify({ to: ticket.usuario_email, tipo: 'mensaje_admin', data: { asunto: 'Re: ' + (ticket.asunto || 'Tu consulta con NIDO'), mensaje: respuesta } })
     }).catch(() => {})
-    setMensajes(prev => [...prev, { remitente: 'admin', contenido: respuesta, created_at: new Date().toISOString() }])
+    setMensajes(prev => [...prev, { id: 'temp-'+Date.now(), ticket_id: ticket.id||'', remitente: 'admin', contenido: respuesta, created_at: new Date().toISOString() }])
     setRespuesta('')
     onReload()
     setEnviando(false)

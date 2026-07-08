@@ -35,6 +35,8 @@ export default function BienvenidaComprador() {
       opacity: Math.random() * 0.3 + 0.05,
       speed: Math.random() * 0.3 + 0.1,
     }))
+    // Posiciones aleatorias solo pueden calcularse en cliente (evita mismatch de hidratación SSR).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setParticulas(p)
   }, [])
 

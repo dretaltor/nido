@@ -2,6 +2,9 @@
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../../../lib/supabase'
+import Link from 'next/link'
+import type { User } from '@supabase/supabase-js'
+import type { Propietario, Propiedad, Contrato } from '../../../../lib/database.types'
 
 export default function ContratoPage() {
   return (
@@ -14,15 +17,15 @@ export default function ContratoPage() {
 function Contrato() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [user, setUser] = useState<any>(null)
-  const [propietario, setPropietario] = useState<any>(null)
-  const [propiedades, setPropiedades] = useState<any[]>([])
+  const [user, setUser] = useState<User | null>(null)
+  const [propietario, setPropietario] = useState<Partial<Propietario> | null>(null)
+  const [propiedades, setPropiedades] = useState<Partial<Propiedad>[]>([])
   const [step, setStep] = useState(1)
   const [firmaTipo, setFirmaTipo] = useState<'digital'|'fisica'|''>('')
   const [propiedadId, setPropiedadId] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [contratoExistente, setContratoExistente] = useState<any>(null)
+  const [contratoExistente, setContratoExistente] = useState<Partial<Contrato> | null>(null)
   // NIDO solo opera con propietarios bajo el modelo de corretaje (comisión al cierre, nunca suscripción).
   // Por defecto se firma con exclusividad de 90 días. La única otra modalidad es "sin exclusividad" —
   // disponible exclusivamente como opción de renovación (Cláusula Quinta) cuando un dueño con contrato
@@ -57,7 +60,7 @@ function Contrato() {
   vencimiento.setDate(vencimiento.getDate() + 90)
   const fmtDate = (d: Date) => d.toLocaleDateString('es-CR', { year:'numeric', month:'long', day:'numeric' })
 
-  const startDraw = (e: any) => {
+  const startDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setDrawing(true)
     const canvas = canvasRef.current!
     const ctx = canvas.getContext('2d')!
@@ -65,7 +68,7 @@ function Contrato() {
     ctx.beginPath()
     ctx.moveTo(e.clientX - rect.left, e.clientY - rect.top)
   }
-  const draw = (e: any) => {
+  const draw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     if (!drawing) return
     const canvas = canvasRef.current!
     const ctx = canvas.getContext('2d')!
@@ -101,15 +104,15 @@ function Contrato() {
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Error al subir archivo')
       setFirmaFisicaUrl(json.publicUrl)
-    } catch (err: any) {
-      setContratoError('Error al subir firma: ' + err.message)
+    } catch (err) {
+      setContratoError('Error al subir firma: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setUploadingFirma(false)
     }
   }
 
   const firmarContrato = async () => {
-    if (!aceptaTerminos) return
+    if (!aceptaTerminos || !user) return
     if (firmaTipo === 'digital' && !firmaDigital) return
     if (firmaTipo === 'fisica' && !firmaFisicaUrl) return
     setSaving(true)
@@ -181,7 +184,7 @@ function Contrato() {
       <style>{CSS}</style>
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)', padding:'14px 32px', display:'flex', alignItems:'center', justifyContent:'space-between', maxWidth:900, margin:'0 auto' }}>
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22 }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22 }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
         <a href="/dashboard/propietario" style={{ fontSize:13, color:'var(--ink-3)' }}>← Volver al panel</a>
       </nav>
 
@@ -193,7 +196,7 @@ function Contrato() {
             <div style={{ fontSize:14, fontWeight:500, color:'var(--accent)', marginBottom:8 }}>✓ Tenés un contrato activo con NIDO</div>
             <div style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.7 }}>
               Tipo: Exclusividad 90 días ·
-              Vence: {new Date(contratoExistente.fecha_vencimiento).toLocaleDateString('es-CR')} ·
+              Vence: {contratoExistente.fecha_vencimiento?new Date(contratoExistente.fecha_vencimiento).toLocaleDateString('es-CR'):'—'} ·
               Estado: {contratoExistente.estado}
             </div>
             <a href="/dashboard/propietario" style={{ display:'inline-block', marginTop:12, padding:'9px 20px', borderRadius:999, background:'var(--accent)', color:'white', fontSize:13, fontWeight:500 }}>
@@ -298,10 +301,10 @@ function Contrato() {
 
                 <p style={{ marginBottom:16 }}><strong>PARTES CONTRATANTES</strong></p>
                 <p style={{ marginBottom:8 }}>
-                  <strong>EL CORREDOR:</strong> NIDO Plataforma Inmobiliaria, con domicilio en San José, Costa Rica, correo electrónico hola@nido-cr.com, sitio web www.nido-cr.com (en adelante "NIDO").
+                  <strong>EL CORREDOR:</strong> NIDO Plataforma Inmobiliaria, con domicilio en San José, Costa Rica, correo electrónico hola@nido-cr.com, sitio web www.nido-cr.com (en adelante &quot;NIDO&quot;).
                 </p>
                 <p style={{ marginBottom:20 }}>
-                  <strong>EL PROPIETARIO:</strong> {propietario?.nombre || '___________________'}, cédula de identidad {propietario?.cedula || '___________________'}, correo electrónico {user?.email}, teléfono {propietario?.telefono || '___________________'} (en adelante "EL PROPIETARIO").
+                  <strong>EL PROPIETARIO:</strong> {propietario?.nombre || '___________________'}, cédula de identidad {propietario?.cedula || '___________________'}, correo electrónico {user?.email}, teléfono {propietario?.telefono || '___________________'} (en adelante &quot;EL PROPIETARIO&quot;).
                 </p>
 
                 <p style={{ marginBottom:12 }}><strong>CLÁUSULA PRIMERA — OBJETO DEL CONTRATO</strong></p>
@@ -334,7 +337,7 @@ function Contrato() {
                     : 'La comisión de NIDO será del cuatro por ciento (4%) sobre el precio final de venta, exigible únicamente si la venta se concreta a través de la gestión de NIDO. Si EL PROPIETARIO vende la propiedad por su cuenta o mediante otro canal, agencia o corredor, NIDO no tendrá derecho a cobrar comisión alguna.'}
                 </p>
                 <p style={{ marginBottom:20, fontWeight:500, color:'var(--ink)' }}>
-                  NIDO aplica el principio de "no venta, no comisión": si no logramos vender la propiedad, no se cobra ningún honorario. NIDO no ofrece ni opera ningún plan de suscripción para propietarios: el único modelo de servicio es el corretaje descrito en esta cláusula.
+                  NIDO aplica el principio de &quot;no venta, no comisión&quot;: si no logramos vender la propiedad, no se cobra ningún honorario. NIDO no ofrece ni opera ningún plan de suscripción para propietarios: el único modelo de servicio es el corretaje descrito en esta cláusula.
                 </p>
 
                 {tipoContrato === 'exclusividad' && <>
@@ -347,7 +350,7 @@ function Contrato() {
                   <p style={{ marginBottom:8 }}>Al vencimiento del período de exclusividad, EL PROPIETARIO podrá elegir entre:</p>
                   <div style={{ marginBottom:20, paddingLeft:16 }}>
                     <div style={{ marginBottom:4 }}>a) Renovar el contrato de exclusividad por un nuevo período de 90 días bajo las mismas condiciones.</div>
-                    <div style={{ marginBottom:4 }}>b) Continuar con NIDO en modalidad sin exclusividad, como complemento de venta ("push de venta"): la propiedad permanece publicada y promocionada por NIDO sin costo de suscripción, EL PROPIETARIO puede comercializarla simultáneamente por otros canales, y la comisión del 4% aplica únicamente si la venta se concreta a través de NIDO.</div>
+                    <div style={{ marginBottom:4 }}>b) Continuar con NIDO en modalidad sin exclusividad, como complemento de venta (&quot;push de venta&quot;): la propiedad permanece publicada y promocionada por NIDO sin costo de suscripción, EL PROPIETARIO puede comercializarla simultáneamente por otros canales, y la comisión del 4% aplica únicamente si la venta se concreta a través de NIDO.</div>
                     <div style={{ marginBottom:4 }}>c) Dar por terminado el contrato sin penalización alguna.</div>
                   </div>
                 </>}

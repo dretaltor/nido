@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
+import Link from 'next/link'
 
 interface Propiedad {
   id: string
@@ -57,9 +58,9 @@ export default function Alquiler() {
 
       <nav style={{position:'sticky',top:0,zIndex:50,background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--rule)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 40px',maxWidth:1600,margin:'0 auto'}}>
-          <a href="/" style={{fontFamily:'var(--serif)',fontSize:26,color:'var(--ink)'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></a>
+          <Link href="/" style={{fontFamily:'var(--serif)',fontSize:26,color:'var(--ink)'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></Link>
           <nav style={{display:'flex',gap:28,fontSize:13,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--ink-2)'}}>
-            <a href="/propiedades">Comprar</a>
+            <Link href="/propiedades">Comprar</Link>
             <a href="/alquiler" style={{color:'var(--ink)',borderBottom:'1px solid var(--ink)',paddingBottom:2}}>Alquilar</a>
             <a href="/asesores">Asesores</a>
             <a href="/ideas">Ideas</a>

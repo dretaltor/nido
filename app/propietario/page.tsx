@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
+import Link from 'next/link'
 
 interface Propiedad {
   id: string
@@ -40,7 +41,7 @@ export default function Propietario() {
   return (
     <main style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
-        <a href="/" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#15803d', textDecoration: 'none' }}>NIDO</a>
+        <Link href="/" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#15803d', textDecoration: 'none' }}>NIDO</Link>
         <p style={{ color: '#6b7280', margin: 0, fontSize: '0.9rem' }}>Portal del Propietario</p>
       </nav>
       <div style={{ maxWidth: '800px', margin: '2rem auto', padding: '0 1rem' }}>

@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 export default function Terminos() {
   return (
@@ -17,8 +18,8 @@ export default function Terminos() {
       `}</style>
 
       <nav style={{ borderBottom:'1px solid var(--rule)', padding:'16px 40px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'white', position:'sticky', top:0, zIndex:50 }}>
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)', textDecoration:'none' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
-        <a href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>Volver al portal →</a>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)', textDecoration:'none' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
+        <Link href="/propiedades" style={{ fontSize:13, color:'var(--ink-3)' }}>Volver al portal →</Link>
       </nav>
 
       <div style={{ maxWidth:760, margin:'0 auto', padding:'48px 24px 80px' }}>
@@ -162,7 +163,7 @@ export default function Terminos() {
       </div>
 
       <footer style={{ borderTop:'1px solid var(--rule)', padding:'24px 40px', display:'flex', justifyContent:'space-between', alignItems:'center', background:'white' }}>
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:18, color:'var(--ink)', textDecoration:'none' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:18, color:'var(--ink)', textDecoration:'none' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
         <p style={{ fontSize:12, color:'var(--ink-3)' }}>© 2026 NIDO · Costa Rica</p>
         <a href="/privacidad" style={{ fontSize:13, color:'var(--ink-3)' }}>Política de privacidad →</a>
       </footer>

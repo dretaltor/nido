@@ -236,7 +236,7 @@ export function OfertaForm({ propiedadId, propiedadTitulo, propiedadRef, propied
                   { l:'Tipo de compra', v:form.tipo_compra === 'contado' ? 'Contado — '+(form.forma_pago||'forma por definir') : 'Crédito — '+(form.pre_aprobado==='si'?'Pre-aprobado en '+(form.banco||'banco'):'Sin pre-aprobación') },
                   form.monto_prima ? { l:'Prima', v:'$'+parseFloat(form.monto_prima).toLocaleString()+' USD' } : null,
                   form.condiciones ? { l:'Condiciones', v:form.condiciones } : null,
-                ].filter(Boolean).map((r:any) => (
+                ].filter((r): r is { l: string; v: string } => r !== null).map((r) => (
                   <div key={r.l} style={{ display:'flex', gap:12, padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
                     <span style={{ color:'var(--ink-3)', width:100, flexShrink:0 }}>{r.l}</span>
                     <span style={{ color:'var(--ink)', fontWeight:500 }}>{r.v}</span>

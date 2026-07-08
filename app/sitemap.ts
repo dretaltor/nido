@@ -11,7 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .select('zona')
     .eq('disponible', true)
     .eq('verificacion_estado', 'aprobada')
-  const zonasConListado = new Set((data || []).map((p: any) => p.zona))
+  const zonasConListado = new Set((data || []).map((p) => p.zona))
 
   const zonaUrls: MetadataRoute.Sitemap = ZONAS.map(z => ({
     url: `${base}/propiedades/zona/${z.slug}`,
@@ -31,6 +31,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: base+'/precios', lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: base+'/unirse', lastModified: now, changeFrequency: 'monthly', priority: 0.8 },
     { url: base+'/academia', lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
+    { url: base+'/calculadoras', lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: base+'/calculadora', lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: base+'/calculadoras/capacidad-compra', lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: base+'/calculadoras/roi-alquiler', lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    { url: base+'/calculadoras/impuesto-inmuebles', lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     ...zonaUrls,
   ]
 }

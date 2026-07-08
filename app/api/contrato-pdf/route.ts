@@ -8,7 +8,7 @@ const supabaseAdmin = createClient(
 
 // Este archivo construye HTML con texto plano (no es React, no escapa solo).
 // Sin esto, un nombre/cedula con <script> se inyecta tal cual en el contrato generado.
-function esc(v: any): string {
+function esc(v: unknown): string {
   if (v === null || v === undefined) return ''
   return String(v)
     .replace(/&/g, '&amp;')

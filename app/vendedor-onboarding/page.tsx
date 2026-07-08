@@ -1,5 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function VendedorOnboarding() {
   const router = useRouter()
@@ -25,7 +26,7 @@ export default function VendedorOnboarding() {
 
       {/* NAV */}
       <nav style={{ position:'fixed', top:0, left:0, right:0, zIndex:100, background:'rgba(6,13,8,0.85)', backdropFilter:'blur(16px)', borderBottom:'1px solid rgba(255,255,255,0.06)', padding:'14px 40px', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-        <a href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'white', textDecoration:'none' }}>NIDO<span style={{ color:'var(--gold)' }}>.</span></a>
+        <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'white', textDecoration:'none' }}>NIDO<span style={{ color:'var(--gold)' }}>.</span></Link>
         <div style={{ display:'flex', gap:16, alignItems:'center' }}>
           <a href="/login-propietario" style={{ fontSize:13, color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Ya tengo cuenta →</a>
           <button onClick={() => router.push('/registro-propietario')} style={{ padding:'9px 20px', borderRadius:999, background:'var(--gold)', color:'#060D08', fontSize:13, fontWeight:600, border:'none', cursor:'pointer' }}>
@@ -238,7 +239,7 @@ export default function VendedorOnboarding() {
           <div style={{ marginTop:20, background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:12, padding:'16px 20px', display:'flex', gap:12, alignItems:'flex-start' }}>
             <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg,var(--accent),oklch(0.30 0.08 150))', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--serif)', fontSize:14, fontStyle:'italic', color:'#C8A96E', flexShrink:0 }}>V</div>
             <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65, fontStyle:'italic' }}>
-              "Las propiedades con precio ajustado al mercado y fotografías profesionales generan 3× más consultas. Tu asesor NIDO analizará el valor ideal de tu propiedad en la primera reunión."
+              &quot;Las propiedades con precio ajustado al mercado y fotografías profesionales generan 3× más consultas. Tu asesor NIDO analizará el valor ideal de tu propiedad en la primera reunión.&quot;
             </p>
           </div>
         </div>

@@ -1,5 +1,6 @@
 'use client'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function EnglishLanding() {
   const router = useRouter()
@@ -33,7 +34,7 @@ export default function EnglishLanding() {
           <a href="#process" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Buying Process</a>
         </div>
         <div style={{ display:'flex', gap:10, alignItems:'center' }}>
-          <a href="/propiedades" style={{ fontSize:13, color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>ES</a>
+          <Link href="/propiedades" style={{ fontSize:13, color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>ES</Link>
           <span style={{ color:'rgba(255,255,255,0.2)' }}>|</span>
           <span style={{ fontSize:13, color:'white', fontWeight:500 }}>EN</span>
           <button onClick={() => router.push('/propiedades')} style={{ marginLeft:8, padding:'9px 20px', borderRadius:999, background:'oklch(0.42 0.06 150)', color:'white', fontSize:13, fontWeight:500, border:'none', cursor:'pointer' }}>
@@ -55,7 +56,7 @@ export default function EnglishLanding() {
             Your home in<br/><em style={{ fontStyle:'italic', color:'oklch(0.75 0.06 150)' }}>paradise starts here.</em>
           </h1>
           <p style={{ fontSize:17, color:'rgba(255,255,255,0.55)', lineHeight:1.8, maxWidth:580, margin:'0 auto 40px' }}>
-            NIDO is Costa Rica\'s premium real estate platform. We connect international buyers with verified properties, certified advisors, and a transparent buying process — all in English.
+            NIDO is Costa Rica&apos;s premium real estate platform. We connect international buyers with verified properties, certified advisors, and a transparent buying process — all in English.
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
             <button onClick={() => router.push('/propiedades')} className="cta-btn" style={{ background:'oklch(0.42 0.06 150)', color:'white' }}>
@@ -108,7 +109,7 @@ export default function EnglishLanding() {
           <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:14, padding:'24px 32px', display:'flex', gap:16, alignItems:'flex-start' }}>
             <div style={{ width:32, height:32, borderRadius:'50%', background:'linear-gradient(135deg,var(--accent),oklch(0.30 0.08 150))', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:'var(--serif)', fontSize:14, fontStyle:'italic', color:'#C8A96E', flexShrink:0, marginTop:2 }}>V</div>
             <p style={{ fontSize:14, color:'var(--ink-2)', lineHeight:1.7, fontStyle:'italic' }}>
-              "Properties priced correctly and professionally photographed receive 3× more inquiries. Your NIDO advisor will analyze the ideal market value for any property you're interested in."
+              &quot;Properties priced correctly and professionally photographed receive 3× more inquiries. Your NIDO advisor will analyze the ideal market value for any property you&apos;re interested in.&quot;
             </p>
           </div>
         </div>
@@ -123,7 +124,7 @@ export default function EnglishLanding() {
               Live legally in Costa Rica<br/><em style={{ fontStyle:'italic', color:'oklch(0.75 0.06 150)' }}>with the Rentista Visa.</em>
             </h2>
             <p style={{ fontSize:15, color:'rgba(255,255,255,0.45)', lineHeight:1.75, maxWidth:560, margin:'16px auto 0' }}>
-              Costa Rica\'s Rentista residency program allows foreigners to live legally in the country by demonstrating a stable passive income. It is one of the most accessible residency programs in Latin America.
+              Costa Rica&apos;s Rentista residency program allows foreigners to live legally in the country by demonstrating a stable passive income. It is one of the most accessible residency programs in Latin America.
             </p>
           </div>
 
@@ -173,7 +174,7 @@ export default function EnglishLanding() {
           <div style={{ textAlign:'center', marginBottom:56 }}>
             <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Where to buy</div>
             <h2 style={{ fontFamily:'var(--serif)', fontSize:'clamp(32px,5vw,56px)', fontWeight:400, lineHeight:1.05 }}>
-              Costa Rica's top<br/><em style={{ fontStyle:'italic', color:'var(--accent)' }}>real estate zones.</em>
+              Costa Rica&apos;s top<br/><em style={{ fontStyle:'italic', color:'var(--accent)' }}>real estate zones.</em>
             </h2>
           </div>
 
@@ -329,7 +330,7 @@ export default function EnglishLanding() {
             </a>
           </div>
           <p style={{ marginTop:24, fontSize:13, color:'rgba(255,255,255,0.3)' }}>
-            Also available in <a href="/propiedades" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Español →</a>
+            Also available in <Link href="/propiedades" style={{ color:'rgba(255,255,255,0.5)', textDecoration:'none' }}>Español →</Link>
           </p>
         </div>
       </section>
@@ -338,7 +339,7 @@ export default function EnglishLanding() {
       <footer style={{ background:'#040A06', padding:'28px 40px', display:'flex', justifyContent:'space-between', alignItems:'center', borderTop:'1px solid rgba(255,255,255,0.04)', flexWrap:'wrap', gap:12 }}>
         <span style={{ fontFamily:'var(--serif)', fontSize:20, color:'white' }}>NIDO<span style={{ color:'var(--gold)' }}>.</span></span>
         <div style={{ display:'flex', gap:24, fontSize:12 }}>
-          <a href="/propiedades" style={{ color:'rgba(255,255,255,0.3)', textDecoration:'none' }}>Properties</a>
+          <Link href="/propiedades" style={{ color:'rgba(255,255,255,0.3)', textDecoration:'none' }}>Properties</Link>
           <a href="/nosotros" style={{ color:'rgba(255,255,255,0.3)', textDecoration:'none' }}>About NIDO</a>
           <a href="/privacidad" style={{ color:'rgba(255,255,255,0.3)', textDecoration:'none' }}>Privacy</a>
           <a href="/terminos" style={{ color:'rgba(255,255,255,0.3)', textDecoration:'none' }}>Terms</a>

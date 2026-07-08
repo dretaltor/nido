@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { getPlanConfig } from '../../../lib/planes'
 import { exportToCSV } from '../../../lib/csvExport'
+import Link from 'next/link'
+import type { Visita, Oferta } from '../../../lib/database.types'
+
+type SelVO = (Partial<Visita> & { _tipo: 'visita' }) | (Partial<Oferta> & { _tipo: 'oferta', propiedad_titulo?: string })
 
 interface Lead {
   id: string; nombre: string; email: string; telefono: string
@@ -53,15 +57,15 @@ export default function CRM() {
   const [toast, setToast] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
   const [aiMensaje, setAiMensaje] = useState('')
-  const [selVO, setSelVO] = useState<any>(null)
+  const [selVO, setSelVO] = useState<SelVO | null>(null)
   const [voMensaje, setVoMensaje] = useState('')
   const [voLoading, setVoLoading] = useState(false)
   const [aiAccion, setAiAccion] = useState('')
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [userEmail, setUserEmail] = useState('')
 
-  const [visitas, setVisitas] = useState<any[]>([])
-  const [ofertas, setOfertas] = useState<any[]>([])
+  const [visitas, setVisitas] = useState<Partial<Visita>[]>([])
+  const [ofertas, setOfertas] = useState<(Partial<Oferta> & { propiedad_titulo?: string })[]>([])
   const [crmBloqueado, setCrmBloqueado] = useState(false)
   const [checandoPlan, setCheckandoPlan] = useState(true)
 
@@ -157,7 +161,9 @@ export default function CRM() {
     setUpdatingId(null)
   }
 
+  // Formateador de tiempo relativo ("Hace X min") — no crítico para memoización.
   const timeAgo = (s: string) => {
+    // eslint-disable-next-line react-hooks/purity
     const d = Date.now() - new Date(s).getTime(), m = Math.floor(d/60000)
     if (m < 60) return 'Hace ' + m + ' min'
     const h = Math.floor(m/60); if (h < 24) return 'Hace ' + h + 'h'
@@ -189,13 +195,13 @@ export default function CRM() {
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1400, margin:'0 auto' }}>
-          <a href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></a>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
           <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
             <a href="/dashboard">Dashboard</a>
             <a href="/dashboard/crm" style={{ color:'var(--accent)', fontWeight:500 }}>CRM</a>
             <a href="/dashboard/comisiones">Comisiones</a>
             <a href="/dashboard/equipo">Equipo</a>
-            <a href="/propiedades">Portal</a>
+            <Link href="/propiedades">Portal</Link>
           </div>
           <div style={{ display:'flex', gap:10 }}>
             <button onClick={() => exportToCSV('nido-leads-' + new Date().toISOString().split('T')[0], leads.map(l => ({
@@ -281,17 +287,17 @@ export default function CRM() {
             <p style={{ fontSize:13, color:'var(--ink-3)', marginBottom:20 }}>{visitas.length} visitas · {ofertas.length} ofertas — agrupadas por propiedad</p>
             {(() => {
               const titulos = Array.from(new Set([
-                ...visitas.map((v:any) => v.propiedad_titulo || 'Sin propiedad'),
-                ...ofertas.map((o:any) => o.propiedad_titulo || o.propiedad || 'Sin propiedad'),
+                ...visitas.map((v) => v.propiedad_titulo || 'Sin propiedad'),
+                ...ofertas.map((o) => o.propiedad_titulo || 'Sin propiedad'),
               ]))
               return titulos.map(titulo => {
-                const vDeEsta = visitas.filter((v:any) => (v.propiedad_titulo||'Sin propiedad') === titulo)
-                const oDeEsta = ofertas.filter((o:any) => (o.propiedad_titulo || o.propiedad || 'Sin propiedad') === titulo)
+                const vDeEsta = visitas.filter((v) => (v.propiedad_titulo||'Sin propiedad') === titulo)
+                const oDeEsta = ofertas.filter((o) => (o.propiedad_titulo || 'Sin propiedad') === titulo)
                 if (vDeEsta.length === 0 && oDeEsta.length === 0) return null
                 return (
                   <div key={titulo} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'18px 20px', marginBottom:14 }}>
                     <div style={{ fontSize:13, fontWeight:500, marginBottom:12, color:'var(--ink)' }}>🏠 {titulo}</div>
-                    {vDeEsta.map((v:any) => (
+                    {vDeEsta.map((v) => (
                       <div key={v.id} onClick={() => setSelVO({...v, _tipo:'visita'})} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13, cursor:'pointer' }}>
                         <span style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:500, background:'oklch(0.93 0.04 200)', color:'oklch(0.35 0.07 200)' }}>VISITA</span>
                         <span style={{ flex:1 }}>{v.comprador_nombre} · {v.fecha} {v.hora}</span>
@@ -299,7 +305,7 @@ export default function CRM() {
                         <span style={{ color:'var(--ink-3)', fontSize:12 }}>→</span>
                       </div>
                     ))}
-                    {oDeEsta.map((o:any) => (
+                    {oDeEsta.map((o) => (
                       <div key={o.id} onClick={() => setSelVO({...o, _tipo:'oferta'})} style={{ display:'flex', alignItems:'center', gap:10, padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13, cursor:'pointer' }}>
                         <span style={{ padding:'2px 8px', borderRadius:999, fontSize:10, fontWeight:500, background:'oklch(0.93 0.05 50)', color:'oklch(0.45 0.08 50)' }}>OFERTA</span>
                         <span style={{ flex:1 }}>{o.comprador_nombre} · ${Number(o.valor_oferta||0).toLocaleString()}</span>
@@ -428,7 +434,7 @@ export default function CRM() {
                     ? { l:'Fecha y hora', v: selVO.fecha + ' · ' + selVO.hora }
                     : { l:'Monto ofrecido', v: '$' + Number(selVO.valor_oferta||0).toLocaleString() },
                   { l:'Estado', v: selVO.estado },
-                ].map((f:any) => f.v ? (
+                ].map((f) => f.v ? (
                   <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:14 }}>
                     <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
                     <span style={{ fontWeight:500 }}>{f.v}</span>

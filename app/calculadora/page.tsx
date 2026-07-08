@@ -1,5 +1,6 @@
 'use client'
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
 import Nav from '../../components/Nav'
 
 function fmt(n: number, currency: 'USD' | 'CRC') {
@@ -132,9 +133,12 @@ export default function CalculadoraPage() {
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 40 }}>
-          <a href="/propiedades" style={{ display: 'inline-block', padding: '14px 32px', borderRadius: 999, background: '#1B5E3B', color: 'white', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>
+          <Link href="/propiedades" style={{ display: 'inline-block', padding: '14px 32px', borderRadius: 999, background: '#1B5E3B', color: 'white', textDecoration: 'none', fontSize: 14, fontWeight: 500 }}>
             Ver propiedades disponibles
-          </a>
+          </Link>
+          <div style={{ marginTop: 16 }}>
+            <Link href="/calculadoras" style={{ fontSize: 13, color: '#6B7280', textDecoration: 'none' }}>Ver todas las calculadoras →</Link>
+          </div>
         </div>
       </div>
     </main>
