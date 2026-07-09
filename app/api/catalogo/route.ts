@@ -30,7 +30,11 @@ export async function GET() {
   }
 
   const filas = (propiedades || [])
-    .filter(p => p.imagen_url) // Meta exige image_link valido en cada fila
+    // imagen_url es una columna legacy que el wizard de publicacion ya no llena —
+    // las fotos reales viven en `fotos` (jsonb, array de URLs). Usamos imagen_url
+    // si existe (datos viejos) y si no, la primera foto de `fotos`.
+    .map(p => ({ ...p, foto: p.imagen_url || (Array.isArray(p.fotos) ? p.fotos[0] : null) as string | null }))
+    .filter(p => p.foto) // Meta exige image_link valido en cada fila
     .map(p => {
       const descripcionCorta = (p.descripcion || `${p.titulo} en ${p.zona}`).replace(/\s+/g, ' ').slice(0, 5000)
       const link = `https://www.nido-cr.com/propiedades/${p.id}`
@@ -43,7 +47,7 @@ export async function GET() {
         csvEscape('new'),
         csvEscape(precio),
         csvEscape(link),
-        csvEscape(p.imagen_url || ''),
+        csvEscape(p.foto || ''),
         csvEscape('NIDO'),
       ].join(',')
     })

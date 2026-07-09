@@ -192,24 +192,29 @@ Para cualquier otra consulta, responde normalmente en texto.`
         const action = JSON.parse(jsonMatch[0])
         
         if (action.action === 'buscar_propiedades') {
-          let query = supabaseAdmin.from('propiedades').select('id, titulo, zona, precio, tipo, operacion, ref_id, imagen_url').eq('disponible', true).eq('verificacion_estado', 'aprobada').limit(3)
+          // imagen_url es una columna legacy que el wizard de publicacion ya no llena —
+          // las fotos reales viven en `fotos` (jsonb, array de URLs de Supabase Storage).
+          // Usamos imagen_url si existe (compatibilidad con datos viejos) y si no, la
+          // primera foto de `fotos`.
+          let query = supabaseAdmin.from('propiedades').select('id, titulo, zona, precio, tipo, operacion, ref_id, imagen_url, fotos').eq('disponible', true).eq('verificacion_estado', 'aprobada').limit(3)
           if (action.zona) query = query.ilike('zona', '%' + action.zona + '%')
           if (action.tipo) query = query.eq('tipo', action.tipo)
           if (action.precio_max) query = query.lte('precio', action.precio_max)
 
-          const { data: props } = await query
+          const { data: propsRaw } = await query
+          const props = (propsRaw || []).map(p => ({ ...p, foto: p.imagen_url || (Array.isArray(p.fotos) ? p.fotos[0] : null) as string | null }))
 
-          if (props && props.length > 0) {
+          if (props.length > 0) {
             // Cada propiedad con foto va como mensaje de imagen con su ficha en el caption —
             // mucho mas persuasivo que un bloque de texto con un link. La que no tenga foto
             // se agrega igual al resumen de texto final.
             for (const p of props) {
               const caption = `🏠 *${p.titulo}*\n📍 ${p.zona} | ${p.tipo}\n💰 $${Number(p.precio).toLocaleString()} USD\n🔖 ${p.ref_id || ''}\n🔗 nido-cr.com/propiedades/${p.id}`
-              if (p.imagen_url) {
-                await sendWAImagen(from, p.imagen_url, caption)
+              if (p.foto) {
+                await sendWAImagen(from, p.foto, caption)
               }
             }
-            const sinFoto = props.filter(p => !p.imagen_url)
+            const sinFoto = props.filter(p => !p.foto)
             finalReply = (sinFoto.length > 0
               ? '🏠 *Más opciones:*\n\n' + sinFoto.map(p => `*${p.titulo}*\n📍 ${p.zona} | ${p.tipo}\n💰 $${Number(p.precio).toLocaleString()} USD\n🔗 nido-cr.com/propiedades/${p.id}`).join('\n\n') + '\n\n'
               : '') + '¿Te interesa alguna? Puedo darte más detalles o agendar una visita. 😊'
