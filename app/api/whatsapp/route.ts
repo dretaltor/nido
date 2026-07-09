@@ -97,6 +97,7 @@ export async function POST(req: NextRequest) {
     // Call Valeria AI
     const sistemaPrompt = `Sos Valeria, la asistente IA de NIDO — plataforma inmobiliaria premium de Costa Rica.
 Respondés por WhatsApp — mensajes cortos, claros y directos. Máximo 3 párrafos.
+IDIOMA: respondé siempre en el mismo idioma en el que te escribe el usuario (si te escribe en inglés, respondé en inglés; si es en español, en español). Costa Rica recibe muchos compradores extranjeros — no asumas que todos hablan español.
 ${userName ? 'Estás hablando con ' + userName + ', ' + userType + ' de NIDO.' : 'Es un usuario nuevo — podría ser comprador, vendedor o asesor.'}
 ${userType === 'asesor' ? `
 Este es un ASESOR registrado en NIDO (plan ${esAsesorBlack ? 'Black' : asesor?.plan || 'Despega'}). Además de lo de comprador, podés ayudarlo con:
@@ -139,17 +140,27 @@ Para cualquier otra consulta, responde normalmente en texto.`
         const action = JSON.parse(jsonMatch[0])
         
         if (action.action === 'buscar_propiedades') {
-          let query = supabaseAdmin.from('propiedades').select('id, titulo, zona, precio, tipo, operacion, ref_id').eq('disponible', true).eq('verificacion_estado', 'aprobada').limit(3)
+          let query = supabaseAdmin.from('propiedades').select('id, titulo, zona, precio, tipo, operacion, ref_id, imagen_url').eq('disponible', true).eq('verificacion_estado', 'aprobada').limit(3)
           if (action.zona) query = query.ilike('zona', '%' + action.zona + '%')
           if (action.tipo) query = query.eq('tipo', action.tipo)
           if (action.precio_max) query = query.lte('precio', action.precio_max)
-          
+
           const { data: props } = await query
-          
+
           if (props && props.length > 0) {
-            finalReply = '🏠 *Propiedades disponibles en NIDO:*\n\n' + props.map((p, i) => 
-              `${i+1}. *${p.titulo}*\n📍 ${p.zona} | ${p.tipo}\n💰 $${Number(p.precio).toLocaleString()} USD\n🔖 ${p.ref_id || ''}\n🔗 nido-cr.com/propiedades/${p.id}`
-            ).join('\n\n') + '\n\n¿Te interesa alguna? Puedo darte más detalles o agendar una visita. 😊'
+            // Cada propiedad con foto va como mensaje de imagen con su ficha en el caption —
+            // mucho mas persuasivo que un bloque de texto con un link. La que no tenga foto
+            // se agrega igual al resumen de texto final.
+            for (const p of props) {
+              const caption = `🏠 *${p.titulo}*\n📍 ${p.zona} | ${p.tipo}\n💰 $${Number(p.precio).toLocaleString()} USD\n🔖 ${p.ref_id || ''}\n🔗 nido-cr.com/propiedades/${p.id}`
+              if (p.imagen_url) {
+                await sendWAImagen(from, p.imagen_url, caption)
+              }
+            }
+            const sinFoto = props.filter(p => !p.imagen_url)
+            finalReply = (sinFoto.length > 0
+              ? '🏠 *Más opciones:*\n\n' + sinFoto.map(p => `*${p.titulo}*\n📍 ${p.zona} | ${p.tipo}\n💰 $${Number(p.precio).toLocaleString()} USD\n🔗 nido-cr.com/propiedades/${p.id}`).join('\n\n') + '\n\n'
+              : '') + '¿Te interesa alguna? Puedo darte más detalles o agendar una visita. 😊'
           } else {
             finalReply = '🔍 No encontré propiedades con esos criterios en este momento.\n\nPodés ver todas las opciones disponibles en:\n🌐 www.nido-cr.com/propiedades\n\n¿Querés que amplíe la búsqueda?'
           }
@@ -304,6 +315,25 @@ Para cualquier otra consulta, responde normalmente en texto.`
   }
 
   return NextResponse.json({ ok: true })
+}
+
+async function sendWAImagen(to: string, imagenUrl: string, caption: string): Promise<{ ok: boolean; error?: string }> {
+  if (!WA_TOKEN) return { ok: false, error: 'WHATSAPP_TOKEN no configurado en Vercel' }
+  try {
+    const res = await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${WA_TOKEN}` },
+      body: JSON.stringify({ messaging_product: 'whatsapp', to, type: 'image', image: { link: imagenUrl, caption } })
+    })
+    if (!res.ok) {
+      const errBody = await res.text()
+      console.error('WhatsApp image send error:', res.status, errBody)
+      return { ok: false, error: `HTTP ${res.status}: ${errBody.slice(0, 500)}` }
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
 }
 
 async function sendWA(to: string, message: string): Promise<{ ok: boolean; error?: string }> {

@@ -64,6 +64,7 @@ const PLANES = [
       { texto: 'Valeria IA con memoria y contexto', ok: true },
       { texto: 'CRM avanzado con score de leads', ok: true },
       { texto: 'Leads premium de las calculadoras (prioridad automática)', ok: true },
+      { texto: 'Valeria por WhatsApp — mentora de mercado 24/7 y notificaciones en vivo', ok: true },
       { texto: 'Estadísticas en tiempo real', ok: true },
       { texto: 'Academia NIDO + certificaciones', ok: true },
       { texto: 'Tour 360° (1 por mes incluido, adicionales con costo)', ok: true },
@@ -79,6 +80,7 @@ const DIFERENCIAS = [
   { feature: 'Valeria IA', gratis: '—', pro: 'Básica', enterprise: 'Con memoria y contexto' },
   { feature: 'CRM de leads', gratis: '—', pro: 'Completo', enterprise: 'Avanzado + score' },
   { feature: 'Tours 360°', gratis: '—', pro: '1 por mes incluido', enterprise: '1 por mes incluido + adicionales' },
+  { feature: 'Valeria por WhatsApp', gratis: '—', pro: '—', enterprise: 'Mentora de mercado + notificaciones en vivo' },
   { feature: 'Academia NIDO', gratis: '—', pro: 'Cursos básicos', enterprise: 'Todo + certificaciones' },
   { feature: 'Soporte', gratis: 'Email', pro: '24 horas', enterprise: '2 horas' },
   { feature: 'Estadísticas', gratis: '—', pro: 'Semanales', enterprise: 'Tiempo real' },
@@ -299,6 +301,7 @@ export default function Precios() {
             { q:'¿Aceptan tarjetas costarricenses?', a:'Sí. Aceptamos Visa y Mastercard locales e internacionales, y próximamente SINPE Móvil.' },
             { q:'¿Hay contrato de permanencia?', a:'No. En el plan mensual podés cancelar cuando quieras. El plan anual no tiene reembolsos parciales.' },
             { q:'¿Qué incluye exactamente Valeria IA?', a:'En Elite, Valeria puede redactar descripciones, analizar leads y responder consultas. En Black, además recuerda el historial de tus propiedades y compradores para un asesoramiento más profundo.' },
+            { q:'¿Cómo funciona Valeria por WhatsApp?', a:'Exclusivo del plan Black: Valeria te escribe directo a tu WhatsApp. Actúa como tu mentora de mercado (precios por m², tendencias de zona, CMA rápido de una propiedad), te avisa en el momento cuando llega un lead nuevo o se enfría uno viejo, te manda un resumen cada mañana con tus leads, visitas y tickets del día, y te ayuda a redactar descripciones y mensajes de seguimiento — todo sin salir del chat.' },
           ].map((f, i) => (
             <div key={i} style={{ borderTop:'1px solid var(--rule)', padding:'18px 0' }}>
               <div style={{ fontSize:15, fontWeight:500, marginBottom:8, color:'var(--ink)' }}>{f.q}</div>

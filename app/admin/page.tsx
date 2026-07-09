@@ -228,6 +228,7 @@ export default function AdminPanel() {
   const [cursosCompras, setCursosCompras] = useState<CursoCompra[]>([])
   const [alertasBusqueda, setAlertasBusqueda] = useState<AlertaBusqueda[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
+  const [waLogs, setWaLogs] = useState<{ id: string; wa_send_ok: boolean | null; user_type: string | null; created_at: string }[]>([])
   const [auditoria, setAuditoria] = useState<AdminAuditLog[]>([])
   const [admins, setAdmins] = useState<Admin[]>([])
   const [sel, setSel] = useState<SelItem | null>(null)
@@ -240,7 +241,7 @@ export default function AdminPanel() {
   const [adminUser, setAdminUser] = useState<User | null>(null)
 
   const loadAll = async () => {
-    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }, { data: pagosRef }, { data: lds }, { data: audit }, { data: adms }, { data: ofs }, { data: ccs }, { data: alts }] = await Promise.all([
+    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }, { data: pagosRef }, { data: lds }, { data: audit }, { data: adms }, { data: ofs }, { data: ccs }, { data: alts }, { data: wal }] = await Promise.all([
       supabase.from('admin_metricas').select('*').maybeSingle(),
       supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at,referido_por,suspendido').order('created_at', { ascending: false }),
       supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at,referido_por,suspendido').order('created_at', { ascending: false }),
@@ -257,6 +258,7 @@ export default function AdminPanel() {
       supabase.from('oficinas').select('*').order('created_at', { ascending: false }),
       supabase.from('cursos_compras').select('*').order('created_at', { ascending: false }),
       supabase.from('alertas_busqueda').select('*').order('created_at', { ascending: false }),
+      supabase.from('whatsapp_logs').select('id, wa_send_ok, user_type, created_at').gte('created_at', new Date(Date.now() - 7*24*60*60*1000).toISOString()).order('created_at', { ascending: false }).limit(1000),
     ])
     setMetricas(met)
     // Estas queries seleccionan solo un subconjunto de columnas (no '*'), por eso el cast:
@@ -276,6 +278,7 @@ export default function AdminPanel() {
     setOficinas(ofs || [])
     setCursosCompras(ccs || [])
     setAlertasBusqueda(alts || [])
+    setWaLogs(wal || [])
     setLoading(false)
   }
 
@@ -1600,6 +1603,13 @@ export default function AdminPanel() {
 
           const leadsPremium = leads.filter(l => l.asignado_automaticamente).length
 
+          const leadsWhatsapp = leads.filter(l => l.fuente === 'whatsapp_ia').length
+          // waLogs ya viene filtrado a los ultimos 7 dias desde la consulta en loadAll()
+          const waConResultado = waLogs.filter(w => w.wa_send_ok !== null)
+          const waTasaExito = waConResultado.length > 0 ? Math.round(waConResultado.filter(w => w.wa_send_ok).length / waConResultado.length * 100) : null
+          const waPorTipo: Record<string, number> = {}
+          waLogs.forEach(w => { const t = w.user_type || 'desconocido'; waPorTipo[t] = (waPorTipo[t]||0)+1 })
+
           return (
             <div style={{ animation:'fadeUp 0.4s ease' }}>
               <div style={{ marginBottom:24 }}>
@@ -1687,6 +1697,33 @@ export default function AdminPanel() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div style={{ marginTop:20 }}>
+                <div style={{ fontSize:14, fontWeight:500, marginBottom:16 }}>Valeria por WhatsApp <span style={{ fontSize:11, fontWeight:400, color:'var(--ink-3)' }}>· beneficio Black · últimos 7 días</span></div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16 }}>
+                  <div className="card" style={{ padding:'18px 20px' }}>
+                    <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Mensajes procesados</div>
+                    <div style={{ fontFamily:'var(--serif)', fontSize:28 }}>{waLogs.length}</div>
+                  </div>
+                  <div className="card" style={{ padding:'18px 20px' }}>
+                    <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Tasa de envío exitoso</div>
+                    <div style={{ fontFamily:'var(--serif)', fontSize:28, color: waTasaExito !== null && waTasaExito < 90 ? 'oklch(0.55 0.15 30)' : 'var(--ink)' }}>{waTasaExito !== null ? waTasaExito + '%' : '—'}</div>
+                  </div>
+                  <div className="card" style={{ padding:'18px 20px' }}>
+                    <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Leads generados vía WhatsApp</div>
+                    <div style={{ fontFamily:'var(--serif)', fontSize:28 }}>{leadsWhatsapp}</div>
+                  </div>
+                  <div className="card" style={{ padding:'18px 20px' }}>
+                    <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Por perfil</div>
+                    <div style={{ fontSize:12, color:'var(--ink-2)', lineHeight:1.8 }}>
+                      {Object.entries(waPorTipo).length === 0 ? '—' : Object.entries(waPorTipo).map(([t,n]) => `${t}: ${n}`).join(' · ')}
+                    </div>
+                  </div>
+                </div>
+                {waTasaExito !== null && waTasaExito < 90 && (
+                  <div style={{ marginTop:10, fontSize:12, color:'oklch(0.5 0.13 30)' }}>⚠️ Tasa de envío por debajo del 90% — revisá WHATSAPP_TOKEN en Vercel o el estado de la app en developers.facebook.com.</div>
+                )}
               </div>
             </div>
           )

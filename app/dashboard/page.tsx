@@ -744,10 +744,14 @@ export default function Dashboard() {
     )}
       {/* TOUR GUIADO ASESOR */}
       {tourActivo && (() => {
+        const esBlackTour = getPlanConfig(suscripcion?.plan).nombrePublico === 'Black'
         const PASOS_TOUR = [
           { titulo:'¡Bienvenido a NIDO!', desc:'Este es tu dashboard de asesor. Desde aquí gestionás tus propiedades, leads, ofertas y tu perfil profesional en una sola plataforma.', icon:'✦' },
           { titulo:'Completá tu perfil', desc:'Antes de publicar, completá tu foto, datos y verificación KYC. Un perfil completo mejora tu ranking en NIDO hasta un +40%.', icon:'👤' },
           { titulo:'Personalizá a Valeria', desc:'Valeria es tu asistente IA personal. En "Mi Valeria" configurás su estilo de comunicación, zonas y especialidades para que trabaje exactamente como vos.', icon:'✦' },
+          esBlackTour
+            ? { titulo:'Valeria también vive en tu WhatsApp', desc:'Como asesor Black, Valeria te escribe directo al WhatsApp que registraste en tu perfil: es tu mentora de mercado (precios por m², CMA rápido), te avisa al instante de leads nuevos, y te manda un resumen cada mañana. Escribile "hola" para empezar.', icon:'💬' }
+            : { titulo:'Valeria también por WhatsApp (plan Black)', desc:'Con el plan Black, Valeria te escribe directo a tu WhatsApp: mentora de mercado, alertas de leads en tiempo real y resumen diario. Podés hacer upgrade cuando quieras desde /precios.', icon:'💬' },
           { titulo:'Publicá tu primera propiedad', desc:'Usá el wizard de 9 pasos para cargar una propiedad con datos registrales. Pasa por verificación antes de aparecer en el portal.', icon:'🏠' },
           { titulo:'Gestioná tus leads', desc:'Cada consulta llega a tu CRM. Filtrá por estado, respondé rápido — los asesores que responden en menos de 2 horas cierran 3× más.', icon:'👥' },
           { titulo:'Enviá y recibí ofertas', desc:'Podés enviar ofertas formales a cualquier propiedad en nombre de tu comprador. Las ofertas en tus propiedades las ves en "Ofertas recibidas".', icon:'📝' },
