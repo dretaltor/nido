@@ -94,13 +94,13 @@ export default function Asesores() {
         .agent-card:hover{padding-left:8px}
         .agent-card .arrow{position:absolute;right:0;top:32px;font-size:18px;color:var(--ink-3);transition:all 0.15s;opacity:0}
         .agent-card:hover .arrow{opacity:1;transform:translateX(4px)}
-        @media(max-width:768px){.agent-grid-inner{grid-template-columns:1fr!important}.sub-hero-grid{grid-template-columns:1fr!important;gap:16px!important;padding:32px 16px 20px!important}.section-pad{padding:32px 16px!important}.regions-row{overflow-x:auto;flex-wrap:nowrap!important}}
+        @media(max-width:768px){.agent-grid-inner{grid-template-columns:1fr!important}.sub-hero-grid{grid-template-columns:1fr!important;gap:16px!important;padding:32px 16px 20px!important}.section-pad{padding:32px 16px!important}.regions-row{overflow-x:auto;flex-wrap:nowrap!important}.nav-links{display:none!important}.top-nav-pad{padding:14px 16px!important}.cta-grid{grid-template-columns:1fr!important;padding:32px 24px!important;margin:0 16px 40px!important}}
       `}</style>
 
       <nav style={{position:'sticky',top:0,zIndex:50,background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--rule)'}}>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 40px',maxWidth:1600,margin:'0 auto'}}>
+        <div className="top-nav-pad" style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 40px',maxWidth:1600,margin:'0 auto'}}>
           <Link href="/" style={{fontFamily:'var(--serif)',fontSize:26,color:'var(--ink)'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></Link>
-          <nav style={{display:'flex',gap:28,fontSize:13,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--ink-2)'}}>
+          <nav className="nav-links" style={{display:'flex',gap:28,fontSize:13,letterSpacing:'0.05em',textTransform:'uppercase',color:'var(--ink-2)'}}>
             <Link href="/propiedades">Propiedades</Link>
             <a href="/nosotros" style={{color:'var(--ink-3)',textDecoration:'none',fontSize:13}}>Nosotros</a>
             <a href="/asesores" style={{color:'var(--ink)',borderBottom:'1px solid var(--ink)',paddingBottom:2}}>Asesores</a>
@@ -161,7 +161,7 @@ export default function Asesores() {
         </div>
       </div>
 
-      <div style={{background:'var(--ink)',margin:'0 40px 40px',borderRadius:16,padding:'48px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:48,alignItems:'center'}}>
+      <div className="cta-grid" style={{background:'var(--ink)',margin:'0 40px 40px',borderRadius:16,padding:'48px',display:'grid',gridTemplateColumns:'1fr 1fr',gap:48,alignItems:'center'}}>
         <div>
           <h2 style={{fontFamily:'var(--serif)',fontSize:40,fontWeight:400,color:'white',marginBottom:12}}>¿Querés ser <em style={{color:'var(--accent)'}}>asesor NIDO</em>?</h2>
           <p style={{color:'rgba(255,255,255,0.55)',fontSize:15,lineHeight:1.65}}>Nuestros asesores cierran 2.4× más rápido con Valeria IA automatizando el 80% del trabajo administrativo.</p>

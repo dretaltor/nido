@@ -115,7 +115,9 @@ const CSS = `
   .table-cell{padding:14px 16px;font-size:13px;display:flex;align-items:center}
   .table-cell.center{justify-content:center;text-align:center}
   .table-header{background:var(--ink);color:white;border-radius:8px 8px 0 0}
-  @media(max-width:900px){.planes-grid{grid-template-columns:1fr!important}.table-row{display:none!important}.nav-pad{padding:14px 16px!important}.page-pad{padding:32px 16px 80px!important}}
+  .table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .table-inner{min-width:560px}
+  @media(max-width:900px){.planes-grid{grid-template-columns:1fr!important}.nav-pad{padding:14px 16px!important}.page-pad{padding:32px 16px 80px!important}.nav-links{display:none!important}.table-scroll-hint{display:block!important}}
 `
 
 export default function Precios() {
@@ -149,7 +151,7 @@ export default function Precios() {
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
         <div className="nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1300, margin:'0 auto' }}>
           <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
-          <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
+          <div className="nav-links" style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
             <Link href="/propiedades">Portal</Link>
             <a href="/nosotros">Nosotros</a>
             <a href="/asesores">Asesores</a>
@@ -267,22 +269,25 @@ export default function Precios() {
           <h2 style={{ fontFamily:'var(--serif)', fontSize:28, fontWeight:400, textAlign:'center', marginBottom:32 }}>
             Comparación <em style={{ fontStyle:'italic', color:'var(--accent)' }}>detallada.</em>
           </h2>
-          <div style={{ border:'1px solid var(--rule)', borderRadius:12, overflow:'hidden' }}>
-            <div className="table-row table-header">
-              <div className="table-cell" style={{ fontWeight:500, fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase' }}>Funcionalidad</div>
-              {['Despega','Elite','Black'].map(n => (
-                <div key={n} className="table-cell center" style={{ fontWeight:500, fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase' }}>{n}</div>
+          <div className="table-scroll" style={{ border:'1px solid var(--rule)', borderRadius:12 }}>
+            <div className="table-inner">
+              <div className="table-row table-header">
+                <div className="table-cell" style={{ fontWeight:500, fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase' }}>Funcionalidad</div>
+                {['Despega','Elite','Black'].map(n => (
+                  <div key={n} className="table-cell center" style={{ fontWeight:500, fontSize:12, letterSpacing:'0.08em', textTransform:'uppercase' }}>{n}</div>
+                ))}
+              </div>
+              {DIFERENCIAS.map((r, i) => (
+                <div key={i} className="table-row" style={{ background:i%2===0?'white':'var(--bg-elev)' }}>
+                  <div className="table-cell" style={{ fontWeight:500, color:'var(--ink)' }}>{r.feature}</div>
+                  <div className="table-cell center" style={{ color:'var(--ink-3)' }}>{r.gratis}</div>
+                  <div className="table-cell center" style={{ color:'var(--ink-2)' }}>{r.pro}</div>
+                  <div className="table-cell center" style={{ color:'var(--accent)', fontWeight:500 }}>{r.enterprise}</div>
+                </div>
               ))}
             </div>
-            {DIFERENCIAS.map((r, i) => (
-              <div key={i} className="table-row" style={{ background:i%2===0?'white':'var(--bg-elev)' }}>
-                <div className="table-cell" style={{ fontWeight:500, color:'var(--ink)' }}>{r.feature}</div>
-                <div className="table-cell center" style={{ color:'var(--ink-3)' }}>{r.gratis}</div>
-                <div className="table-cell center" style={{ color:'var(--ink-2)' }}>{r.pro}</div>
-                <div className="table-cell center" style={{ color:'var(--accent)', fontWeight:500 }}>{r.enterprise}</div>
-              </div>
-            ))}
           </div>
+          <p className="table-scroll-hint" style={{ display:'none', fontSize:11, color:'var(--ink-3)', textAlign:'center', marginTop:8 }}>← Deslizá para ver Elite y Black →</p>
         </div>
 
         {/* FAQ */}
