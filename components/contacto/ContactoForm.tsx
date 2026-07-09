@@ -57,6 +57,17 @@ export function ContactoForm({ propiedadId, propiedadTitulo, asesorEmail, asesor
       })
     })
 
+    // Si el asesor es plan Black, tambien le llega por WhatsApp (silencioso para el resto de planes)
+    fetch('/api/whatsapp-notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        correo: asesorEmail,
+        tipo: 'nuevo_lead',
+        data: { nombre: form.nombre, telefono: form.telefono, email: form.email, mensaje: form.mensaje, propiedad_titulo: propiedadTitulo },
+      })
+    }).catch(() => {})
+
     if (res.ok) {
       setExito(true)
       setForm({ nombre: '', email: '', telefono: '', mensaje: '' })

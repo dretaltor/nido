@@ -360,12 +360,19 @@ export default function AdminPanel() {
       verificacion_notas: notas || null,
       verificado_at: new Date().toISOString(),
     }).eq('id', id)
-    if (aprobar && asesorRow?.correo) {
+    if (asesorRow?.correo) {
       const { data: { session: ses2 } } = await supabase.auth.getSession()
-      fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+ses2?.access_token}, body: JSON.stringify({
-        to: asesorRow.correo,
-        tipo: 'kyc_aprobado',
-        data: { nombre: asesorRow.nombre, asesor_telefono: asesorRow.telefono }
+      if (aprobar) {
+        fetch('/api/email', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+ses2?.access_token}, body: JSON.stringify({
+          to: asesorRow.correo,
+          tipo: 'kyc_aprobado',
+          data: { nombre: asesorRow.nombre, asesor_telefono: asesorRow.telefono }
+        }) }).catch(() => {})
+      }
+      fetch('/api/whatsapp-notify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        correo: asesorRow.correo,
+        tipo: aprobar ? 'kyc_aprobado' : 'kyc_rechazado',
+        data: { notas: notas || undefined }
       }) }).catch(() => {})
     }
     logAccion(aprobar ? 'Aprobó KYC' : 'Rechazó KYC', 'asesor', id, asesorRow?.correo)
@@ -2657,6 +2664,13 @@ function TicketDetalle({ ticket, onClose, onReload, onMsg }: {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
       body: JSON.stringify({ to: ticket.usuario_email, tipo: 'mensaje_admin', data: { asunto: 'Re: ' + (ticket.asunto || 'Tu consulta con NIDO'), mensaje: respuesta } })
     }).catch(() => {})
+    if (ticket.usuario_tipo === 'asesor') {
+      fetch('/api/whatsapp-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo: ticket.usuario_email, tipo: 'ticket_respondido', data: { mensaje: respuesta } })
+      }).catch(() => {})
+    }
     setMensajes(prev => [...prev, { id: 'temp-'+Date.now(), ticket_id: ticket.id||'', remitente: 'admin', contenido: respuesta, created_at: new Date().toISOString() }])
     setRespuesta('')
     onReload()

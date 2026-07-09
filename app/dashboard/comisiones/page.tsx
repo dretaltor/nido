@@ -125,6 +125,16 @@ export default function Comisiones() {
       monto_colaborador_split: montoColaborador,
       split_registrado_at: form.tieneColaborador ? new Date().toISOString() : null,
     })
+
+    fetch('/api/whatsapp-notify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      correo: user.email, tipo: 'nueva_comision', data: { propiedad_titulo: form.propiedad_titulo, monto: montoPrincipal, estado: form.estado }
+    }) }).catch(() => {})
+    if (form.tieneColaborador && form.colaborador_email) {
+      fetch('/api/whatsapp-notify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+        correo: form.colaborador_email.trim().toLowerCase(), tipo: 'nueva_comision', data: { propiedad_titulo: form.propiedad_titulo, monto: montoColaborador, estado: form.estado }
+      }) }).catch(() => {})
+    }
+
     setForm({ propiedad_titulo:'', propiedad_ref:'', propiedad_zona:'', precio_venta:'', porcentaje_comision:'4', estado:'proyectada', fecha_cierre_estimada:'', notas:'', tieneColaborador:false, colaborador_email:'', colaborador_nombre:'', porcentaje_colaborador:'50' })
     setShowForm(false)
     await reload()

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
+import { notificarAsesorBlack } from '../../../lib/whatsappNotify'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -65,28 +66,48 @@ export async function POST(req: NextRequest) {
 
     // Check if user exists in system
     const [{ data: asesor }, { data: propietario }] = await Promise.all([
-      supabaseAdmin.from('perfiles').select('nombre, correo').eq('telefono', from).maybeSingle(),
+      supabaseAdmin.from('perfiles').select('nombre, correo, telefono, plan').eq('telefono', from).maybeSingle(),
       supabaseAdmin.from('propietarios').select('nombre, correo').eq('telefono', from).maybeSingle(),
     ])
 
     const userName = asesor?.nombre || propietario?.nombre || null
     const userType = asesor ? 'asesor' : propietario ? 'propietario' : 'comprador'
+    const esAsesorBlack = asesor?.plan === 'enterprise'
+
+    // Historial reciente de esta conversacion — sin esto Valeria no tiene memoria entre mensajes
+    // y no puede entender referencias como "sí, contactame" o "la segunda opción".
+    const { data: historialRows } = await supabaseAdmin
+      .from('whatsapp_logs')
+      .select('message, reply, created_at')
+      .eq('from_number', from)
+      .order('created_at', { ascending: false })
+      .limit(6)
+
+    const historialMensajes = (historialRows || [])
+      .slice()
+      .reverse()
+      .flatMap((h) => [
+        { role: 'user' as const, content: h.message },
+        { role: 'assistant' as const, content: h.reply },
+      ])
 
     // Call Valeria AI
     const sistemaPrompt = `Sos Valeria, la asistente IA de NIDO — plataforma inmobiliaria premium de Costa Rica.
 Respondés por WhatsApp — mensajes cortos, claros y directos. Máximo 3 párrafos.
 ${userName ? 'Estás hablando con ' + userName + ', ' + userType + ' de NIDO.' : 'Es un usuario nuevo — podría ser comprador, vendedor o asesor.'}
 ${userType === 'asesor' ? `
-Este es un ASESOR registrado en NIDO. Además de lo de comprador, podés ayudarlo con:
+Este es un ASESOR registrado en NIDO (plan ${esAsesorBlack ? 'Black' : asesor?.plan || 'Despega'}). Además de lo de comprador, podés ayudarlo con:
 - Ver SUS propias propiedades publicadas (si pregunta "mis propiedades", "lo que tengo publicado", etc): respondé con {"action":"mis_propiedades"}
-- Información general del mercado inmobiliario costarricense (zonas en crecimiento, precios promedio por m², tendencias) — respondé con datos generales basados en tu conocimiento del mercado CR.
 - Capacitación: si pregunta cómo mejorar sus ventas, usar la plataforma, o "capacitarme", mencioná la Academia NIDO en nido-cr.com/academia con cursos y certificaciones.
 - Dudas sobre comisiones, KYC, contratos o el funcionamiento de NIDO.
+${esAsesorBlack ? `- Es plan Black: si pregunta por precio de mercado, precio por metro cuadrado, o valor de una zona (ej: "cuánto está el metro cuadrado en Escazú"), respondé con {"action":"precio_zona","zona":"zona mencionada"} — tenés datos reales de las propiedades activas en NIDO para esa zona.` : `- NO es plan Black: si pregunta por precio de mercado o precio por metro cuadrado de una zona, respondé en texto que esa función (datos de mercado en tiempo real por WhatsApp) es exclusiva del plan Black, y que puede hacer upgrade en nido-cr.com/precios.`}
+` : ''}
+${userType === 'comprador' ? `
+Es un COMPRADOR. Si en algún momento de la conversación muestra intención concreta (quiere que lo contacten, quiere agendar visita, elige una propiedad específica de las que le mostraste, pide condiciones/negociación, o pide hablar con un asesor), respondé con el JSON: {"action":"conectar_asesor","zona":"zona de interés o null","tipo":"tipo de propiedad o null","nombre":"nombre si lo mencionó o null","propiedad_id":"id de la propiedad si eligió una de las que le mostraste antes, o null"} — esto te permite conectarlo con el asesor a cargo. Usá el historial de la conversación para saber a qué propiedad se refiere.
 ` : ''}
 Ayudás con: consultas sobre propiedades, proceso de compra/venta, información sobre NIDO, agendar visitas.
 Siempre terminá con una pregunta o siguiente paso concreto.
-Si el usuario pregunta por propiedades (que NO sean las suyas si es asesor), DEBES responder con el JSON especial: {"action":"buscar_propiedades","zona":"zona mencionada o null","tipo":"casa/apartamento/lote/local o null","precio_max":numero_o_null}
-Si el usuario quiere agendar una visita: {"action":"agendar_visita","propiedad":"nombre si mencionó alguna"}
+Si el usuario pregunta por propiedades (que NO sean las suyas si es asesor) sin mostrar intención concreta todavía, DEBES responder con el JSON especial: {"action":"buscar_propiedades","zona":"zona mencionada o null","tipo":"casa/apartamento/lote/local o null","precio_max":numero_o_null}
 Para cualquier otra consulta, responde normalmente en texto.`
 
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
@@ -96,7 +117,7 @@ Para cualquier otra consulta, responde normalmente en texto.`
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 300,
         system: sistemaPrompt,
-        messages: [{ role: 'user', content: text }]
+        messages: [...historialMensajes, { role: 'user', content: text }]
       })
     })
 
@@ -125,8 +146,54 @@ Para cualquier otra consulta, responde normalmente en texto.`
           } else {
             finalReply = '🔍 No encontré propiedades con esos criterios en este momento.\n\nPodés ver todas las opciones disponibles en:\n🌐 www.nido-cr.com/propiedades\n\n¿Querés que amplíe la búsqueda?'
           }
-        } else if (action.action === 'agendar_visita') {
-          finalReply = '📅 Para agendar una visita, ingresá a la ficha de la propiedad en:\n🌐 www.nido-cr.com/propiedades\n\nO decime tu nombre y teléfono y un asesor NIDO te contactará para coordinarla. 🏠'
+        } else if (action.action === 'precio_zona' && esAsesorBlack) {
+          const { data: comps } = await supabaseAdmin.from('propiedades').select('precio, metros').eq('disponible', true).eq('verificacion_estado', 'aprobada').ilike('zona', '%' + (action.zona || '') + '%').gt('metros', 0)
+
+          const validos = (comps || []).filter(p => p.precio && p.metros)
+          if (validos.length > 0) {
+            const promedios = validos.map(p => Number(p.precio) / Number(p.metros))
+            const promedioM2 = promedios.reduce((a, b) => a + b, 0) / promedios.length
+            finalReply = `📊 *Precio por m² en ${action.zona}*\n\n💰 Promedio: $${Math.round(promedioM2).toLocaleString()}/m²\n📋 Basado en ${validos.length} propiedad${validos.length === 1 ? '' : 'es'} activa${validos.length === 1 ? '' : 's'} en NIDO en esa zona.\n\n¿Necesitás el detalle de alguna propiedad puntual?`
+          } else {
+            finalReply = `📊 No tengo suficientes propiedades activas con metraje registrado en ${action.zona || 'esa zona'} para calcular un promedio confiable ahora mismo.\n\n¿Querés que revise una zona cercana?`
+          }
+        } else if (action.action === 'conectar_asesor') {
+          let asesorEmailDestino: string | null = null
+          let propTitulo: string | null = null
+
+          if (action.propiedad_id) {
+            const { data: prop } = await supabaseAdmin.from('propiedades').select('titulo, asesor_email').eq('id', action.propiedad_id).maybeSingle()
+            if (prop) { asesorEmailDestino = prop.asesor_email; propTitulo = prop.titulo }
+          }
+
+          const { data: leadInsertado } = await supabaseAdmin.from('leads').insert({
+            nombre: userName || action.nombre || 'Comprador WhatsApp',
+            telefono: from,
+            mensaje: text,
+            zona_interes: action.zona || null,
+            tipo_busqueda: action.tipo || 'compra',
+            fuente: 'whatsapp_ia',
+            estado: 'nuevo',
+            asesor_email: asesorEmailDestino,
+            propiedad_id: action.propiedad_id || null,
+          }).select('asesor_email').single()
+
+          const asesorFinal = leadInsertado?.asesor_email || asesorEmailDestino
+
+          if (asesorFinal) {
+            const { data: asesorContacto } = await supabaseAdmin.from('perfiles').select('nombre, telefono').eq('correo', asesorFinal).maybeSingle()
+            notificarAsesorBlack(supabaseAdmin, asesorFinal, 'nuevo_lead', {
+              nombre: userName || action.nombre || 'Comprador WhatsApp',
+              telefono: from,
+              zona_interes: action.zona,
+              mensaje: text,
+              propiedad_titulo: propTitulo || undefined,
+            }).catch(() => {})
+
+            finalReply = `🤝 ¡Perfecto! Te conecté con *${asesorContacto?.nombre || 'un asesor NIDO'}*${propTitulo ? ' para ' + propTitulo : ''}. Te va a escribir por acá pronto.${asesorContacto?.telefono ? `\n\nSi preferís escribirle directo: wa.me/${asesorContacto.telefono.replace(/[^0-9]/g, '')}` : ''}\n\n¿Necesitás algo más mientras tanto?`
+          } else {
+            finalReply = `🤝 ¡Perfecto! Ya dejé registrado tu interés y un asesor NIDO te va a contactar pronto por este mismo WhatsApp.\n\n¿Necesitás algo más mientras tanto?`
+          }
         } else if (action.action === 'mis_propiedades' && asesor?.correo) {
           const { data: misProps } = await supabaseAdmin.from('propiedades').select('id, titulo, zona, precio, disponible, verificacion_estado').eq('asesor_email', asesor.correo).order('created_at', { ascending: false }).limit(8)
 

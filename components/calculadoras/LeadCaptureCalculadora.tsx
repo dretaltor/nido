@@ -29,7 +29,7 @@ export function LeadCaptureCalculadora({ fuente, tipoBusqueda, presupuesto, mens
     }
     setEnviando(true)
     setError('')
-    const { error: err } = await supabase.from('leads').insert({
+    const { data: leadInsertado, error: err } = await supabase.from('leads').insert({
       nombre: form.nombre,
       email: form.email,
       telefono: form.telefono || null,
@@ -39,11 +39,21 @@ export function LeadCaptureCalculadora({ fuente, tipoBusqueda, presupuesto, mens
       estado: 'nuevo',
       fuente,
       asesor_email: asesorEmail || null,
-    })
+    }).select('asesor_email').single()
     if (err) {
       setError('No pudimos guardar tu resultado. Intentá de nuevo.')
       setEnviando(false)
       return
+    }
+    // asesor_email puede haber sido asignado automaticamente por el sistema de leads premium
+    // (round-robin entre asesores Black) aunque no viniera preseteado por un ?ref=
+    const asesorNotificar = leadInsertado?.asesor_email
+    if (asesorNotificar) {
+      fetch('/api/whatsapp-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ correo: asesorNotificar, tipo: 'nuevo_lead', data: { nombre: form.nombre, telefono: form.telefono, email: form.email, mensaje } })
+      }).catch(() => {})
     }
     // Además del lead, guardamos una alerta de búsqueda para que le avisemos
     // automáticamente si se publica una propiedad dentro de este presupuesto.
