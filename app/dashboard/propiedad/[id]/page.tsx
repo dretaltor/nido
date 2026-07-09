@@ -162,9 +162,10 @@ export default function EditarPropiedad() {
       .inp:focus{border-color:oklch(0.42 0.06 150)}
       .lbl{font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:oklch(0.55 0.005 80);margin-bottom:6px;display:block}
       .sec{background:white;border:1px solid oklch(0.88 0.006 80);border-radius:14px;padding:24px 28px;margin-bottom:16px}
+      @media(max-width:768px){.sec{padding:18px 16px}.editp-pad{padding:24px 16px 100px!important}.fotos-grid{grid-template-columns:repeat(3,1fr)!important}.grid-3{grid-template-columns:1fr!important}.grid-2{grid-template-columns:1fr!important}.grid-4{grid-template-columns:1fr 1fr!important}}
       `}</style>
 
-      <div style={{ maxWidth:760, margin:'0 auto', padding:'40px 24px 100px' }}>
+      <div className="editp-pad" style={{ maxWidth:760, margin:'0 auto', padding:'40px 24px 100px' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:28 }}>
           <a href="/dashboard" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:22, color:'inherit', textDecoration:'none' }}>← NIDO<span style={{ color:'oklch(0.42 0.06 150)' }}>.</span></a>
           <a href={'/propiedades/'+id} target="_blank" style={{ fontSize:13, color:'oklch(0.42 0.06 150)' }}>Ver ficha pública →</a>
@@ -177,7 +178,7 @@ export default function EditarPropiedad() {
         <div className="sec">
           <label className="lbl">Fotos ({(p.fotos||[]).length})</label>
           <p style={{ fontSize:12, color:'oklch(0.55 0.005 80)', marginBottom:10 }}>La primera foto es la portada. Arrastrá para reordenar. Máx. 15 fotos · {(p.fotos||[]).length}/15</p>
-          <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:14 }}>
+          <div className="fotos-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:10, marginBottom:14 }}>
             {(p.fotos||[]).map((url: string, i: number) => (
               <div
                 key={url}
@@ -226,7 +227,7 @@ export default function EditarPropiedad() {
         {/* UBICACION */}
         <div className="sec">
           <label className="lbl">Ubicación</label>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:14 }}>
+          <div className="grid-3" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:10, marginBottom:14 }}>
             <select className="inp" value={p.provincia||''} onChange={e => patch({provincia:e.target.value, zona:'', distrito:''})}>
               <option value="">Provincia</option>
               {COSTA_RICA.map((pr: Provincia) => <option key={pr.nombre}>{pr.nombre}</option>)}
@@ -248,7 +249,7 @@ export default function EditarPropiedad() {
           <label className="lbl">Detalles</label>
           {esLote ? (
             <>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+              <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
                 <div><label className="lbl">m² del terreno</label><input className="inp" type="number" value={p.metros||''} onChange={e => patch({metros:parseInt(e.target.value)||0})}/></div>
                 <div><label className="lbl">Topografía</label>
                   <select className="inp" value={p.topografia||''} onChange={e => patch({topografia:e.target.value})}>
@@ -260,7 +261,7 @@ export default function EditarPropiedad() {
                   </select>
                 </div>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
+              <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:14 }}>
                 <div><label className="lbl">Uso de suelo</label>
                   <select className="inp" value={p.uso_suelo||''} onChange={e => patch({uso_suelo:e.target.value})}>
                     <option value="">Seleccionar</option>
@@ -283,7 +284,7 @@ export default function EditarPropiedad() {
               )}
             </>
           ) : (
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:12 }}>
+            <div className="grid-4" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr 1fr', gap:12 }}>
               <div><label className="lbl">Habitaciones</label><input className="inp" type="number" value={p.habitaciones||''} onChange={e => patch({habitaciones:parseInt(e.target.value)||0})}/></div>
               <div><label className="lbl">Baños</label><input className="inp" type="number" step="0.5" value={p.banos||''} onChange={e => patch({banos:parseFloat(e.target.value)||0})}/></div>
               <div><label className="lbl">Parqueos</label><input className="inp" type="number" value={p.estacionamientos||''} onChange={e => patch({estacionamientos:parseInt(e.target.value)||0})}/></div>

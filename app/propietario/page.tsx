@@ -40,6 +40,7 @@ export default function Propietario() {
 
   return (
     <main style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+      <style>{`@media(max-width:600px){.prop-stats-grid{grid-template-columns:1fr!important}}`}</style>
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
         <Link href="/" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#15803d', textDecoration: 'none' }}>NIDO</Link>
         <p style={{ color: '#6b7280', margin: 0, fontSize: '0.9rem' }}>Portal del Propietario</p>
@@ -80,7 +81,7 @@ export default function Propietario() {
           <div>
             <button onClick={() => setSeleccionada(null)} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: '0.9rem', marginBottom: '1rem', padding: 0 }}>← Volver</button>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#14532d', margin: '0 0 1rem' }}>{seleccionada.titulo}</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+            <div className="prop-stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
               {[
                 { icon: '👁️', label: 'Visitas totales', value: visitas },
                 { icon: '💬', label: 'Consultas', value: consultas },

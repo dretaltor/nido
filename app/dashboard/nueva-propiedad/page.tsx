@@ -312,7 +312,7 @@ export default function NuevaPropiedad() {
         <p className="wiz-sub">La ubicación es el factor #1 para los compradores.</p>
         <div className="field-group">
           <label className="field-label">Provincia y cantón</label>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
+          <div className="wiz-grid-3" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:12}}>
             <select className="wiz-input" value={data.provincia} onChange={e => patch({provincia:e.target.value, canton:'', distrito:''})}>
               <option value="">Provincia</option>
               {COSTA_RICA.map(p => <option key={p.nombre}>{p.nombre}</option>)}
@@ -363,7 +363,7 @@ export default function NuevaPropiedad() {
         )}
         <div className="field-group">
           <label className="field-label">Áreas</label>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <div className="wiz-grid-2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
             <div><div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:6}}>{data.kind==='lote'?'m² del terreno':'m² construidos'}</div><input className="wiz-input" type="number" placeholder={data.kind==='lote'?'500':'240'} value={data.area||''} onChange={e => patch({area:parseInt(e.target.value)||0})}/></div>
             {data.kind !== 'lote' && (
               <div><div style={{fontSize:10,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:6}}>m² lote</div><input className="wiz-input" type="number" placeholder="420" value={data.lot||''} onChange={e => patch({lot:parseInt(e.target.value)||0})}/></div>
@@ -558,7 +558,7 @@ export default function NuevaPropiedad() {
           <label className="field-label">Número de plano catastrado</label>
           <input className="wiz-input" placeholder="Ej. SJ-12345-2020" value={data.numero_plano} onChange={e => setData(p => ({...p, numero_plano:e.target.value}))}/>
         </div>
-        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
+        <div className="wiz-grid-2" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:16}}>
           <div className="field-group">
             <label className="field-label">Naturaleza</label>
             <input className="wiz-input" placeholder="Ej. Finca filial, Finca madre..." value={data.naturaleza} onChange={e => setData(p => ({...p, naturaleza:e.target.value}))}/>
@@ -749,5 +749,5 @@ const CSS = `
   .wiz-input:focus{border-color:var(--ink)}
   .wiz-textarea{width:100%;min-height:140px;padding:12px 14px;border:1px solid var(--rule);border-radius:8px;font-size:15px;color:var(--ink);background:var(--bg-card);outline:none;resize:vertical;line-height:1.6;font-family:'DM Sans',sans-serif}
   .wiz-textarea:focus{border-color:var(--ink)}
-  @media(max-width:900px){.wizard-grid{grid-template-columns:1fr!important;padding:20px 16px 80px!important}.wizard-stepper{display:none!important}.wizard-preview{display:none!important}}
+  @media(max-width:900px){.wizard-grid{grid-template-columns:1fr!important;padding:20px 16px 80px!important}.wizard-stepper{display:none!important}.wizard-preview{display:none!important}.wiz-grid-3{grid-template-columns:1fr!important}.wiz-grid-2{grid-template-columns:1fr!important}}
 `

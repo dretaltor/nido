@@ -91,18 +91,19 @@ export default function NidoAgent() {
 
   return (
     <main style={{ fontFamily: 'Arial, sans-serif', backgroundColor: '#f9fafb', minHeight: '100vh' }}>
+      <style>{`@media(max-width:768px){.agent-grid{grid-template-columns:1fr!important;gap:1.25rem!important}.agent-pad{padding:1.25rem!important}}`}</style>
       <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '1rem 2rem', backgroundColor: '#ffffff', borderBottom: '1px solid #e5e7eb' }}>
         <Link href="/" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: '#15803d', textDecoration: 'none' }}>NIDO</Link>
         <a href="/dashboard" style={{ color: '#6b7280', textDecoration: 'none', fontSize: '0.9rem' }}>← Dashboard</a>
       </nav>
 
-      <div style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem' }}>
+      <div className="agent-pad" style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem' }}>
         <div style={{ marginBottom: '2rem' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#14532d', margin: '0 0 0.3rem' }}>🤖 NIDO Agent</h2>
           <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: 0 }}>Tu asistente IA que hace el 80% del trabajo por ti</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
+        <div className="agent-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem' }}>
           <div>
             <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 1px 4px rgba(0,0,0,0.06)', marginBottom: '1rem' }}>
               <p style={{ fontWeight: 'bold', color: '#374151', margin: '0 0 1rem', fontSize: '0.95rem' }}>1. Selecciona una acción</p>

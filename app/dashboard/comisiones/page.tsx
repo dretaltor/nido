@@ -28,7 +28,7 @@ const CSS = `
   .btn-outline{background:transparent;border:1px solid var(--rule);color:var(--ink-2)}
   .drawer{position:fixed;top:0;right:0;bottom:0;width:440px;background:white;border-left:1px solid var(--rule);z-index:100;overflow-y:auto;box-shadow:-8px 0 32px rgba(0,0,0,0.08)}
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:99}
-  @media(max-width:768px){.drawer{width:100%}.stats-grid{grid-template-columns:1fr 1fr!important}}
+  @media(max-width:768px){.drawer{width:100%}.stats-grid{grid-template-columns:1fr 1fr!important}.com-grid-2{grid-template-columns:1fr!important}}
 `
 
 const ESTADOS: Record<string, {bg:string, color:string, label:string}> = {
@@ -377,7 +377,7 @@ export default function Comisiones() {
                 <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Propiedad <span style={{ color:'var(--accent)' }}>*</span></label>
                 <input className="field" placeholder="Ej. Casa en Escazú 3hab" value={form.propiedad_titulo} onChange={e => setF('propiedad_titulo', e.target.value)}/>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+              <div className="com-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                 <div>
                   <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Ref NIDO</label>
                   <input className="field" placeholder="NIDO-0001" value={form.propiedad_ref} onChange={e => setF('propiedad_ref', e.target.value)}/>
@@ -387,7 +387,7 @@ export default function Comisiones() {
                   <input className="field" placeholder="Escazú" value={form.propiedad_zona} onChange={e => setF('propiedad_zona', e.target.value)}/>
                 </div>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:12 }}>
+              <div className="com-grid-2" style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:12 }}>
                 <div>
                   <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Precio de venta (USD) <span style={{ color:'var(--accent)' }}>*</span></label>
                   <input className="field" placeholder="350000" value={form.precio_venta} onChange={e => setF('precio_venta', e.target.value)}/>
@@ -416,7 +416,7 @@ export default function Comisiones() {
                 </label>
                 {form.tieneColaborador && (
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                    <div className="com-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                       <div>
                         <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Nombre del colaborador <span style={{ color:'var(--accent)' }}>*</span></label>
                         <input className="field" placeholder="Nombre y apellido" value={form.colaborador_nombre} onChange={e => setF('colaborador_nombre', e.target.value)}/>

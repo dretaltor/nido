@@ -23,6 +23,7 @@ const CSS = `
   .section-card{background:white;border:1px solid var(--rule);border-radius:12px;padding:28px 32px;margin-bottom:20px}
   .tab{padding:8px 18px;border-radius:999px;border:1px solid var(--rule);font-size:13px;cursor:pointer;transition:all 0.15s;background:transparent;color:var(--ink-2)}
   .tab.active{background:var(--ink);color:white;border-color:var(--ink)}
+  @media(max-width:768px){.section-card{padding:20px}.grid-2{grid-template-columns:1fr!important}.top-nav-pad{padding:14px 16px!important;flex-wrap:wrap!important;gap:10px!important}.tabs-row{order:3;width:100%}}
 `
 
 export default function PerfilPropietario() {
@@ -115,9 +116,9 @@ export default function PerfilPropietario() {
       <style>{CSS}</style>
 
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 32px', maxWidth:900, margin:'0 auto' }}>
+        <div className="top-nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 32px', maxWidth:900, margin:'0 auto' }}>
           <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
-          <div style={{ display:'flex', gap:8 }}>
+          <div className="tabs-row" style={{ display:'flex', gap:8 }}>
             <button className={'tab'+(tab==='perfil'?' active':'')} onClick={() => setTab('perfil')}>Mi perfil</button>
             <button className={'tab'+(tab==='seguridad'?' active':'')} onClick={() => setTab('seguridad')}>Seguridad</button>
             <button className={'tab'+(tab==='verificacion'?' active':'')} onClick={() => setTab('verificacion')}>
@@ -173,7 +174,7 @@ export default function PerfilPropietario() {
               </div>
             </div>
 
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+            <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
               {[
                 { label:'Nombre completo', key:'nombre', placeholder:'María Rodríguez', required:true },
                 { label:'Correo electrónico', key:'correo', placeholder:'tu@correo.com', disabled:true },
@@ -209,7 +210,7 @@ export default function PerfilPropietario() {
             <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:20 }}>Seguridad</div>
             <h3 style={{ fontFamily:'var(--serif)', fontSize:20, fontWeight:400, marginBottom:4 }}>Cambiar contraseña</h3>
             <p style={{ fontSize:13, color:'var(--ink-3)', marginBottom:20, lineHeight:1.6 }}>Usá una contraseña de al menos 6 caracteres que no uses en otros sitios.</p>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+            <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
               <div>
                 <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Nueva contraseña</label>
                 <input className="field-input" type="password" placeholder="Mínimo 6 caracteres" value={pass.nueva} onChange={e => setPass(p => ({...p, nueva:e.target.value}))}/>

@@ -175,6 +175,7 @@ function Contrato() {
     .option-card:hover{border-color:var(--accent)}
     .option-card.selected{border-color:var(--accent);background:var(--accent-tint)}
     canvas{border:1px solid var(--rule);border-radius:8px;cursor:crosshair;touch-action:none}
+    @media(max-width:768px){.card{padding:20px}.grid-2{grid-template-columns:1fr!important}}
   `
 
   if (loading) return <div style={{ padding:40, fontFamily:'sans-serif', color:'#999' }}>Cargando...</div>
@@ -402,7 +403,7 @@ function Contrato() {
             <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>Firmá el contrato</h2>
             <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, marginBottom:24 }}>Elegí cómo querés firmar. Ambas opciones tienen la misma validez legal.</p>
 
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:24 }}>
+            <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:24 }}>
               <div className={'option-card'+(firmaTipo==='digital'?' selected':'')} onClick={() => setFirmaTipo('digital')} style={{ textAlign:'center' }}>
                 <div style={{ fontSize:32, marginBottom:8 }}>🔐</div>
                 <div style={{ fontSize:15, fontWeight:500, marginBottom:4 }}>Firma digital GAUDI</div>

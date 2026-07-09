@@ -26,6 +26,7 @@ const CSS = `
   .nav-link{font-size:13px;color:var(--ink-3);transition:color 0.15s}
   .nav-link:hover{color:var(--ink)}
   .nav-link.active{color:var(--accent);font-weight:500}
+  @media(max-width:768px){.owner-nav{flex-wrap:wrap!important;padding:12px 16px!important}.owner-tabs{order:3;width:100%;margin-top:6px!important}.page-pad{padding:24px 16px 80px!important}.grid-2{grid-template-columns:1fr!important}.grid-3{grid-template-columns:1fr!important}.grid-4{grid-template-columns:1fr 1fr!important}}
 `
 
 // Mock data — en producción viene de Supabase
@@ -205,21 +206,21 @@ export default function DashboardPropietario() {
 
       {/* Nav */}
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 32px', maxWidth:1400, margin:'0 auto' }}>
-          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
-          <div style={{ display:'flex', gap:6, overflowX:'auto' }}>
+        <div className="owner-nav" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 32px', maxWidth:1400, margin:'0 auto', gap:12 }}>
+          <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)', flexShrink:0 }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
+          <div className="owner-tabs" style={{ display:'flex', gap:6, overflowX:'auto' }}>
             {TABS.map(t => (
-              <button key={t.id} className={'tab'+(tab===t.id?' active':'')} onClick={() => setTab(t.id)}>{t.label}</button>
+              <button key={t.id} className={'tab'+(tab===t.id?' active':'')} onClick={() => setTab(t.id)} style={{ flexShrink:0 }}>{t.label}</button>
             ))}
           </div>
-          <a href="/dashboard/propietario/perfil" style={{ fontSize:13, color:'var(--ink-3)', border:'1px solid var(--rule)', padding:'6px 14px', borderRadius:999 }}>Mi perfil</a>
-          <button onClick={() => supabase.auth.signOut().then(() => router.push('/bienvenida'))} style={{ fontSize:12, color:'var(--ink-3)', background:'none', border:'1px solid var(--rule)', padding:'6px 14px', borderRadius:999, cursor:'pointer' }}>
+          <a href="/dashboard/propietario/perfil" style={{ fontSize:13, color:'var(--ink-3)', border:'1px solid var(--rule)', padding:'6px 14px', borderRadius:999, flexShrink:0 }}>Mi perfil</a>
+          <button onClick={() => supabase.auth.signOut().then(() => router.push('/bienvenida'))} style={{ fontSize:12, color:'var(--ink-3)', background:'none', border:'1px solid var(--rule)', padding:'6px 14px', borderRadius:999, cursor:'pointer', flexShrink:0 }}>
             Cerrar sesión
           </button>
         </div>
       </nav>
 
-      <div style={{ maxWidth:1400, margin:'0 auto', padding:'32px 32px 80px' }}>
+      <div className="page-pad" style={{ maxWidth:1400, margin:'0 auto', padding:'32px 32px 80px' }}>
 
         {/* Header */}
         <div style={{ marginBottom:28 }}>
@@ -233,7 +234,7 @@ export default function DashboardPropietario() {
         {/* RESUMEN */}
         {tab === 'resumen' && (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
+            <div className="grid-4" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:24 }}>
               {[
                 { label:'Propiedades activas', val:'2', sub:'En el mercado', color:'var(--accent)' },
                 { label:'Leads este mes', val:'3', sub:'Sin atender: 1', color:'oklch(0.52 0.08 230)' },
@@ -249,7 +250,7 @@ export default function DashboardPropietario() {
             </div>
 
             {/* Resumen propiedades */}
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+            <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
               {propiedadesReales.map(p => {
                 const foto = (p.fotos as string[] | null)?.[0] || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=60'
                 const leadsDeEsta = leadsReales.filter((l) => l.propiedad_id === p.id).length
@@ -315,7 +316,7 @@ export default function DashboardPropietario() {
                 Aún no tenés propiedades registradas en NIDO.
               </div>
             ) : (
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:16 }}>
+            <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:16 }}>
               {propiedadesReales.map((p) => {
                 const foto = (p.fotos as string[] | null)?.[0] || 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&q=60'
                 const leadsDeEsta = leadsReales.filter((l) => l.propiedad_id === p.id)
@@ -332,7 +333,7 @@ export default function DashboardPropietario() {
                       <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>{p.disponible ? 'Activa' : 'Inactiva'}</span>
                     </div>
                     <div style={{ fontFamily:'var(--mono)', fontSize:18, color:'var(--accent)', marginBottom:16 }}>${Number(p.precio||0).toLocaleString()} USD</div>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
+                    <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
                       {[
                         {l:'Consultas',v:leadsDeEsta.length},
                         {l:'Ofertas recibidas',v:ofertasDeEsta.length},
@@ -493,7 +494,7 @@ export default function DashboardPropietario() {
 
                   {/* Detalle financiero */}
                   <div style={{ padding:'16px 20px', borderBottom:'1px solid var(--rule-soft)' }}>
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16, marginBottom:o.condiciones?16:0 }}>
+                    <div className="grid-3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:16, marginBottom:o.condiciones?16:0 }}>
                       <div style={{ background:'var(--bg)', borderRadius:8, padding:'12px' }}>
                         <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Monto ofertado</div>
                         <div style={{ fontFamily:'var(--mono)', fontSize:20, color:'var(--accent)', fontWeight:500 }}>${Number(o.valor_oferta||0).toLocaleString()}</div>
@@ -579,7 +580,7 @@ export default function DashboardPropietario() {
             <p style={{ fontSize:12, color:'var(--ink-3)', marginBottom:20 }}>
               {loadingComparables ? 'Calculando comparables...' : comps.length > 0 ? `Basado en ${comps.length} propiedad${comps.length===1?'':'es'} activa${comps.length===1?'':'s'} en ${propia.zona}` : `Todavía no hay suficientes propiedades comparables publicadas en ${propia.zona}`}
             </p>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20 }}>
+            <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20 }}>
               <div className="card card-pad">
                 <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Tu propiedad</div>
                 <div style={{ fontFamily:'var(--serif)', fontSize:48, color:'var(--accent)', marginBottom:4 }}>${(propia.precio||0).toLocaleString()}</div>
@@ -591,7 +592,7 @@ export default function DashboardPropietario() {
                 <div style={{ fontSize:13, color:'var(--ink-3)' }}>Propiedades similares en {propia.zona || 'tu zona'}</div>
               </div>
             </div>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:20 }}>
+            <div className="grid-4" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:16, marginBottom:20 }}>
               {[
                 { label:'Precio por m²', val: precioM2Propia ? '$'+precioM2Propia.toLocaleString()+' USD' : '—', sub: precioM2Zona ? 'Zona: $'+precioM2Zona.toLocaleString() : 'Sin datos de m² en la zona' },
                 { label:'Diferencia vs. zona', val: diffPct !== null ? (diffPct>0?'+':'')+diffPct+'%' : '—', sub: diffPct !== null ? (diffPct>0?'Por encima del promedio':'Por debajo del promedio') : 'Sin comparables suficientes' },
@@ -909,7 +910,7 @@ export default function DashboardPropietario() {
                   </div>
                 </div>
 
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
+                <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
                   {[
                     { l:'Tipo de contrato', v: contrato.tipo === 'no_exclusivo' ? 'Sin exclusividad · push de venta' : 'Exclusividad 90 días' },
                     { l:'Estado', v:'Activo ✓' },
@@ -990,7 +991,7 @@ export default function DashboardPropietario() {
                         {contrato.estado === 'activo' ? '✓ Activo' : '⏳ En revisión'}
                       </span>
                     </div>
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:20 }}>
+                    <div className="grid-3" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:20 }}>
                       {[
                         { label:'Comisión acordada', val: (contrato.comision_porcentaje||4)+'% al cerrar' },
                         { label:'Inicio', val: inicio ? inicio.toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'}) : '—' },

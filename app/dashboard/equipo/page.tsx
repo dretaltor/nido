@@ -27,7 +27,7 @@ const CSS = `
   .row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--rule-soft)}
   .row:last-child{border-bottom:none}
   .badge{padding:3px 10px;border-radius:999px;font-size:11px;font-weight:500}
-  @media(max-width:768px){.nav-pad{padding:14px 16px!important}.page-pad{padding:24px 16px!important}.grid2{grid-template-columns:1fr!important}}
+  @media(max-width:768px){.nav-pad{padding:14px 16px!important}.page-pad{padding:24px 16px!important}.grid2{grid-template-columns:1fr!important}.grid3{grid-template-columns:1fr!important}}
 `
 
 const PLAN_INFO: Record<string, { nombre:string, max_agentes:number, max_propiedades:number, precio:string }> = {
@@ -257,7 +257,7 @@ export default function EquipoPage() {
                   agente: a.nombre, correo: a.correo, negocios_cerrados: a.cerradas, cobrado: a.cobrado, pipeline: a.pipeline,
                 })))} disabled={porAgente.length === 0} className="btn btn-outline" style={{ fontSize:12 }}>⬇ Exportar CSV</button>
               </div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:20 }}>
+              <div className="grid3" style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:12, marginBottom:20 }}>
                 {[
                   { l:'Cobrado (equipo)', v:fmt(totalCobrado), c:'var(--accent)' },
                   { l:'Pipeline total', v:fmt(totalPipeline), c:'var(--ink)' },

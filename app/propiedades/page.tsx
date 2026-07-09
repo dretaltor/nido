@@ -133,7 +133,7 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
               </div>
             </div>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)', marginBottom: 28 }}>
+          <div className="drawer-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', borderTop: '1px solid var(--rule)', borderBottom: '1px solid var(--rule)', marginBottom: 28 }}>
             {(p.tipo === 'lote' ? [
               { num: String(p.lote_m2 || p.metros || 0) + ' m²', label: 'Área terreno' },
               { num: ({plano:'Plano',ligera_pendiente:'Ligera pend.',pendiente_pronunciada:'Pendiente',irregular:'Irregular'} as Record<string,string>)[p.topografia||''] || '—', label: 'Topografía' },
@@ -256,6 +256,7 @@ export default function Propiedades() {
           .footer-inner{flex-direction:column!important;gap:8px!important;text-align:center!important;padding:20px 16px!important}
           h1{font-size:clamp(32px,9vw,56px)!important}
           .search-shell{padding:0 16px!important;margin-top:16px!important}
+          .drawer-stats{grid-template-columns:1fr 1fr!important}
         }
       `}</style>
 

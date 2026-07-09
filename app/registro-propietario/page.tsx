@@ -119,6 +119,7 @@ function RegistroPropietarioInner() {
         .submit-btn { width:100%; padding:14px; background:oklch(0.42 0.06 150); border:none; border-radius:999px; color:white; font-size:15px; font-weight:500; cursor:pointer; font-family:'DM Sans',sans-serif; transition:all 0.2s; }
         .submit-btn:hover:not(:disabled) { background:oklch(0.5 0.07 150); transform:translateY(-1px); }
         .submit-btn:disabled { opacity:0.5; cursor:not-allowed; }
+        @media(max-width:640px){.reg-grid-2{grid-template-columns:1fr!important}.reg-form{padding:1.4rem!important}}
       `}</style>
 
       {/* Fondo */}
@@ -153,9 +154,9 @@ function RegistroPropietarioInner() {
           </div>
 
           {/* Formulario */}
-          <div style={{ background:'rgba(6,13,8,0.8)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20, padding:'2rem', backdropFilter:'blur(24px)' }}>
+          <div className="reg-form" style={{ background:'rgba(6,13,8,0.8)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:20, padding:'2rem', backdropFilter:'blur(24px)' }}>
 
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
+            <div className="reg-grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:12 }}>
               <div>
                 <label style={{ fontSize:'10px', letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.35)', display:'block', marginBottom:8 }}>Nombre completo</label>
                 <input className="field-input" placeholder="María Rodríguez" value={form.nombre} onChange={e => set('nombre', e.target.value)}/>

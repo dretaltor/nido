@@ -46,7 +46,7 @@ const CSS = `
   @keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
   .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:99;animation:fadeIn 0.2s ease}
   @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-  @media(max-width:768px){.drawer{width:100%!important}.nav-pad{padding:14px 16px!important}.page-pad{padding:24px 16px!important}}
+  @media(max-width:768px){.drawer{width:100%!important}.nav-pad{padding:14px 16px!important}.page-pad{padding:24px 16px!important}.crm-stats{grid-template-columns:repeat(3,1fr)!important}.crm-ia-grid{grid-template-columns:1fr!important}}
 `
 
 export default function CRM() {
@@ -225,7 +225,7 @@ export default function CRM() {
         </div>
 
         {/* Stats rápidas */}
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:8, marginBottom:24 }}>
+        <div className="crm-stats" style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:8, marginBottom:24 }}>
           {ESTADOS.slice(1).map(e => (
             <div key={e} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:10, padding:'12px', textAlign:'center', cursor:'pointer', borderColor:filtro===e?'var(--accent)':'var(--rule)' }} onClick={() => setFiltro(filtro===e?'todos':e)}>
               <div style={{ fontFamily:'var(--serif)', fontSize:22, color:filtro===e?'var(--accent)':'var(--ink)' }}>{counts[e]||0}</div>
@@ -366,7 +366,7 @@ export default function CRM() {
               {/* ACCIONES IA */}
               <div style={{ marginTop:20 }}>
                 <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Acciones con IA</div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
+                <div className="crm-ia-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
                   {[
                     { id:'seguimiento', label:'💬 Seguimiento', desc:'Retomar contacto' },
                     { id:'propuesta', label:'🏠 Propuesta', desc:'Ofrecer propiedad' },
@@ -448,7 +448,7 @@ export default function CRM() {
 
               <div style={{ marginTop:20 }}>
                 <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Acciones con IA</div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
+                <div className="crm-ia-grid" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginBottom:12 }}>
                   <button onClick={() => generarMensajeVO('confirmar')} disabled={voLoading} style={{ padding:'10px 8px', borderRadius:10, border:'1px solid var(--rule)', background:'white', cursor:'pointer', textAlign:'left', opacity:voLoading?0.5:1 }}>
                     <div style={{ fontSize:12, fontWeight:500 }}>{selVO._tipo === 'visita' ? '✅ Confirmar' : '🤝 Responder'}</div>
                     <div style={{ fontSize:10, color:'var(--ink-3)' }}>{selVO._tipo === 'visita' ? 'Confirmar la cita' : 'Agradecer la oferta'}</div>
