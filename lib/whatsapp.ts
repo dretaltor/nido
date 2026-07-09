@@ -1,9 +1,48 @@
+import { createClient } from '@supabase/supabase-js'
+
 const PHONE_ID = process.env.WHATSAPP_PHONE_ID || '1156099824249418'
 const WA_TOKEN = process.env.WHATSAPP_TOKEN
+
+// Cliente propio (no depende de que quien llame ya tenga uno a mano) — solo se usa
+// para consultar/gestionar la lista de opt-out de mensajes proactivos de WhatsApp.
+function supabaseInterno() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+}
 
 function normalizarTelefono(to: string): string {
   const phone = to.replace(/[^0-9]/g, '')
   return phone.startsWith('506') ? phone : '506' + phone
+}
+
+// Consentimiento: cualquier mensaje que NIDO inicia (recordatorios, notificaciones Black,
+// briefing diario) es "proactivo" y debe respetar el opt-out. Los mensajes reactivos
+// (respuesta directa de Valeria cuando el usuario le escribe) NO pasan por esta funcion —
+// esos usan su propio envio en app/api/whatsapp/route.ts y siempre se permiten.
+export async function estaEnOptOut(telefono: string): Promise<boolean> {
+  try {
+    const { data } = await supabaseInterno()
+      .from('whatsapp_optout')
+      .select('id')
+      .eq('telefono', normalizarTelefono(telefono))
+      .is('reactivado_at', null)
+      .maybeSingle()
+    return !!data
+  } catch {
+    return false // si falla la consulta, no bloqueamos el envio por un error tecnico
+  }
+}
+
+export async function registrarOptOut(telefono: string, motivo?: string): Promise<void> {
+  const tel = normalizarTelefono(telefono)
+  await supabaseInterno().from('whatsapp_optout').upsert(
+    { telefono: tel, motivo: motivo || 'Solicitado por el usuario via WhatsApp', reactivado_at: null, created_at: new Date().toISOString() },
+    { onConflict: 'telefono' }
+  )
+}
+
+export async function quitarOptOut(telefono: string): Promise<void> {
+  const tel = normalizarTelefono(telefono)
+  await supabaseInterno().from('whatsapp_optout').update({ reactivado_at: new Date().toISOString() }).eq('telefono', tel)
 }
 
 async function postWhatsApp(payload: Record<string, unknown>): Promise<{ ok: boolean; error?: string; errorCode?: number }> {
@@ -30,6 +69,7 @@ async function postWhatsApp(payload: Record<string, unknown>): Promise<{ ok: boo
 }
 
 export async function sendWhatsApp(to: string, message: string): Promise<boolean> {
+  if (await estaEnOptOut(to)) return false
   const r = await postWhatsApp({ messaging_product: 'whatsapp', to: normalizarTelefono(to), type: 'text', text: { body: message } })
   return r.ok
 }
@@ -50,6 +90,7 @@ export async function sendWhatsAppSmart(
   parametros: string[] = []
 ): Promise<{ ok: boolean; via: 'texto' | 'plantilla' | 'ninguno'; error?: string }> {
   const telefono = normalizarTelefono(to)
+  if (await estaEnOptOut(telefono)) return { ok: false, via: 'ninguno', error: 'Usuario dado de baja de mensajes proactivos' }
   const resultadoTexto = await postWhatsApp({ messaging_product: 'whatsapp', to: telefono, type: 'text', text: { body: mensajeLibre } })
   if (resultadoTexto.ok) return { ok: true, via: 'texto' }
 
