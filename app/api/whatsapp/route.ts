@@ -142,9 +142,9 @@ Para cualquier otra consulta, responde normalmente en texto.`
       }
     } catch {}
 
-    await sendWA(from, finalReply)
+    const envioResultado = await sendWA(from, finalReply)
 
-    // Log message
+    // Log message (incluye si el envio real a Meta funciono o no, para poder diagnosticar sin acceso a los logs de Vercel)
     try {
       await supabaseAdmin.from('whatsapp_logs').insert({
         from_number: from,
@@ -152,6 +152,8 @@ Para cualquier otra consulta, responde normalmente en texto.`
         reply,
         user_type: userType,
         user_name: userName,
+        wa_send_ok: envioResultado.ok,
+        wa_send_error: envioResultado.error || null,
       })
     } catch (_) {}
 
@@ -162,8 +164,12 @@ Para cualquier otra consulta, responde normalmente en texto.`
   return NextResponse.json({ ok: true })
 }
 
-async function sendWA(to: string, message: string) {
-  if (!WA_TOKEN) { console.error('WHATSAPP_TOKEN no configurado en Vercel'); return }
+async function sendWA(to: string, message: string): Promise<{ ok: boolean; error?: string }> {
+  if (!WA_TOKEN) {
+    const msg = 'WHATSAPP_TOKEN no configurado en Vercel'
+    console.error(msg)
+    return { ok: false, error: msg }
+  }
   try {
     const res = await fetch(`https://graph.facebook.com/v18.0/${PHONE_ID}/messages`, {
       method: 'POST',
@@ -181,8 +187,12 @@ async function sendWA(to: string, message: string) {
     if (!res.ok) {
       const errBody = await res.text()
       console.error('WhatsApp send error:', res.status, errBody)
+      return { ok: false, error: `HTTP ${res.status}: ${errBody.slice(0, 500)}` }
     }
+    return { ok: true }
   } catch (e) {
-    console.error('WhatsApp send exception:', e)
+    const msg = e instanceof Error ? e.message : String(e)
+    console.error('WhatsApp send exception:', msg)
+    return { ok: false, error: msg }
   }
 }
