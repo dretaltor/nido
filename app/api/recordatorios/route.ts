@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendWhatsApp } from '../../../lib/whatsapp'
+import { notificarAsesorBlack } from '../../../lib/whatsappNotify'
 import type { Lead } from '../../../lib/database.types'
 
 const supabaseAdmin = createClient(
@@ -28,9 +29,28 @@ export async function GET(req: NextRequest) {
   let enviados = 0
 
   for (const v of (visitas || [])) {
-    const msgAsesor = `🏠 *Recordatorio de visita NIDO*\n\nMañana tenés una visita agendada:\n\nPropiedad: ${v.propiedad_titulo}\nComprador: ${v.comprador_nombre}\nTeléfono: ${v.comprador_telefono}\nHora: ${v.hora}\nTipo: ${v.tipo === 'virtual' ? 'Virtual (videollamada)' : 'Presencial'}\n${v.notas ? 'Notas: ' + v.notas : ''}\n\nRevisá tu dashboard para más detalles.`
+    let msgAsesor = `🏠 *Recordatorio de visita NIDO*\n\nMañana tenés una visita agendada:\n\nPropiedad: ${v.propiedad_titulo}\nComprador: ${v.comprador_nombre}\nTeléfono: ${v.comprador_telefono}\nHora: ${v.hora}\nTipo: ${v.tipo === 'virtual' ? 'Virtual (videollamada)' : 'Presencial'}\n${v.notas ? 'Notas: ' + v.notas : ''}\n\nRevisá tu dashboard para más detalles.`
 
     const msgComprador = `🏠 *Recordatorio de visita NIDO*\n\nTe recordamos tu visita de mañana:\n\nPropiedad: ${v.propiedad_titulo}\nHora: ${v.hora}\nTipo: ${v.tipo === 'virtual' ? 'Virtual — tu asesor te enviará el link' : 'Presencial'}\nAsesor: tu asesor NIDO estará esperándote.\n\n¿Tenés alguna pregunta? Respondé este mensaje.`
+
+    // Preparacion de visitas — beneficio Black: sumamos el contexto del comprador
+    // (que buscaba, presupuesto, zona) para que el asesor llegue con tarea hecha.
+    if (v.asesor_email) {
+      const { data: perfilAsesor } = await supabaseAdmin.from('perfiles').select('plan').eq('correo', v.asesor_email).maybeSingle()
+      if (perfilAsesor?.plan === 'enterprise') {
+        const { data: leadComprador } = await supabaseAdmin
+          .from('leads')
+          .select('mensaje, presupuesto, zona_interes, tipo_busqueda')
+          .or([v.comprador_telefono && 'telefono.eq.' + v.comprador_telefono, v.comprador_email && 'email.eq.' + v.comprador_email].filter(Boolean).join(','))
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        if (leadComprador) {
+          msgAsesor += `\n\n🎯 *Contexto del comprador (plan Black):*${leadComprador.zona_interes ? '\n📍 Interés: ' + leadComprador.zona_interes : ''}${leadComprador.presupuesto ? '\n💰 Presupuesto: ' + leadComprador.presupuesto : ''}${leadComprador.tipo_busqueda ? '\n🏠 Busca: ' + leadComprador.tipo_busqueda : ''}${leadComprador.mensaje ? '\n💬 "' + leadComprador.mensaje.slice(0, 200) + '"' : ''}`
+        }
+      }
+    }
 
     const promises = []
 
@@ -118,6 +138,8 @@ export async function GET(req: NextRequest) {
           })
         } catch {}
       }
+      // Seguimiento proactivo por WhatsApp — silencioso si el asesor no es plan Black
+      notificarAsesorBlack(supabaseAdmin, l.asesor_email, 'lead_sin_seguimiento', { nombre: l.nombre, zona_interes: l.zona_interes || undefined, dias: 2 }).catch(() => {})
     } else {
       sinAsignar.push(l)
     }

@@ -60,7 +60,10 @@ export async function POST(req: NextRequest) {
     const msgType = message.type
 
     if (msgType !== 'text') {
-      await sendWA(from, 'Hola, soy Valeria de NIDO 🏠 Por ahora solo proceso mensajes de texto. ¿En qué puedo ayudarte?')
+      const msg = msgType === 'audio'
+        ? 'Hola, soy Valeria de NIDO 🏠 Todavía no puedo escuchar notas de voz — ¿me lo escribís en texto? Así te respondo al toque.'
+        : 'Hola, soy Valeria de NIDO 🏠 Por ahora solo proceso mensajes de texto. ¿En qué puedo ayudarte?'
+      await sendWA(from, msg)
       return NextResponse.json({ ok: true })
     }
 
@@ -100,10 +103,14 @@ Este es un ASESOR registrado en NIDO (plan ${esAsesorBlack ? 'Black' : asesor?.p
 - Ver SUS propias propiedades publicadas (si pregunta "mis propiedades", "lo que tengo publicado", etc): respondé con {"action":"mis_propiedades"}
 - Capacitación: si pregunta cómo mejorar sus ventas, usar la plataforma, o "capacitarme", mencioná la Academia NIDO en nido-cr.com/academia con cursos y certificaciones.
 - Dudas sobre comisiones, KYC, contratos o el funcionamiento de NIDO.
-${esAsesorBlack ? `- Es plan Black: actuás como su MENTOR experto del mercado inmobiliario costarricense — no solo con datos de NIDO, sino con tu conocimiento general del mercado (como si le respondieras a un colega en un chat). Si pregunta por precios, precio por m², tendencias de una zona, en qué zona conviene invertir, comparación entre zonas, o cualquier duda de mercado/inversión, respondé con {"action":"consulta_mercado","zona":"zona mencionada o null","pregunta":"resumen breve de lo que pregunta"} — el sistema va a combinar tu análisis de mercado con datos reales de NIDO cuando existan para esa zona.` : `- NO es plan Black: si pregunta por precios de mercado, tendencias de zona, o pide asesoría de inversión, respondé en texto que Valeria como mentora de mercado en tiempo real es un beneficio exclusivo del plan Black, y que puede hacer upgrade en nido-cr.com/precios.`}
+${esAsesorBlack ? `- Es plan Black: actuás como su MENTOR experto del mercado inmobiliario costarricense — no solo con datos de NIDO, sino con tu conocimiento general del mercado (como si le respondieras a un colega en un chat). Si pregunta por precios, precio por m², tendencias de una zona, en qué zona conviene invertir, comparación entre zonas, o cualquier duda de mercado/inversión, respondé con {"action":"consulta_mercado","zona":"zona mencionada o null","pregunta":"resumen breve de lo que pregunta"}.
+- Es plan Black: si te pide un CMA (análisis comparativo de mercado) o "cuánto le pongo de precio" a una propiedad específica que te describe (ubicación, tipo, m², habitaciones, condición, etc), respondé con {"action":"cma_propiedad","zona":"zona mencionada","descripcion":"resumen de las características que te dio"}.
+- Es plan Black: si te pide redactar algo (descripción de una propiedad, mensaje de seguimiento para un lead, post para redes sociales, respuesta a un cliente), escribíselo vos misma directo en texto, bien redactado y listo para copiar/pegar — no hace falta JSON para esto, es parte de tu rol de asistente.
+- Es plan Black: si te pide hablar con una persona del equipo NIDO, escalar un problema, o algo que vos no puedas resolver, respondé con {"action":"escalar_soporte","motivo":"resumen breve del problema"} — se crea un ticket con prioridad alta.` : `- NO es plan Black: si pregunta por precios de mercado, tendencias de zona, pide un CMA, o pide asesoría de inversión, respondé en texto que Valeria como mentora de mercado en tiempo real es un beneficio exclusivo del plan Black, y que puede hacer upgrade en nido-cr.com/precios. Si pide hablar con una persona del equipo NIDO, respondé con {"action":"escalar_soporte","motivo":"resumen breve del problema"}.`}
 ` : ''}
 ${userType === 'comprador' ? `
 Es un COMPRADOR. Si en algún momento de la conversación muestra intención concreta (quiere que lo contacten, quiere agendar visita, elige una propiedad específica de las que le mostraste, pide condiciones/negociación, o pide hablar con un asesor), respondé con el JSON: {"action":"conectar_asesor","zona":"zona de interés o null","tipo":"tipo de propiedad o null","nombre":"nombre si lo mencionó o null","propiedad_id":"id de la propiedad si eligió una de las que le mostraste antes, o null"} — esto te permite conectarlo con el asesor a cargo. Usá el historial de la conversación para saber a qué propiedad se refiere.
+Si tiene una queja o problema que no podés resolver vos (no relacionado a buscar propiedades), respondé con {"action":"escalar_soporte","motivo":"resumen breve del problema"}.
 ` : ''}
 Ayudás con: consultas sobre propiedades, proceso de compra/venta, información sobre NIDO, agendar visitas.
 Siempre terminá con una pregunta o siguiente paso concreto.
@@ -172,6 +179,59 @@ Para cualquier otra consulta, responde normalmente en texto.`
           })
           const mentorData = await mentorRes.json()
           finalReply = mentorData.content?.[0]?.text || 'No pude armar el análisis en este momento — ¿me lo repetís de otra forma?'
+        } else if (action.action === 'cma_propiedad' && esAsesorBlack) {
+          let datosComps = 'No hay suficientes propiedades comparables activas en NIDO en esa zona — respondé solo con tu conocimiento general del mercado.'
+          if (action.zona) {
+            const { data: comps } = await supabaseAdmin.from('propiedades').select('titulo, precio, metros, tipo, operacion').eq('disponible', true).eq('verificacion_estado', 'aprobada').ilike('zona', '%' + action.zona + '%').gt('metros', 0).limit(5)
+            if (comps && comps.length > 0) {
+              datosComps = `Comparables reales activos en NIDO en ${action.zona}:\n` + comps.map(c => `- ${c.titulo}: $${Number(c.precio).toLocaleString()} (${c.metros}m², ${c.tipo}, ${c.operacion}) = $${Math.round(Number(c.precio) / Number(c.metros)).toLocaleString()}/m²`).join('\n') + '\n\nUsalos como referencia real, combinados con tu conocimiento general del mercado.'
+            }
+          }
+
+          const cmaRes = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01' },
+            body: JSON.stringify({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 500,
+              system: `Sos Valeria, mentora experta del mercado inmobiliario de Costa Rica, ayudando por WhatsApp a ${userName || 'un asesor'} (plan Black de NIDO) a armar un CMA (análisis comparativo de mercado) rápido para una propiedad que va a tasar/listar. El asesor te describió la propiedad así: "${action.descripcion || text}". ${datosComps} Dale un rango de precio sugerido (mínimo-óptimo-máximo), la lógica detrás (comparables, m², condición, ubicación), y un consejo de posicionamiento. Formato WhatsApp: directo, máximo 4-5 párrafos cortos, terminá preguntando si querés que ajuste algo.`,
+              messages: [{ role: 'user', content: action.descripcion || text }]
+            })
+          })
+          const cmaData = await cmaRes.json()
+          finalReply = cmaData.content?.[0]?.text || 'No pude armar el CMA en este momento — ¿me repetís las características de la propiedad?'
+        } else if (action.action === 'escalar_soporte') {
+          const ticketId = crypto.randomUUID()
+          const prioridad = esAsesorBlack ? 'alta' : 'media'
+          const correoContacto = asesor?.correo || propietario?.correo || (from + '@whatsapp.nido-cr.com')
+
+          await supabaseAdmin.from('soporte_tickets').insert({
+            id: ticketId,
+            usuario_email: correoContacto,
+            usuario_nombre: userName,
+            usuario_telefono: from,
+            usuario_tipo: userType,
+            canal: 'whatsapp',
+            asunto: action.motivo || 'Consulta desde WhatsApp',
+            estado: 'abierto',
+            prioridad,
+          })
+          await supabaseAdmin.from('soporte_mensajes').insert({ ticket_id: ticketId, remitente: 'usuario', contenido: text })
+
+          const baseUrl = process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'https://www.nido-cr.com'
+          fetch(baseUrl + '/api/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: 'hola@nido-cr.com',
+              tipo: 'nuevo_ticket_soporte',
+              data: { usuario_nombre: userName, usuario_email: correoContacto, usuario_telefono: from, usuario_tipo: userType, asunto: action.motivo || 'Consulta desde WhatsApp', resumen: 'Usuario: ' + text + (prioridad === 'alta' ? '\n\n⚠️ PRIORIDAD ALTA (plan Black)' : '') },
+            }),
+          }).catch(() => {})
+
+          finalReply = esAsesorBlack
+            ? `🆘 Listo, ya escalé tu consulta con *prioridad alta* al equipo NIDO. Te van a responder pronto por acá o por correo.\n\n¿Necesitás algo más mientras tanto?`
+            : `🆘 Listo, ya le avisé al equipo NIDO sobre tu consulta. Te van a responder pronto.\n\n¿Necesitás algo más mientras tanto?`
         } else if (action.action === 'conectar_asesor') {
           let asesorEmailDestino: string | null = null
           let propTitulo: string | null = null
