@@ -58,16 +58,22 @@ function RoiAlquilerInner() {
         .calc-input-row input:focus { outline: none; border-color: #1B5E3B; }
         .calc-line { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(27,94,59,0.06); font-size: 14px; color: #374151; }
         .calc-line.total { font-weight: 600; color: #0D1F15; font-size: 16px; border-bottom: none; padding-top: 16px; }
+        @media(max-width:768px){
+          .calc-page-pad{padding:32px 16px 80px!important}
+          .calc-grid-2{grid-template-columns:1fr!important;gap:16px!important}
+          .calc-hero-title{font-size:30px!important}
+          .calc-card{padding:24px 20px!important}
+        }
       `}</style>
 
       <Nav />
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px 100px' }}>
+      <div className="calc-page-pad" style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px 100px' }}>
         <div style={{ marginBottom: 20 }}>
           <Link href="/calculadoras" style={{ fontSize: 13, color: '#6B7280', textDecoration: 'none' }}>← Todas las calculadoras</Link>
         </div>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40, color: '#0D1F15', margin: '0 0 10px' }}>
+          <h1 className="calc-hero-title" style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 40, color: '#0D1F15', margin: '0 0 10px' }}>
             Calculadora de ROI de alquiler
           </h1>
           <p style={{ color: '#6B7280', fontSize: 16, maxWidth: 560, margin: '0 auto' }}>
@@ -75,7 +81,7 @@ function RoiAlquilerInner() {
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
+        <div className="calc-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
           <div className="calc-card">
             <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24, color: '#0D1F15', margin: '0 0 20px' }}>
               Datos de la propiedad

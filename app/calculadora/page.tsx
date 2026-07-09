@@ -76,13 +76,20 @@ function CalculadoraInner() {
         .currency-toggle { display: inline-flex; border: 1px solid rgba(27,94,59,0.2); border-radius: 999px; overflow: hidden; }
         .currency-toggle button { padding: 6px 16px; border: none; background: transparent; font-size: 13px; cursor: pointer; color: #6B7280; font-family: inherit; }
         .currency-toggle button.active { background: #1B5E3B; color: white; }
+        @media(max-width:768px){
+          .calc-page-pad{padding:32px 16px 80px!important}
+          .calc-grid-2{grid-template-columns:1fr!important;gap:16px!important}
+          .calc-grid-3{grid-template-columns:1fr!important;gap:12px!important}
+          .calc-hero-title{font-size:32px!important}
+          .calc-card{padding:24px 20px!important}
+        }
       `}</style>
 
       <Nav />
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px 100px' }}>
+      <div className="calc-page-pad" style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px 100px' }}>
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 44, color: '#0D1F15', margin: '0 0 10px' }}>
+          <h1 className="calc-hero-title" style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 44, color: '#0D1F15', margin: '0 0 10px' }}>
             Calculadora inmobiliaria
           </h1>
           <p style={{ color: '#6B7280', fontSize: 16, maxWidth: 560, margin: '0 auto' }}>
@@ -96,7 +103,7 @@ function CalculadoraInner() {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
+        <div className="calc-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 28 }}>
           {/* Costos de cierre */}
           <div className="calc-card">
             <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 26, color: '#0D1F15', margin: '0 0 20px' }}>
@@ -129,7 +136,7 @@ function CalculadoraInner() {
               <label>Precio de la propiedad</label>
               <input type="number" value={precioHipoteca} onChange={e => setPrecioHipoteca(Number(e.target.value) || 0)} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div className="calc-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div className="calc-input-row">
                 <label>Prima / entrada (%)</label>
                 <input type="number" value={primaPct} onChange={e => setPrimaPct(Number(e.target.value) || 0)} />
@@ -166,7 +173,7 @@ function CalculadoraInner() {
             <h2 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 24, color: '#0D1F15', margin: '0 0 20px' }}>
               Comparación de escenarios
             </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
+            <div className="calc-grid-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16 }}>
               {escenarios.map(e => (
                 <div key={e.label} style={{ border: e.activo ? '2px solid #1B5E3B' : '1px solid rgba(27,94,59,0.1)', borderRadius: 14, padding: '18px 16px', background: e.activo ? 'rgba(27,94,59,0.04)' : 'transparent' }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: e.activo ? '#1B5E3B' : '#0D1F15', marginBottom: 2 }}>{e.label}</div>

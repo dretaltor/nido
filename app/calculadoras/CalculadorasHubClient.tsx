@@ -50,14 +50,20 @@ function CalculadorasHubInner() {
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap');
         .hub-card { background: white; border: 1px solid rgba(27,94,59,0.1); border-radius: 20px; padding: 32px; text-decoration: none; display: block; transition: border-color 0.2s, transform 0.2s; }
         .hub-card:hover { border-color: #1B5E3B; transform: translateY(-2px); }
+        @media(max-width:768px){
+          .calc-page-pad{padding:32px 16px 80px!important}
+          .calc-grid-2{grid-template-columns:1fr!important;gap:16px!important}
+          .calc-hero-title{font-size:32px!important}
+          .hub-card{padding:24px 20px!important}
+        }
       `}</style>
 
       <Nav />
 
-      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px 100px' }}>
+      <div className="calc-page-pad" style={{ maxWidth: 1100, margin: '0 auto', padding: '48px 24px 100px' }}>
         <div style={{ textAlign: 'center', marginBottom: 44 }}>
           <div style={{ fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#9CA3AF', marginBottom: 10 }}>Herramientas gratuitas</div>
-          <h1 style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 44, color: '#0D1F15', margin: '0 0 10px' }}>
+          <h1 className="calc-hero-title" style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 44, color: '#0D1F15', margin: '0 0 10px' }}>
             Calculadoras inmobiliarias
           </h1>
           <p style={{ color: '#6B7280', fontSize: 16, maxWidth: 620, margin: '0 auto' }}>
@@ -65,7 +71,7 @@ function CalculadorasHubInner() {
           </p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
+        <div className="calc-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
           {HERRAMIENTAS.map(h => (
             <Link key={h.href} href={conRef(h.href)} className="hub-card">
               <div style={{ fontSize: 28, marginBottom: 14 }}>{h.icon}</div>
