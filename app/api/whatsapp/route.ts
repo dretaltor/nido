@@ -100,7 +100,7 @@ Este es un ASESOR registrado en NIDO (plan ${esAsesorBlack ? 'Black' : asesor?.p
 - Ver SUS propias propiedades publicadas (si pregunta "mis propiedades", "lo que tengo publicado", etc): respondé con {"action":"mis_propiedades"}
 - Capacitación: si pregunta cómo mejorar sus ventas, usar la plataforma, o "capacitarme", mencioná la Academia NIDO en nido-cr.com/academia con cursos y certificaciones.
 - Dudas sobre comisiones, KYC, contratos o el funcionamiento de NIDO.
-${esAsesorBlack ? `- Es plan Black: si pregunta por precio de mercado, precio por metro cuadrado, o valor de una zona (ej: "cuánto está el metro cuadrado en Escazú"), respondé con {"action":"precio_zona","zona":"zona mencionada"} — tenés datos reales de las propiedades activas en NIDO para esa zona.` : `- NO es plan Black: si pregunta por precio de mercado o precio por metro cuadrado de una zona, respondé en texto que esa función (datos de mercado en tiempo real por WhatsApp) es exclusiva del plan Black, y que puede hacer upgrade en nido-cr.com/precios.`}
+${esAsesorBlack ? `- Es plan Black: actuás como su MENTOR experto del mercado inmobiliario costarricense — no solo con datos de NIDO, sino con tu conocimiento general del mercado (como si le respondieras a un colega en un chat). Si pregunta por precios, precio por m², tendencias de una zona, en qué zona conviene invertir, comparación entre zonas, o cualquier duda de mercado/inversión, respondé con {"action":"consulta_mercado","zona":"zona mencionada o null","pregunta":"resumen breve de lo que pregunta"} — el sistema va a combinar tu análisis de mercado con datos reales de NIDO cuando existan para esa zona.` : `- NO es plan Black: si pregunta por precios de mercado, tendencias de zona, o pide asesoría de inversión, respondé en texto que Valeria como mentora de mercado en tiempo real es un beneficio exclusivo del plan Black, y que puede hacer upgrade en nido-cr.com/precios.`}
 ` : ''}
 ${userType === 'comprador' ? `
 Es un COMPRADOR. Si en algún momento de la conversación muestra intención concreta (quiere que lo contacten, quiere agendar visita, elige una propiedad específica de las que le mostraste, pide condiciones/negociación, o pide hablar con un asesor), respondé con el JSON: {"action":"conectar_asesor","zona":"zona de interés o null","tipo":"tipo de propiedad o null","nombre":"nombre si lo mencionó o null","propiedad_id":"id de la propiedad si eligió una de las que le mostraste antes, o null"} — esto te permite conectarlo con el asesor a cargo. Usá el historial de la conversación para saber a qué propiedad se refiere.
@@ -146,17 +146,32 @@ Para cualquier otra consulta, responde normalmente en texto.`
           } else {
             finalReply = '🔍 No encontré propiedades con esos criterios en este momento.\n\nPodés ver todas las opciones disponibles en:\n🌐 www.nido-cr.com/propiedades\n\n¿Querés que amplíe la búsqueda?'
           }
-        } else if (action.action === 'precio_zona' && esAsesorBlack) {
-          const { data: comps } = await supabaseAdmin.from('propiedades').select('precio, metros').eq('disponible', true).eq('verificacion_estado', 'aprobada').ilike('zona', '%' + (action.zona || '') + '%').gt('metros', 0)
-
-          const validos = (comps || []).filter(p => p.precio && p.metros)
-          if (validos.length > 0) {
-            const promedios = validos.map(p => Number(p.precio) / Number(p.metros))
-            const promedioM2 = promedios.reduce((a, b) => a + b, 0) / promedios.length
-            finalReply = `📊 *Precio por m² en ${action.zona}*\n\n💰 Promedio: $${Math.round(promedioM2).toLocaleString()}/m²\n📋 Basado en ${validos.length} propiedad${validos.length === 1 ? '' : 'es'} activa${validos.length === 1 ? '' : 's'} en NIDO en esa zona.\n\n¿Necesitás el detalle de alguna propiedad puntual?`
-          } else {
-            finalReply = `📊 No tengo suficientes propiedades activas con metraje registrado en ${action.zona || 'esa zona'} para calcular un promedio confiable ahora mismo.\n\n¿Querés que revise una zona cercana?`
+        } else if (action.action === 'consulta_mercado' && esAsesorBlack) {
+          // Complementamos el conocimiento general del mercado (lo que ya sabe el modelo)
+          // con datos reales de NIDO cuando hay suficientes propiedades activas en la zona.
+          let datosInternos = 'No mencionó una zona especifica o no hay suficientes propiedades activas de NIDO ahi — respondé solo con tu conocimiento general del mercado costarricense.'
+          if (action.zona) {
+            const { data: comps } = await supabaseAdmin.from('propiedades').select('precio, metros').eq('disponible', true).eq('verificacion_estado', 'aprobada').ilike('zona', '%' + action.zona + '%').gt('metros', 0)
+            const validos = (comps || []).filter(p => p.precio && p.metros)
+            if (validos.length > 0) {
+              const promedios = validos.map(p => Number(p.precio) / Number(p.metros))
+              const promedioM2 = promedios.reduce((a, b) => a + b, 0) / promedios.length
+              datosInternos = `Dato real de NIDO para ${action.zona}: precio promedio $${Math.round(promedioM2).toLocaleString()}/m² sobre ${validos.length} propiedad${validos.length === 1 ? '' : 'es'} activa${validos.length === 1 ? '' : 's'}. Usalo como un dato más dentro de tu análisis, no como tu única fuente — complementalo con tu conocimiento general del mercado de esa zona.`
+            }
           }
+
+          const mentorRes = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01' },
+            body: JSON.stringify({
+              model: 'claude-haiku-4-5-20251001',
+              max_tokens: 500,
+              system: `Sos Valeria, mentora experta del mercado inmobiliario de Costa Rica, asesorando por WhatsApp a ${userName || 'un asesor'}, agente profesional del plan Black de NIDO. Respondé como lo haría un analista de mercado sénior conversando con un colega: cifras orientativas, tendencias, factores de valorización (infraestructura, turismo, nómadas digitales, oferta/demanda), comparación con zonas similares si aplica, y una recomendación práctica y accionable. Usá tu conocimiento general del mercado inmobiliario costarricense — no te limites a lo que hay publicado en NIDO. ${datosInternos} Formato WhatsApp: directo, sin relleno, máximo 4 párrafos cortos, terminá con una pregunta o siguiente paso concreto.`,
+              messages: [{ role: 'user', content: action.pregunta || text }]
+            })
+          })
+          const mentorData = await mentorRes.json()
+          finalReply = mentorData.content?.[0]?.text || 'No pude armar el análisis en este momento — ¿me lo repetís de otra forma?'
         } else if (action.action === 'conectar_asesor') {
           let asesorEmailDestino: string | null = null
           let propTitulo: string | null = null
