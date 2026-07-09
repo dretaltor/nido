@@ -28,7 +28,7 @@ export const PLANES: Record<string, PlanConfig> = {
     valeriaIA: true,
     academiaCompleta: true,
     soportePrioritario: false,
-    tour360PorMes: 1,
+    tour360PorMes: 0,
   },
   enterprise: {
     nombrePublico: 'Black',

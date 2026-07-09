@@ -43,7 +43,7 @@ const PLANES = [
       { texto: 'CRM de leads completo', ok: true },
       { texto: 'Estadísticas y métricas', ok: true },
       { texto: 'Academia NIDO completa', ok: true },
-      { texto: 'Tour 360° (1 por mes)', ok: true },
+      { texto: 'Tour 360°', ok: false },
       { texto: 'Soporte en 24 horas', ok: true },
       { texto: 'Panel propietario avanzado', ok: false },
     ]
@@ -79,7 +79,7 @@ const DIFERENCIAS = [
   { feature: 'Fotos por propiedad', gratis: '3', pro: 'Ilimitadas', enterprise: 'Ilimitadas' },
   { feature: 'Valeria IA', gratis: '—', pro: 'Básica', enterprise: 'Con memoria y contexto' },
   { feature: 'CRM de leads', gratis: '—', pro: 'Completo', enterprise: 'Avanzado + score' },
-  { feature: 'Tours 360°', gratis: '—', pro: '1 por mes incluido', enterprise: '1 por mes incluido + adicionales' },
+  { feature: 'Tours 360°', gratis: '—', pro: '—', enterprise: '1 por mes incluido + adicionales' },
   { feature: 'Valeria por WhatsApp', gratis: '—', pro: '—', enterprise: 'Mentora de mercado + notificaciones en vivo' },
   { feature: 'Academia NIDO', gratis: '—', pro: 'Cursos básicos', enterprise: 'Todo + certificaciones' },
   { feature: 'Soporte', gratis: 'Email', pro: '24 horas', enterprise: '2 horas' },

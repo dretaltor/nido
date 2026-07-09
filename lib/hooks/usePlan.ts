@@ -40,8 +40,8 @@ export function usePlan() {
 
   const limites = {
     gratis:     { propiedades: 2,  tours: 0,  crm: false, academia: false, soporte: 'email' },
-    pro:        { propiedades: 15, tours: 1,  crm: true,  academia: true,  soporte: '24h' },
-    enterprise: { propiedades: 999, tours: 999, crm: true, academia: true, soporte: '2h' },
+    pro:        { propiedades: 15, tours: 0,  crm: true,  academia: true,  soporte: '24h' },
+    enterprise: { propiedades: 999, tours: 1, crm: true, academia: true, soporte: '2h' },
   }
 
   return { plan, suscripcion, loading, esPro, esEnterprise, limites: limites[plan] }
