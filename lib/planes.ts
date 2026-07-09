@@ -8,7 +8,7 @@ export interface PlanConfig {
   valeriaIA: boolean
   academiaCompleta: boolean
   soportePrioritario: boolean
-  toursIlimitados: boolean
+  tour360PorMes: number // tours 360 incluidos gratis por mes mientras la suscripción esté activa; 0 = no incluye. Adicionales tienen costo aparte (no incluidos aquí).
 }
 
 export const PLANES: Record<string, PlanConfig> = {
@@ -19,7 +19,7 @@ export const PLANES: Record<string, PlanConfig> = {
     valeriaIA: false,
     academiaCompleta: false,
     soportePrioritario: false,
-    toursIlimitados: false,
+    tour360PorMes: 0,
   },
   pro: {
     nombrePublico: 'Elite',
@@ -28,7 +28,7 @@ export const PLANES: Record<string, PlanConfig> = {
     valeriaIA: true,
     academiaCompleta: true,
     soportePrioritario: false,
-    toursIlimitados: false,
+    tour360PorMes: 1,
   },
   enterprise: {
     nombrePublico: 'Black',
@@ -37,7 +37,7 @@ export const PLANES: Record<string, PlanConfig> = {
     valeriaIA: true,
     academiaCompleta: true,
     soportePrioritario: true,
-    toursIlimitados: true,
+    tour360PorMes: 1,
   },
 }
 

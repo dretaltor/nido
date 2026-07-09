@@ -48,7 +48,7 @@ const CSS = `
   .problema-card{background:white;border:1px solid var(--rule);border-radius:12px;padding:24px;transition:all 0.2s}
   .problema-card:hover{border-color:var(--accent);box-shadow:0 4px 20px oklch(0.42 0.06 150/0.1);transform:translateY(-2px)}
   .testimonio-card{background:white;border:1px solid var(--rule);border-radius:16px;padding:28px;transition:all 0.2s}
-  @media(max-width:768px){.hero-grid{grid-template-columns:1fr!important}.stats-grid{grid-template-columns:1fr 1fr!important}.problemas-grid{grid-template-columns:1fr!important}.pasos-grid{grid-template-columns:1fr!important}.testimonios-grid{grid-template-columns:1fr!important}.nav-links{display:none!important}.page-pad{padding:0 16px!important}}
+  @media(max-width:768px){.hero-grid{grid-template-columns:1fr!important}.stats-grid{grid-template-columns:1fr 1fr!important}.problemas-grid{grid-template-columns:1fr!important}.pasos-grid{grid-template-columns:1fr!important}.testimonios-grid{grid-template-columns:1fr!important}.nav-links{display:none!important}.page-pad{padding:0 16px!important}.precios-section{padding:56px 16px!important}.precios-grid{grid-template-columns:1fr!important;max-width:420px!important}.precios-grid>div{transform:none!important}}
 `
 
 export default function Unirse() {
@@ -227,7 +227,7 @@ export default function Unirse() {
       </section>
 
       {/* PRECIOS */}
-      <section id="precios" style={{background:'var(--bg-elev)',padding:'96px 40px',borderTop:'1px solid var(--rule)',borderBottom:'1px solid var(--rule)'}}>
+      <section id="precios" className="precios-section" style={{background:'var(--bg-elev)',padding:'96px 40px',borderTop:'1px solid var(--rule)',borderBottom:'1px solid var(--rule)'}}>
         <div style={{maxWidth:1400,margin:'0 auto'}}>
           <div style={{textAlign:'center',marginBottom:56}}>
             <div style={{fontSize:11,letterSpacing:'0.2em',textTransform:'uppercase',color:'var(--ink-3)',marginBottom:14}}>Inversión</div>
@@ -239,11 +239,11 @@ export default function Unirse() {
               NIDO Elite cuesta $59/mes. Con una sola comisión cubrís 24 meses. El ROI es inmediato.
             </p>
           </div>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,maxWidth:900,margin:'0 auto'}}>
+          <div className="precios-grid" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:16,maxWidth:900,margin:'0 auto'}}>
             {[
               { plan:'Despega', precio:'$0', periodo:'siempre', desc:'7 días de Black gratis, luego 5 propiedades', features:['5 propiedades','Portal público','Perfil de asesor','Sin Valeria IA ni CRM'], cta:'Crear cuenta', href:'/registro', featured:false },
               { plan:'Elite', precio:'$59', periodo:'/mes', desc:'Para asesores activos', features:['15 propiedades','Valeria IA 24/7','CRM de leads completo','Academia completa','Soporte en 24h'], cta:'Empezar Elite', href:'/registro?plan=pro', featured:true },
-              { plan:'Black', precio:'$149', periodo:'/mes', desc:'Para asesores top', features:['Propiedades ilimitadas','Valeria IA con memoria','CRM con score de leads','Leads premium de calculadoras','Tours 360° ilimitados','Soporte en 2 horas','Panel propietario'], cta:'Empezar Black', href:'/registro?plan=enterprise', featured:false },
+              { plan:'Black', precio:'$149', periodo:'/mes', desc:'Para asesores top', features:['Propiedades ilimitadas','Valeria IA con memoria','CRM con score de leads','Leads premium de calculadoras','Tour 360° (1 por mes, adicionales con costo)','Soporte en 2 horas','Panel propietario'], cta:'Empezar Black', href:'/registro?plan=enterprise', featured:false },
             ].map((p,i) => (
               <div key={i} style={{background:p.featured?'var(--ink)':'white',border:'1px solid '+(p.featured?'var(--ink)':'var(--rule)'),borderRadius:16,padding:28,position:'relative',transform:p.featured?'scale(1.04)':'none'}}>
                 {p.featured && <div style={{position:'absolute',top:-12,left:'50%',transform:'translateX(-50%)',background:'var(--accent)',color:'white',fontSize:10,padding:'4px 14px',borderRadius:999,letterSpacing:'0.1em',fontWeight:500,textTransform:'uppercase',whiteSpace:'nowrap'}}>Más popular</div>}

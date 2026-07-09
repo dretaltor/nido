@@ -606,7 +606,7 @@ export async function POST(req: NextRequest) {
                 ✓ Propiedades ilimitadas<br>
                 ✓ Valeria IA con memoria y contexto<br>
                 ✓ CRM avanzado con score de leads<br>
-                ✓ Tours 360 ilimitados<br>
+                ✓ Tour 360 (1 por mes, adicionales con costo)<br>
                 ✓ Academia completa + certificaciones<br>
                 ✓ Soporte prioritario en 2 horas<br>
                 ✓ Panel propietario avanzado
