@@ -120,7 +120,7 @@ export default function DashboardPropietario() {
       // Programa de referidos: quienes referi yo
       supabase.from('referidos').select('*').eq('referidor_email', user.email!).order('created_at', { ascending: false })
         .then(({ data }) => setReferidosReales(data || []))
-      supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,comision_porcentaje,created_at').eq('propietario_correo', user.email!).in('estado', ['activo','pendiente']).order('created_at', { ascending: false }).limit(1).maybeSingle().then(({ data: c }) => { setContrato(c); setLoadingContrato(false) })
+      supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,fecha_inicio,fecha_vencimiento,periodo_dias,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,comision_porcentaje,incluye_administracion,administracion_porcentaje,notas,created_at').eq('propietario_correo', user.email!).in('estado', ['activo','pendiente']).order('created_at', { ascending: false }).limit(1).maybeSingle().then(({ data: c }) => { setContrato(c); setLoadingContrato(false) })
       // Fetch propiedades del propietario + leads + ofertas filtradas
       supabase.from('propiedades').select('id,titulo,zona,precio,disponible,tipo,ref_id,fotos,habitaciones,banos,metros,operacion')
         .eq('propietario_email', user.email!)
@@ -852,11 +852,11 @@ export default function DashboardPropietario() {
               <div style={{ background:'var(--ink)', borderRadius:16, padding:'32px', textAlign:'center' }}>
                 <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'white', fontWeight:400, marginBottom:12 }}>Sin contrato activo</div>
                 <p style={{ fontSize:14, color:'rgba(255,255,255,0.5)', lineHeight:1.7, maxWidth:440, margin:'0 auto 24px' }}>
-                  Firmá un contrato de corretaje con NIDO para publicar tu propiedad y empezar a recibir compradores calificados. Sin costo previo — solo pagás si vendemos.
+                  Firmá un contrato de corretaje con NIDO para publicar tu propiedad y empezar a recibir interesados calificados. Sin costo previo — solo pagás si concretamos.
                 </p>
                 <div style={{ display:'flex', gap:16, justifyContent:'center', flexWrap:'wrap', marginBottom:24 }}>
                   {[
-                    { icon:'🎯', t:'Compradores calificados' },
+                    { icon:'🎯', t:'Interesados calificados' },
                     { icon:'📊', t:'Dashboard en tiempo real' },
                     { icon:'⚖️', t:'Asesoría legal incluida' },
                     { icon:'📣', t:'Marketing en redes' },
@@ -866,11 +866,16 @@ export default function DashboardPropietario() {
                     </div>
                   ))}
                 </div>
-                <a href="/dashboard/propietario/contrato" style={{ display:'inline-block', padding:'13px 32px', borderRadius:999, background:'oklch(0.42 0.06 150)', color:'white', fontSize:15, fontWeight:500, textDecoration:'none' }}>
-                  Firmar contrato ahora →
-                </a>
+                <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
+                  <a href="/dashboard/propietario/contrato" style={{ display:'inline-block', padding:'13px 32px', borderRadius:999, background:'oklch(0.42 0.06 150)', color:'white', fontSize:15, fontWeight:500, textDecoration:'none' }}>
+                    Firmar contrato de venta →
+                  </a>
+                  <a href="/dashboard/propietario/contrato?modo=alquiler" style={{ display:'inline-block', padding:'13px 32px', borderRadius:999, background:'transparent', border:'1px solid rgba(255,255,255,0.3)', color:'white', fontSize:15, fontWeight:500, textDecoration:'none' }}>
+                    Firmar contrato de alquiler →
+                  </a>
+                </div>
                 <div style={{ marginTop:16, fontSize:12, color:'rgba(255,255,255,0.3)' }}>
-                  Exclusividad 90 días · 4% solo al cerrar · Sin costo si no vendemos
+                  Venta: exclusividad 90 días · 4% solo al cerrar &nbsp;·&nbsp; Alquiler: exclusividad 60 días · 1 mes de renta al colocar inquilino
                 </div>
               </div>
             ) : contrato.estado === 'pendiente' ? (
@@ -891,20 +896,21 @@ export default function DashboardPropietario() {
                     <div>
                       <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--accent)', marginBottom:8 }}>✓ Contrato activo</div>
                       <div style={{ fontFamily:'var(--serif)', fontSize:22, fontWeight:400, marginBottom:6 }}>
-                        {contrato.tipo === 'no_exclusivo' ? 'Sin exclusividad · push de venta' : 'Exclusividad 90 días'}
+                        {contrato.tipo === 'no_exclusivo' ? 'Sin exclusividad · push de venta' : contrato.tipo === 'alquiler' ? 'Alquiler · exclusividad 60 días' : 'Exclusividad 90 días'}
                       </div>
                       <div style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.7 }}>
                         {contrato.tipo === 'no_exclusivo'
                           ? <>Inicio: {contrato.fecha_inicio ? new Date(contrato.fecha_inicio).toLocaleDateString('es-CR') : '—'} · Sin fecha de vencimiento</>
                           : <>Inicio: {contrato.fecha_inicio ? new Date(contrato.fecha_inicio).toLocaleDateString('es-CR') : '—'} · Vence: {contrato.fecha_vencimiento ? new Date(contrato.fecha_vencimiento).toLocaleDateString('es-CR') : '—'}</>}
+                        {contrato.tipo === 'alquiler' && contrato.incluye_administracion && <> · Con administración (10% mensual)</>}
                       </div>
                     </div>
                     <div style={{ textAlign:'right' }}>
                       <div style={{ fontFamily:'var(--serif)', fontSize:36, color:'var(--accent)' }}>
-                        4%
+                        {contrato.tipo === 'alquiler' ? '1 mes' : '4%'}
                       </div>
                       <div style={{ fontSize:12, color:'var(--ink-3)' }}>
-                        comisión al cierre
+                        {contrato.tipo === 'alquiler' ? 'de renta, al colocar' : 'comisión al cierre'}
                       </div>
                     </div>
                   </div>
@@ -912,9 +918,9 @@ export default function DashboardPropietario() {
 
                 <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:20 }}>
                   {[
-                    { l:'Tipo de contrato', v: contrato.tipo === 'no_exclusivo' ? 'Sin exclusividad · push de venta' : 'Exclusividad 90 días' },
+                    { l:'Tipo de contrato', v: contrato.tipo === 'no_exclusivo' ? 'Sin exclusividad · push de venta' : contrato.tipo === 'alquiler' ? 'Alquiler · exclusividad 60 días' : 'Exclusividad 90 días' },
                     { l:'Estado', v:'Activo ✓' },
-                    { l:'Comisión', v:contrato.comision_porcentaje+'% al cierre' },
+                    { l:'Comisión', v: contrato.tipo === 'alquiler' ? '1 mes de renta' + (contrato.incluye_administracion ? ' + 10% admin.' : '') : contrato.comision_porcentaje+'% al cierre' },
                     { l:'Firma', v:contrato.firma_tipo === 'digital' ? 'Digital' : 'Física escaneada' },
                   ].map((f) => (
                     <div key={f.l} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:10, padding:'14px 18px' }}>
@@ -929,16 +935,16 @@ export default function DashboardPropietario() {
                     {contrato.tipo === 'no_exclusivo' ? 'Podés en cualquier momento:' : 'Al vencer el contrato podés:'}
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-                    <a href="/dashboard/propietario/contrato" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', transition:'all 0.2s' }}>
+                    <a href={contrato.tipo === 'alquiler' ? '/dashboard/propietario/contrato?modo=alquiler' : '/dashboard/propietario/contrato'} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', transition:'all 0.2s' }}>
                       <div>
                         <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>
-                          {contrato.tipo === 'no_exclusivo' ? 'Volver a exclusividad 90 días' : 'Renovar exclusividad 90 días'}
+                          {contrato.tipo === 'no_exclusivo' ? 'Volver a exclusividad 90 días' : contrato.tipo === 'alquiler' ? 'Renovar exclusividad 60 días' : 'Renovar exclusividad 90 días'}
                         </div>
-                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>Mismas condiciones · 4% solo al cierre</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{contrato.tipo === 'alquiler' ? 'Mismas condiciones · 1 mes de renta al colocar' : 'Mismas condiciones · 4% solo al cierre'}</div>
                       </div>
                       <span style={{ color:'var(--accent)' }}>→</span>
                     </a>
-                    {contrato.tipo !== 'no_exclusivo' && (
+                    {contrato.tipo === 'exclusividad' && (
                       <a href="/dashboard/propietario/contrato?modo=no_exclusivo" style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', transition:'all 0.2s' }}>
                         <div>
                           <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>Continuar sin exclusividad (push de venta)</div>
@@ -984,7 +990,7 @@ export default function DashboardPropietario() {
                       <div>
                         <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.12em', color:'var(--ink-3)', marginBottom:4 }}>Tipo de contrato</div>
                         <div style={{ fontFamily:'var(--serif)', fontSize:22, fontWeight:400, color:'var(--ink)' }}>
-                          {contrato.tipo === 'no_exclusivo' ? 'Sin exclusividad · push de venta' : 'Exclusividad 90 días'}
+                          {contrato.tipo === 'no_exclusivo' ? 'Sin exclusividad · push de venta' : contrato.tipo === 'alquiler' ? 'Alquiler · exclusividad 60 días' : 'Exclusividad 90 días'}
                         </div>
                       </div>
                       <span style={{ padding:'6px 16px', borderRadius:999, fontSize:12, fontWeight:500, background:contrato.estado==='activo'?'var(--accent-tint)':'oklch(0.93 0.05 80)', color:contrato.estado==='activo'?'var(--accent)':'oklch(0.45 0.08 80)' }}>
@@ -993,7 +999,7 @@ export default function DashboardPropietario() {
                     </div>
                     <div className="grid-3" style={{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:16, marginBottom:20 }}>
                       {[
-                        { label:'Comisión acordada', val: (contrato.comision_porcentaje||4)+'% al cerrar' },
+                        { label:'Comisión acordada', val: contrato.tipo === 'alquiler' ? '1 mes de renta' + (contrato.incluye_administracion ? ' + 10% admin.' : '') : (contrato.comision_porcentaje||4)+'% al cerrar' },
                         { label:'Inicio', val: inicio ? inicio.toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'}) : '—' },
                         { label:'Vencimiento', val: venc ? venc.toLocaleDateString('es-CR',{day:'2-digit',month:'short',year:'numeric'}) : '—' },
                       ].map(m => (

@@ -26,11 +26,16 @@ function Contrato() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [contratoExistente, setContratoExistente] = useState<Partial<Contrato> | null>(null)
-  // NIDO solo opera con propietarios bajo el modelo de corretaje (comisión al cierre, nunca suscripción).
-  // Por defecto se firma con exclusividad de 90 días. La única otra modalidad es "sin exclusividad" —
-  // disponible exclusivamente como opción de renovación (Cláusula Quinta) cuando un dueño con contrato
-  // de exclusividad vencido no quiere renovarla, vía el enlace ?modo=no_exclusivo desde su panel.
-  const tipoContrato: 'exclusividad'|'no_exclusivo' = searchParams.get('modo') === 'no_exclusivo' ? 'no_exclusivo' : 'exclusividad'
+  // NIDO solo opera con propietarios bajo el modelo de corretaje (comisión al cierre/colocación, nunca suscripción).
+  // Por defecto se firma con exclusividad de 90 días para VENTA. Modalidades adicionales:
+  // - "sin exclusividad": disponible como opción de renovación (Cláusula Quinta) cuando un dueño con
+  //   contrato de exclusividad de venta vencido no quiere renovarla, vía ?modo=no_exclusivo.
+  // - "alquiler": contrato de corretaje de arrendamiento con exclusividad de 60 días — comisión de
+  //   un mes de renta al colocar inquilino, con administración integral opcional (10% mensual), vía ?modo=alquiler.
+  const modoParam = searchParams.get('modo')
+  const tipoContrato: 'exclusividad'|'no_exclusivo'|'alquiler' = modoParam === 'no_exclusivo' ? 'no_exclusivo' : modoParam === 'alquiler' ? 'alquiler' : 'exclusividad'
+  const [deseaAdministracion, setDeseaAdministracion] = useState(false)
+  const diasExclusividad = tipoContrato === 'alquiler' ? 60 : 90
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [drawing, setDrawing] = useState(false)
   const [firmaDigital, setFirmaDigital] = useState('')
@@ -57,8 +62,19 @@ function Contrato() {
 
   const hoy = new Date()
   const vencimiento = new Date(hoy)
-  vencimiento.setDate(vencimiento.getDate() + 90)
+  vencimiento.setDate(vencimiento.getDate() + diasExclusividad)
   const fmtDate = (d: Date) => d.toLocaleDateString('es-CR', { year:'numeric', month:'long', day:'numeric' })
+
+  // Numeracion dinamica de clausulas: la lista de clausulas cambia segun el modo
+  // (venta con/sin exclusividad, o alquiler con administracion opcional), asi que
+  // se calcula un mapa etiqueta->ordinal en vez de hardcodear "CLAUSULA CUARTA" etc.
+  const ORDINALES = ['PRIMERA','SEGUNDA','TERCERA','CUARTA','QUINTA','SEXTA','SÉTIMA','OCTAVA','NOVENA','DÉCIMA']
+  const clausulasActivas = ['OBJETO','SERVICIOS','COMISION']
+  if (tipoContrato === 'alquiler' && deseaAdministracion) clausulasActivas.push('ADMINISTRACION')
+  if (tipoContrato !== 'no_exclusivo') clausulasActivas.push('EXCLUSIVIDAD', 'RENOVACION')
+  clausulasActivas.push('OBLIGACIONES', 'DATOS', 'DISPUTAS', 'DESTINO')
+  const N: Record<string, string> = {}
+  clausulasActivas.forEach((c, i) => { N[c] = ORDINALES[i] })
 
   const startDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setDrawing(true)
@@ -119,9 +135,9 @@ function Contrato() {
 
     const fechaInicio = new Date().toISOString().split('T')[0]
     let fechaVencStr: string | null = null
-    if (tipoContrato === 'exclusividad') {
+    if (tipoContrato === 'exclusividad' || tipoContrato === 'alquiler') {
       const fechaVenc = new Date()
-      fechaVenc.setDate(fechaVenc.getDate() + 90)
+      fechaVenc.setDate(fechaVenc.getDate() + diasExclusividad)
       fechaVencStr = fechaVenc.toISOString().split('T')[0]
     }
     // 'no_exclusivo' no tiene fecha de vencimiento fija: se mantiene vigente hasta que
@@ -135,13 +151,16 @@ function Contrato() {
       estado: 'pendiente',
       fecha_inicio: fechaInicio,
       fecha_vencimiento: fechaVencStr,
-      periodo_dias: tipoContrato === 'exclusividad' ? 90 : null,
+      periodo_dias: (tipoContrato === 'exclusividad' || tipoContrato === 'alquiler') ? diasExclusividad : null,
       precio_mensual: null,
       firma_tipo: firmaTipo,
       firma_url: firmaTipo === 'digital' ? firmaDigital : firmaFisicaUrl,
       firmado_propietario: true,
       firmado_nido: false,
-      comision_porcentaje: 4,
+      comision_porcentaje: tipoContrato === 'alquiler' ? null : 4,
+      incluye_administracion: tipoContrato === 'alquiler' ? deseaAdministracion : false,
+      administracion_porcentaje: tipoContrato === 'alquiler' && deseaAdministracion ? 10 : null,
+      notas: tipoContrato === 'alquiler' ? ('Comisión: 1 mes de renta al colocar inquilino' + (deseaAdministracion ? ' + administración 10% mensual sobre renta cobrada' : '')) : null,
       creado_por: user.email,
     })
 
@@ -152,7 +171,7 @@ function Contrato() {
       body: JSON.stringify({
         to: 'davidretanaalvarez@gmail.com',
         tipo: 'nuevo_contrato',
-        data: { nombre: propietario?.nombre, correo: user.email, tipo: tipoContrato, firma: firmaTipo }
+        data: { nombre: propietario?.nombre, correo: user.email, tipo: tipoContrato, firma: firmaTipo, administracion: deseaAdministracion }
       })
     }).catch(() => {})
 
@@ -228,9 +247,13 @@ function Contrato() {
         {step === 1 && (
           <div style={{ animation:'fadeUp 0.3s ease' }}>
             <h2 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, marginBottom:8 }}>
-              {tipoContrato === 'exclusividad' ? 'Así funciona el contrato con NIDO' : 'Continuar sin exclusividad'}
+              {tipoContrato === 'exclusividad' ? 'Así funciona el contrato con NIDO' : tipoContrato === 'alquiler' ? 'Así funciona el contrato de alquiler con NIDO' : 'Continuar sin exclusividad'}
             </h2>
-            <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, marginBottom:24 }}>NIDO trabaja como corredor de tu propiedad: no pagás ninguna suscripción mensual, solo una comisión cuando se concreta la venta.</p>
+            <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, marginBottom:24 }}>
+              {tipoContrato === 'alquiler'
+                ? 'NIDO trabaja como corredor de tu propiedad: no pagás ninguna suscripción mensual, solo una comisión cuando colocamos un inquilino.'
+                : 'NIDO trabaja como corredor de tu propiedad: no pagás ninguna suscripción mensual, solo una comisión cuando se concreta la venta.'}
+            </p>
 
             <div style={{ display:'flex', flexDirection:'column', gap:14, marginBottom:28 }}>
               {tipoContrato === 'exclusividad' ? (
@@ -253,6 +276,47 @@ function Contrato() {
                     ))}
                   </div>
                 </div>
+              ) : tipoContrato === 'alquiler' ? (
+                <>
+                  <div className="option-card selected">
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
+                      <div>
+                        <div style={{ fontSize:16, fontWeight:500, marginBottom:4 }}>Contrato de exclusividad para alquiler · 60 días</div>
+                        <div style={{ fontSize:13, color:'var(--ink-3)' }}>Recomendado · Sin costo mensual</div>
+                      </div>
+                      <div style={{ textAlign:'right' }}>
+                        <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--accent)' }}>1 mes</div>
+                        <div style={{ fontSize:11, color:'var(--ink-3)' }}>de renta, solo al colocar inquilino</div>
+                      </div>
+                    </div>
+                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      {['Sin costo previo — pagás solo si colocamos un inquilino','Exclusividad de 60 días con NIDO','Publicación con fotografía profesional básica incluida','Verificación de referencias y capacidad de pago del inquilino','Asesor dedicado + asesoría legal para el contrato de arrendamiento','Si no colocamos inquilino en 60 días, podés renovar o continuar sin exclusividad'].map(b => (
+                        <div key={b} style={{ display:'flex', gap:8, fontSize:13, color:'var(--ink-2)' }}>
+                          <span style={{ color:'var(--accent)', flexShrink:0 }}>✓</span> {b}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className={'option-card'+(deseaAdministracion?' selected':'')} onClick={() => setDeseaAdministracion(!deseaAdministracion)} style={{ cursor:'pointer' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
+                      <div>
+                        <div style={{ fontSize:16, fontWeight:500, marginBottom:4 }}>Administración completa de la propiedad</div>
+                        <div style={{ fontSize:13, color:'var(--ink-3)' }}>Opcional · vos decidís si la agregás</div>
+                      </div>
+                      <div style={{ textAlign:'right' }}>
+                        <div style={{ fontFamily:'var(--serif)', fontSize:28, color:'var(--accent)' }}>10%</div>
+                        <div style={{ fontSize:11, color:'var(--ink-3)' }}>mensual sobre renta cobrada</div>
+                      </div>
+                    </div>
+                    <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6, marginBottom:10 }}>
+                      NIDO cobra la renta, se comunica con el inquilino y coordina el mantenimiento — vos solo recibís el depósito mensual. Es un servicio aparte de la colocación del inquilino, y podés activarlo o cancelarlo cuando quieras con 30 días de aviso.
+                    </p>
+                    <div style={{ display:'inline-block', padding:'6px 14px', borderRadius:999, background:deseaAdministracion?'var(--accent)':'var(--rule-soft)', color:deseaAdministracion?'white':'var(--ink-3)', fontSize:12, fontWeight:500 }}>
+                      {deseaAdministracion ? '✓ Incluida en mi contrato' : 'Tocá para incluirla'}
+                    </div>
+                  </div>
+                </>
               ) : (
                 <div className="option-card selected">
                   <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
@@ -293,7 +357,7 @@ function Contrato() {
                 <div style={{ fontFamily:'var(--serif)', fontSize:28, marginBottom:4 }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></div>
                 <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)' }}>Plataforma Inmobiliaria · Costa Rica</div>
                 <div style={{ fontFamily:'var(--serif)', fontSize:20, marginTop:16, fontWeight:400 }}>
-                  {tipoContrato === 'exclusividad' ? 'Contrato de Corretaje con Exclusividad' : 'Contrato de Corretaje sin Exclusividad'}
+                  {tipoContrato === 'exclusividad' ? 'Contrato de Corretaje con Exclusividad' : tipoContrato === 'alquiler' ? 'Contrato de Corretaje de Arrendamiento con Exclusividad' : 'Contrato de Corretaje sin Exclusividad'}
                 </div>
                 <div style={{ fontSize:13, color:'var(--ink-3)', marginTop:4 }}>San José, Costa Rica · {fmtDate(hoy)}</div>
               </div>
@@ -308,17 +372,29 @@ function Contrato() {
                   <strong>EL PROPIETARIO:</strong> {propietario?.nombre || '___________________'}, cédula de identidad {propietario?.cedula || '___________________'}, correo electrónico {user?.email}, teléfono {propietario?.telefono || '___________________'} (en adelante &quot;EL PROPIETARIO&quot;).
                 </p>
 
-                <p style={{ marginBottom:12 }}><strong>CLÁUSULA PRIMERA — OBJETO DEL CONTRATO</strong></p>
+                <p style={{ marginBottom:12 }}><strong>CLÁUSULA {N.OBJETO} — OBJETO DEL CONTRATO</strong></p>
                 <p style={{ marginBottom:20 }}>
                   {tipoContrato === 'exclusividad'
                     ? <>EL PROPIETARIO otorga a NIDO la exclusividad para gestionar la venta de su propiedad por un período de noventa (90) días calendario contados a partir de la firma del presente contrato, es decir desde el {fmtDate(hoy)} hasta el {fmtDate(vencimiento)}. Durante este período, NIDO será el único canal autorizado para gestionar, promocionar y negociar la venta de la propiedad.</>
+                    : tipoContrato === 'alquiler'
+                    ? <>EL PROPIETARIO otorga a NIDO la exclusividad para gestionar el arrendamiento de su propiedad por un período de sesenta (60) días calendario contados a partir de la firma del presente contrato, es decir desde el {fmtDate(hoy)} hasta el {fmtDate(vencimiento)}. Durante este período, NIDO será el único canal autorizado para gestionar, promocionar y negociar el arrendamiento de la propiedad.</>
                     : 'EL PROPIETARIO contrata a NIDO para la promoción y venta de su propiedad sin exclusividad, como complemento de venta ("push de venta"). EL PROPIETARIO puede comercializar la propiedad simultáneamente por cualquier otro canal, agencia o corredor. Este contrato no tiene plazo fijo de vencimiento y se mantiene vigente hasta que cualquiera de las partes lo dé por terminado, con al menos 5 días hábiles de aviso previo y sin penalización alguna.'}
                 </p>
 
-                <p style={{ marginBottom:12 }}><strong>CLÁUSULA SEGUNDA — SERVICIOS INCLUIDOS</strong></p>
+                <p style={{ marginBottom:12 }}><strong>CLÁUSULA {N.SERVICIOS} — SERVICIOS INCLUIDOS</strong></p>
                 <p style={{ marginBottom:8 }}>NIDO se compromete a prestar los siguientes servicios:</p>
                 <div style={{ marginBottom:20, paddingLeft:16 }}>
-                  {[
+                  {(tipoContrato === 'alquiler' ? [
+                    'Publicación de la propiedad en el portal digital de NIDO con ficha completa y fotografías',
+                    'Verificación de datos registrales con el Registro Nacional de Costa Rica',
+                    'Campaña de marketing digital en redes sociales (Instagram y Facebook)',
+                    'Gestión y calificación de interesados en alquilar',
+                    'Verificación de referencias y capacidad de pago del inquilino',
+                    'Elaboración del contrato de arrendamiento conforme a la Ley General de Arrendamientos Urbanos y Suburbanos (Ley N° 7527)',
+                    'Asesoría legal durante el proceso de arrendamiento',
+                    deseaAdministracion ? 'Administración integral de la propiedad durante el arrendamiento (ver cláusula siguiente)' : 'Fotografía profesional básica de la propiedad',
+                    'Acceso a Valeria IA para análisis de mercado y valuación de renta',
+                  ] : [
                     'Publicación de la propiedad en el portal digital de NIDO con ficha completa y fotografías',
                     'Verificación de datos registrales con el Registro Nacional de Costa Rica',
                     'Campaña de marketing digital en redes sociales (Instagram y Facebook)',
@@ -328,57 +404,95 @@ function Contrato() {
                     'Acompañamiento hasta el proceso notarial y firma de escritura',
                     tipoContrato === 'exclusividad' ? 'Fotografía profesional básica de la propiedad (incluida en exclusividad)' : 'Acceso al dashboard de propietario con estadísticas en tiempo real',
                     'Acceso a Valeria IA para análisis de mercado y valuación',
-                  ].map((s, i) => <div key={i} style={{ marginBottom:4 }}>• {s}</div>)}
+                  ]).map((s, i) => <div key={i} style={{ marginBottom:4 }}>• {s}</div>)}
                 </div>
 
-                <p style={{ marginBottom:12 }}><strong>CLÁUSULA TERCERA — COMISIÓN Y HONORARIOS</strong></p>
+                <p style={{ marginBottom:12 }}><strong>CLÁUSULA {N.COMISION} — COMISIÓN Y HONORARIOS</strong></p>
                 <p style={{ marginBottom:8 }}>
                   {tipoContrato === 'exclusividad'
                     ? 'La comisión de NIDO por la venta exitosa de la propiedad será del cuatro por ciento (4%) sobre el precio final de venta acordado entre las partes. Esta comisión se devengará y será exigible únicamente al momento del cierre notarial. Si la venta no se concreta durante el período de exclusividad, NIDO no tendrá derecho a cobrar comisión alguna.'
+                    : tipoContrato === 'alquiler'
+                    ? 'La comisión de NIDO por la colocación exitosa de un inquilino será el equivalente a un (1) mes de renta mensual acordada entre las partes. Esta comisión se devengará y será exigible únicamente al momento de la firma del contrato de arrendamiento entre EL PROPIETARIO y el inquilino gestionado por NIDO. Si no se logra colocar un inquilino durante el período de exclusividad, NIDO no tendrá derecho a cobrar comisión alguna.'
                     : 'La comisión de NIDO será del cuatro por ciento (4%) sobre el precio final de venta, exigible únicamente si la venta se concreta a través de la gestión de NIDO. Si EL PROPIETARIO vende la propiedad por su cuenta o mediante otro canal, agencia o corredor, NIDO no tendrá derecho a cobrar comisión alguna.'}
                 </p>
                 <p style={{ marginBottom:20, fontWeight:500, color:'var(--ink)' }}>
-                  NIDO aplica el principio de &quot;no venta, no comisión&quot;: si no logramos vender la propiedad, no se cobra ningún honorario. NIDO no ofrece ni opera ningún plan de suscripción para propietarios: el único modelo de servicio es el corretaje descrito en esta cláusula.
+                  {tipoContrato === 'alquiler'
+                    ? <>NIDO aplica el principio de &quot;no colocación, no comisión&quot;: si no logramos alquilar la propiedad, no se cobra ningún honorario. Esta comisión de colocación es independiente del servicio opcional de administración{deseaAdministracion ? ' descrito en la cláusula siguiente' : ''}, y NIDO no ofrece ni opera ningún plan de suscripción para propietarios.</>
+                    : <>NIDO aplica el principio de &quot;no venta, no comisión&quot;: si no logramos vender la propiedad, no se cobra ningún honorario. NIDO no ofrece ni opera ningún plan de suscripción para propietarios: el único modelo de servicio es el corretaje descrito en esta cláusula.</>}
                 </p>
 
-                {tipoContrato === 'exclusividad' && <>
-                  <p style={{ marginBottom:12 }}><strong>CLÁUSULA CUARTA — EXCLUSIVIDAD</strong></p>
+                {tipoContrato === 'alquiler' && deseaAdministracion && <>
+                  <p style={{ marginBottom:12 }}><strong>CLÁUSULA {N.ADMINISTRACION} — ADMINISTRACIÓN DE LA PROPIEDAD (SERVICIO OPCIONAL)</strong></p>
+                  <p style={{ marginBottom:8 }}>
+                    Adicionalmente a la gestión de colocación, EL PROPIETARIO contrata a NIDO para la administración integral de la propiedad durante la vigencia del contrato de arrendamiento con el inquilino colocado. Este servicio es opcional, se factura por separado de la comisión de colocación, y puede cancelarse en cualquier momento con treinta (30) días naturales de aviso previo, sin afectar la vigencia del contrato de arrendamiento con el inquilino.
+                  </p>
+                  <p style={{ marginBottom:8 }}>El servicio de administración incluye:</p>
+                  <div style={{ marginBottom:12, paddingLeft:16 }}>
+                    {[
+                      'Cobro mensual de la renta y transferencia al PROPIETARIO dentro de los cinco (5) días hábiles siguientes',
+                      'Comunicación directa con el inquilino para consultas y gestión de la relación arrendaticia',
+                      'Coordinación de mantenimiento y reparaciones menores, con reporte y aprobación previa del PROPIETARIO para gastos que superen un tercio de la renta mensual',
+                      'Reporte mensual de estado de la propiedad y de cobros realizados',
+                    ].map((s, i) => <div key={i} style={{ marginBottom:4 }}>• {s}</div>)}
+                  </div>
                   <p style={{ marginBottom:20 }}>
-                    Durante el período de exclusividad, EL PROPIETARIO se compromete a no publicar, ofrecer ni gestionar la venta de la propiedad a través de ningún otro canal, agencia, corredor o plataforma inmobiliaria. El incumplimiento de esta cláusula facultará a NIDO a reclamar una indemnización equivalente al 2% del precio de lista de la propiedad.
+                    Por este servicio, EL PROPIETARIO pagará a NIDO una comisión de administración equivalente al diez por ciento (10%) de la renta efectivamente cobrada cada mes, la cual se descuenta directamente del monto transferido al PROPIETARIO.
+                  </p>
+                </>}
+
+                {tipoContrato !== 'no_exclusivo' && <>
+                  <p style={{ marginBottom:12 }}><strong>CLÁUSULA {N.EXCLUSIVIDAD} — EXCLUSIVIDAD</strong></p>
+                  <p style={{ marginBottom:20 }}>
+                    {tipoContrato === 'alquiler'
+                      ? 'Durante el período de exclusividad, EL PROPIETARIO se compromete a no publicar, ofrecer ni gestionar el arrendamiento de la propiedad a través de ningún otro canal, agencia, corredor o plataforma inmobiliaria. El incumplimiento de esta cláusula facultará a NIDO a reclamar una indemnización equivalente a un (1) mes de renta según el precio de lista de la propiedad.'
+                      : 'Durante el período de exclusividad, EL PROPIETARIO se compromete a no publicar, ofrecer ni gestionar la venta de la propiedad a través de ningún otro canal, agencia, corredor o plataforma inmobiliaria. El incumplimiento de esta cláusula facultará a NIDO a reclamar una indemnización equivalente al 2% del precio de lista de la propiedad.'}
                   </p>
 
-                  <p style={{ marginBottom:12 }}><strong>CLÁUSULA QUINTA — RENOVACIÓN Y OPCIONES AL VENCIMIENTO</strong></p>
+                  <p style={{ marginBottom:12 }}><strong>CLÁUSULA {N.RENOVACION} — RENOVACIÓN Y OPCIONES AL VENCIMIENTO</strong></p>
                   <p style={{ marginBottom:8 }}>Al vencimiento del período de exclusividad, EL PROPIETARIO podrá elegir entre:</p>
                   <div style={{ marginBottom:20, paddingLeft:16 }}>
-                    <div style={{ marginBottom:4 }}>a) Renovar el contrato de exclusividad por un nuevo período de 90 días bajo las mismas condiciones.</div>
-                    <div style={{ marginBottom:4 }}>b) Continuar con NIDO en modalidad sin exclusividad, como complemento de venta (&quot;push de venta&quot;): la propiedad permanece publicada y promocionada por NIDO sin costo de suscripción, EL PROPIETARIO puede comercializarla simultáneamente por otros canales, y la comisión del 4% aplica únicamente si la venta se concreta a través de NIDO.</div>
-                    <div style={{ marginBottom:4 }}>c) Dar por terminado el contrato sin penalización alguna.</div>
+                    {tipoContrato === 'alquiler' ? <>
+                      <div style={{ marginBottom:4 }}>a) Renovar el contrato de exclusividad por un nuevo período de 60 días bajo las mismas condiciones.</div>
+                      <div style={{ marginBottom:4 }}>b) Continuar con NIDO en modalidad sin exclusividad, como complemento de colocación (&quot;push de alquiler&quot;): la propiedad permanece publicada y promocionada por NIDO sin costo de suscripción, EL PROPIETARIO puede comercializarla simultáneamente por otros canales, y la comisión de un mes de renta aplica únicamente si la colocación se concreta a través de NIDO.</div>
+                      <div style={{ marginBottom:4 }}>c) Dar por terminado el contrato sin penalización alguna.</div>
+                    </> : <>
+                      <div style={{ marginBottom:4 }}>a) Renovar el contrato de exclusividad por un nuevo período de 90 días bajo las mismas condiciones.</div>
+                      <div style={{ marginBottom:4 }}>b) Continuar con NIDO en modalidad sin exclusividad, como complemento de venta (&quot;push de venta&quot;): la propiedad permanece publicada y promocionada por NIDO sin costo de suscripción, EL PROPIETARIO puede comercializarla simultáneamente por otros canales, y la comisión del 4% aplica únicamente si la venta se concreta a través de NIDO.</div>
+                      <div style={{ marginBottom:4 }}>c) Dar por terminado el contrato sin penalización alguna.</div>
+                    </>}
                   </div>
                 </>}
 
-                <p style={{ marginBottom:12 }}><strong>{tipoContrato === 'exclusividad' ? 'CLÁUSULA SEXTA' : 'CLÁUSULA CUARTA'} — OBLIGACIONES DEL PROPIETARIO</strong></p>
+                <p style={{ marginBottom:12 }}><strong>CLÁUSULA {N.OBLIGACIONES} — OBLIGACIONES DEL PROPIETARIO</strong></p>
                 <div style={{ marginBottom:20, paddingLeft:16 }}>
-                  {[
+                  {(tipoContrato === 'alquiler' ? [
+                    'Proporcionar información veraz, completa y actualizada sobre la propiedad',
+                    'Mantener la documentación registral al día y libre de impedimentos legales',
+                    'Declarar expresamente cualquier gravamen, hipoteca, embargo o limitación sobre la propiedad',
+                    'Mantener la propiedad en condiciones habitables y facilitar el acceso para visitas coordinadas por NIDO',
+                    'Notificar a NIDO cualquier cambio en las condiciones de la propiedad o en el monto de renta solicitado',
+                    'Mantener comunicación activa con el asesor NIDO asignado',
+                  ] : [
                     'Proporcionar información veraz, completa y actualizada sobre la propiedad',
                     'Mantener la documentación registral al día y libre de impedimentos legales',
                     'Declarar expresamente cualquier gravamen, hipoteca, embargo o limitación sobre la propiedad',
                     'Facilitar el acceso a la propiedad para visitas coordinadas por NIDO',
                     'Notificar a NIDO cualquier cambio en las condiciones de la propiedad o en el precio de lista',
                     'Mantener comunicación activa con el asesor NIDO asignado',
-                  ].map((s, i) => <div key={i} style={{ marginBottom:4 }}>• {s}</div>)}
+                  ]).map((s, i) => <div key={i} style={{ marginBottom:4 }}>• {s}</div>)}
                 </div>
 
-                <p style={{ marginBottom:12 }}><strong>{tipoContrato === 'exclusividad' ? 'CLÁUSULA SÉTIMA' : 'CLÁUSULA QUINTA'} — PROTECCIÓN DE DATOS PERSONALES</strong></p>
+                <p style={{ marginBottom:12 }}><strong>CLÁUSULA {N.DATOS} — PROTECCIÓN DE DATOS PERSONALES</strong></p>
                 <p style={{ marginBottom:20 }}>
                   El tratamiento de los datos personales de las partes se realizará conforme a la Ley N° 8968 de Protección de la Persona frente al Tratamiento de sus Datos Personales de Costa Rica y la Política de Privacidad de NIDO disponible en www.nido-cr.com/privacidad.
                 </p>
 
-                <p style={{ marginBottom:12 }}><strong>{tipoContrato === 'exclusividad' ? 'CLÁUSULA OCTAVA' : 'CLÁUSULA SEXTA'} — RESOLUCIÓN DE DISPUTAS</strong></p>
+                <p style={{ marginBottom:12 }}><strong>CLÁUSULA {N.DISPUTAS} — RESOLUCIÓN DE DISPUTAS</strong></p>
                 <p style={{ marginBottom:20 }}>
                   Cualquier controversia derivada del presente contrato se resolverá preferiblemente de manera amigable. En caso de no alcanzarse un acuerdo, las partes se someten a la jurisdicción de los Tribunales de Justicia de la República de Costa Rica, con renuncia expresa a cualquier otro fuero.
                 </p>
 
-                <p style={{ marginBottom:12 }}><strong>{tipoContrato === 'exclusividad' ? 'CLÁUSULA NOVENA' : 'CLÁUSULA SÉTIMA'} — DESTINO DE LA PUBLICACIÓN AL FINALIZAR EL CONTRATO</strong></p>
+                <p style={{ marginBottom:12 }}><strong>CLÁUSULA {N.DESTINO} — DESTINO DE LA PUBLICACIÓN AL FINALIZAR EL CONTRATO</strong></p>
                 <p style={{ marginBottom:24 }}>
                   Al finalizar o terminar este contrato por cualquier causa, NIDO retira la publicación de la propiedad del portal público en un plazo máximo de 5 días hábiles, salvo que EL PROPIETARIO solicite su retiro inmediato. Las fotografías y datos de la propiedad se conservan conforme a los plazos indicados en la Política de Privacidad de NIDO, y pueden eliminarse antes a solicitud expresa de EL PROPIETARIO.
                 </p>
@@ -432,7 +546,7 @@ function Contrato() {
                 <div style={{ display:'flex', gap:10, marginBottom:20 }}>
                   <button onClick={async () => {
                     const { data: { session } } = await supabase.auth.getSession()
-                    const res = await fetch('/api/contrato-pdf?correo='+user?.email+'&tipo='+tipoContrato, { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
+                    const res = await fetch('/api/contrato-pdf?correo='+user?.email+'&tipo='+tipoContrato+'&admin='+(deseaAdministracion?'1':'0'), { headers: { 'Authorization': 'Bearer ' + session?.access_token } })
                     if (!res.ok) { setContratoError('No se pudo cargar el contrato'); return }
                     const html = await res.text()
                     const blob = new Blob([html], { type: 'text/html' })
@@ -498,7 +612,7 @@ function Contrato() {
                 {aceptaTerminos && <span style={{ color:'white', fontSize:12, fontWeight:700 }}>✓</span>}
               </div>
               <div style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65 }}>
-                He leído y acepto el contrato de corretaje {tipoContrato === 'exclusividad' ? 'con exclusividad de 90 días' : 'sin exclusividad'} de NIDO. Entiendo que al firmar autorizo a NIDO a gestionar mi propiedad según los términos descritos.
+                He leído y acepto el contrato de corretaje {tipoContrato === 'exclusividad' ? 'con exclusividad de 90 días' : tipoContrato === 'alquiler' ? 'de arrendamiento con exclusividad de 60 días' + (deseaAdministracion ? ', incluyendo el servicio de administración' : '') : 'sin exclusividad'} de NIDO. Entiendo que al firmar autorizo a NIDO a gestionar mi propiedad según los términos descritos.
               </div>
             </div>
 
@@ -537,7 +651,7 @@ function Contrato() {
               <a href="/dashboard/propietario" style={{ padding:'12px 24px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:14, fontWeight:500, textDecoration:'none' }}>
                 Ir al panel →
               </a>
-              <a href={'mailto:hola@nido-cr.com?subject=Firma%20de%20contrato%20de%20propietario&body=Hola%20NIDO%2C%20acabo%20de%20firmar%20el%20contrato%20de%20'+(tipoContrato === 'exclusividad' ? 'exclusividad' : 'sin%20exclusividad')+'.%20Mi%20correo%20es%20'+user?.email} style={{ padding:'12px 24px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', fontSize:14, fontWeight:500, textDecoration:'none' }}>
+              <a href={'mailto:hola@nido-cr.com?subject=Firma%20de%20contrato%20de%20propietario&body=Hola%20NIDO%2C%20acabo%20de%20firmar%20el%20contrato%20de%20'+(tipoContrato === 'exclusividad' ? 'exclusividad' : tipoContrato === 'alquiler' ? 'arrendamiento%20con%20exclusividad' : 'sin%20exclusividad')+'.%20Mi%20correo%20es%20'+user?.email} style={{ padding:'12px 24px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', fontSize:14, fontWeight:500, textDecoration:'none' }}>
                 ✉ Contactar equipo NIDO
               </a>
             </div>

@@ -115,6 +115,8 @@ export interface Contrato {
   notas: string | null
   creado_por: string | null
   created_at: string | null
+  incluye_administracion: boolean | null
+  administracion_porcentaje: number | null
 }
 
 export interface EquipoMiembro {
