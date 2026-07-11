@@ -152,7 +152,8 @@ Este es un ASESOR registrado en NIDO (plan ${esAsesorBlack ? 'Black' : asesor?.p
 ${esAsesorBlack ? `- Es plan Black: actuás como su MENTOR experto del mercado inmobiliario costarricense — no solo con datos de NIDO, sino con tu conocimiento general del mercado (como si le respondieras a un colega en un chat). Si pregunta por precios, precio por m², tendencias de una zona, en qué zona conviene invertir, comparación entre zonas, o cualquier duda de mercado/inversión, respondé con {"action":"consulta_mercado","zona":"zona mencionada o null","pregunta":"resumen breve de lo que pregunta"}.
 - Es plan Black: si te pide un CMA (análisis comparativo de mercado) o "cuánto le pongo de precio" a una propiedad específica que te describe (ubicación, tipo, m², habitaciones, condición, etc), respondé con {"action":"cma_propiedad","zona":"zona mencionada","descripcion":"resumen de las características que te dio"}.
 - Es plan Black: si te pide redactar algo (descripción de una propiedad, mensaje de seguimiento para un lead, post para redes sociales, respuesta a un cliente), escribíselo vos misma directo en texto, bien redactado y listo para copiar/pegar — no hace falta JSON para esto, es parte de tu rol de asistente.
-- Es plan Black: si te pide hablar con una persona del equipo NIDO, escalar un problema, o algo que vos no puedas resolver, respondé con {"action":"escalar_soporte","motivo":"resumen breve del problema"} — se crea un ticket con prioridad alta.` : `- NO es plan Black: si pregunta por precios de mercado, tendencias de zona, pide un CMA, o pide asesoría de inversión, respondé en texto que Valeria como mentora de mercado en tiempo real es un beneficio exclusivo del plan Black, y que puede hacer upgrade en nido-cr.com/precios. Si pide hablar con una persona del equipo NIDO, respondé con {"action":"escalar_soporte","motivo":"resumen breve del problema"}.`}
+- Es plan Black: si te pide hablar con una persona del equipo NIDO, escalar un problema, o algo que vos no puedas resolver, respondé con {"action":"escalar_soporte","motivo":"resumen breve del problema"} — se crea un ticket con prioridad alta.
+- Es plan Black: tiene acceso a asesoría legal y notarial con el equipo legal de NIDO. Si pregunta algo legal o notarial (revisión de una cláusula, dudas sobre el proceso de cierre/escritura, un contrato de arrendamiento, poderes, documentos, o cualquier duda jurídica sobre una negociación o propiedad), NO improvises una respuesta legal vos misma — respondé con {"action":"consulta_legal","motivo":"resumen breve de la consulta legal"} para conectarlo directo con el equipo legal de NIDO.` : `- NO es plan Black: si pregunta por precios de mercado, tendencias de zona, pide un CMA, pide asesoría de inversión, o pregunta algo legal/notarial, respondé en texto que Valeria como mentora de mercado y la asesoría legal y notarial con el equipo legal de NIDO son beneficios exclusivos del plan Black, y que puede hacer upgrade en nido-cr.com/precios. Si pide hablar con una persona del equipo NIDO, respondé con {"action":"escalar_soporte","motivo":"resumen breve del problema"}.`}
 ` : ''}
 ${userType === 'propietario' ? `
 Es un PROPIETARIO con al menos una propiedad publicada en NIDO. Tu ayuda con propietarios es BASICA nada más:
@@ -272,6 +273,8 @@ Para cualquier otra consulta, responde normalmente en texto.`
         } else if (action.action === 'escalar_soporte') {
           const correoContacto = asesor?.correo || propietario?.correo || (from + '@whatsapp.nido-cr.com')
           finalReply = await ejecutarEscalarSoporte({ from, text, userName, userType, correoContacto, motivo: action.motivo || 'Consulta desde WhatsApp', esAsesorBlack })
+        } else if (action.action === 'consulta_legal' && esAsesorBlack && asesor?.correo) {
+          finalReply = await ejecutarConsultaLegal({ from, text, userName, correoContacto: asesor.correo, motivo: action.motivo || 'Consulta legal desde WhatsApp' })
         } else if (action.action === 'conectar_asesor') {
           finalReply = await ejecutarConectarAsesor({ from, text, userName, zona: action.zona, tipo: action.tipo, nombre: action.nombre, propiedadId: action.propiedad_id })
         } else if (action.action === 'mis_propiedades_propietario' && propietario?.correo) {
@@ -401,6 +404,47 @@ async function ejecutarEscalarSoporte(params: {
   return esAsesorBlack
     ? `🆘 Listo, ya escalé tu consulta con *prioridad alta* al equipo NIDO. Te van a responder pronto por acá o por correo.\n\n¿Necesitás algo más mientras tanto?`
     : `🆘 Listo, ya le avisé al equipo NIDO sobre tu consulta. Te van a responder pronto.\n\n¿Necesitás algo más mientras tanto?`
+}
+
+// Asesoría legal y notarial — beneficio exclusivo de asesores plan Black. A diferencia de
+// escalar_soporte (problemas operativos con NIDO), esto va etiquetado como 'legal' y se dirige
+// al equipo legal (legal@nido-cr.com) en vez de al buzón general, siempre con prioridad alta.
+async function ejecutarConsultaLegal(params: {
+  from: string
+  text: string
+  userName: string | null
+  correoContacto: string
+  motivo: string
+}): Promise<string> {
+  const { from, text, userName, correoContacto, motivo } = params
+  const ticketId = crypto.randomUUID()
+
+  await supabaseAdmin.from('soporte_tickets').insert({
+    id: ticketId,
+    usuario_email: correoContacto,
+    usuario_nombre: userName,
+    usuario_telefono: from,
+    usuario_tipo: 'asesor',
+    canal: 'whatsapp',
+    categoria: 'legal',
+    asunto: motivo,
+    estado: 'abierto',
+    prioridad: 'alta',
+  })
+  await supabaseAdmin.from('soporte_mensajes').insert({ ticket_id: ticketId, remitente: 'usuario', contenido: text })
+
+  const baseUrl = process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'https://www.nido-cr.com'
+  fetch(baseUrl + '/api/email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      to: 'legal@nido-cr.com',
+      tipo: 'nuevo_ticket_soporte',
+      data: { usuario_nombre: userName, usuario_email: correoContacto, usuario_telefono: from, usuario_tipo: 'asesor', asunto: '⚖️ Consulta legal (Black): ' + motivo, resumen: 'Usuario: ' + text + '\n\n⚖️ Consulta legal/notarial — asesor plan Black, prioridad alta' },
+    }),
+  }).catch(() => {})
+
+  return `⚖️ Listo, ya envié tu consulta al *equipo legal de NIDO* con prioridad alta. Te van a responder pronto por acá o por correo — para temas legales/notariales es mejor que te confirmen ellos directamente, así te llega algo preciso y no una respuesta genérica mía.\n\n¿Necesitás algo más mientras tanto?`
 }
 
 // Crea el lead y conecta al comprador con el asesor a cargo (de la propiedad especifica

@@ -395,6 +395,7 @@ export interface SoporteTicket {
   asunto: string | null
   estado: string
   prioridad: string
+  categoria: string | null
   created_at: string
   updated_at: string
 }

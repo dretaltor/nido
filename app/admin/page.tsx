@@ -1288,10 +1288,13 @@ export default function AdminPanel() {
                     <div key={t.id} className="row" onClick={() => setSel({...t, _tipo:'ticket'})}>
                       <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{(t.usuario_nombre||t.usuario_email||'?')[0].toUpperCase()}</div>
                       <div style={{ flex:1 }}>
-                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{t.asunto || 'Consulta de soporte'}</div>
+                        <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{t.categoria === 'legal' && '⚖️ '}{t.asunto || 'Consulta de soporte'}</div>
                         <div style={{ fontSize:12, color:'var(--ink-3)' }}>{t.usuario_nombre || t.usuario_email} · {t.usuario_tipo} · {new Date(t.created_at).toLocaleDateString('es-CR')}</div>
                       </div>
                       <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                        {t.categoria === 'legal' && (
+                          <span className="badge" style={{ background:'oklch(0.93 0.05 280)', color:'oklch(0.42 0.1 280)' }}>Legal</span>
+                        )}
                         <span className="badge" style={badgeStyle}>
                           {t.estado==='resuelto'?'✓ Resuelto':t.estado==='en_progreso'?'En progreso':'Abierto'}
                         </span>
