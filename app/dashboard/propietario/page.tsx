@@ -122,7 +122,7 @@ export default function DashboardPropietario() {
         .then(({ data }) => setReferidosReales(data || []))
       supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,fecha_inicio,fecha_vencimiento,periodo_dias,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,comision_porcentaje,incluye_administracion,administracion_porcentaje,notas,created_at').eq('propietario_correo', user.email!).in('estado', ['activo','pendiente']).order('created_at', { ascending: false }).limit(1).maybeSingle().then(({ data: c }) => { setContrato(c); setLoadingContrato(false) })
       // Fetch propiedades del propietario + leads + ofertas filtradas
-      supabase.from('propiedades').select('id,titulo,zona,precio,disponible,tipo,ref_id,fotos,habitaciones,banos,metros,operacion')
+      supabase.from('propiedades').select('id,titulo,zona,precio,disponible,tipo,ref_id,fotos,habitaciones,banos,metros,operacion,asesor_email,asesor_nombre,asesor_whatsapp')
         .eq('propietario_email', user.email!)
         .then(({ data: props }) => {
           const propsData = (props || []) as Partial<Propiedad>[]
@@ -248,6 +248,63 @@ export default function DashboardPropietario() {
                 </div>
               ))}
             </div>
+
+            {/* Tu asesor NIDO asignado — por que siempre hay uno y quien es */}
+            {(() => {
+              const asesoresUnicos = Array.from(
+                new Map(propiedadesReales.filter(p => p.asesor_email).map(p => [p.asesor_email, p])).values()
+              )
+              return (
+                <div className="card" style={{ marginBottom:16, overflow:'hidden' }}>
+                  <div style={{ display:'flex', flexWrap:'wrap', gap:0 }}>
+                    <div className="card-pad" style={{ flex:'1 1 320px' }}>
+                      <div style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--accent)', marginBottom:10 }}>Por qué siempre tenés un asesor</div>
+                      <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.7, marginBottom:12 }}>
+                        NIDO nunca te deja solo con la publicación. Cada propiedad se asigna a un asesor experto que se vuelve tu punto de contacto único, porque:
+                      </p>
+                      <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                        {[
+                          'Coordina visitas y filtra curiosos — vos no perdés tiempo con gente que no va en serio',
+                          'Conoce el mercado de tu zona y te ayuda a fijar el precio correcto, no uno al ojo',
+                          'Lleva la negociación y la parte legal/notarial del cierre, donde un error te puede costar caro',
+                          'Es una sola persona a quien escribirle — no un call center distinto cada vez',
+                        ].map(b => (
+                          <div key={b} style={{ display:'flex', gap:8, fontSize:13, color:'var(--ink-2)' }}>
+                            <span style={{ color:'var(--accent)', flexShrink:0 }}>✓</span> {b}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{ flex:'1 1 260px', background:'var(--bg)', padding:'24px 28px', borderLeft:'1px solid var(--rule)' }}>
+                      {asesoresUnicos.length === 0 ? (
+                        <div>
+                          <div style={{ fontSize:11, letterSpacing:'0.12em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Tu asesor</div>
+                          <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.7 }}>Te asignamos un asesor experto en cuanto tu propiedad quede aprobada y publicada.</p>
+                        </div>
+                      ) : asesoresUnicos.map((p) => (
+                        <div key={p.asesor_email} style={{ display:'flex', gap:12, alignItems:'center', marginBottom:asesoresUnicos.length>1?16:0 }}>
+                          <div style={{ width:44, height:44, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:18, color:'var(--accent)', flexShrink:0 }}>
+                            {(p.asesor_nombre || 'A')[0].toUpperCase()}
+                          </div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:14, fontWeight:500 }}>{p.asesor_nombre || 'Asesor NIDO'}</div>
+                            <div style={{ fontSize:12, color:'var(--ink-3)', marginBottom:8 }}>Asesor asignado{asesoresUnicos.length===1 && propiedadesReales.length>1 ? ' a todas tus propiedades' : ''}</div>
+                            <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                              {p.asesor_whatsapp && (
+                                <a href={'https://wa.me/'+String(p.asesor_whatsapp).replace(/[^0-9]/g,'')} target="_blank" style={{ fontSize:12, padding:'6px 12px', borderRadius:999, background:'var(--accent)', color:'white', textDecoration:'none', fontWeight:500 }}>WhatsApp</a>
+                              )}
+                              {p.asesor_email && (
+                                <a href={'mailto:'+p.asesor_email} style={{ fontSize:12, padding:'6px 12px', borderRadius:999, border:'1px solid var(--rule)', color:'var(--ink)', textDecoration:'none', fontWeight:500 }}>Email</a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
 
             {/* Resumen propiedades */}
             <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
