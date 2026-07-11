@@ -31,7 +31,7 @@ export default function Asesores() {
   const [spec, setSpec] = useState('Todas')
   useEffect(() => {
     supabase.from('asesores_publicos')
-      .select('id,nombre,correo,foto_url,valeria_perfil,equipo_nido_estado')
+      .select('id,nombre,correo,foto_url,valeria_perfil,equipo_nido_estado,bio_publica,anos_experiencia,hobbies,zona_trabajo_publica,slug,oficina_id,oficina_nombre')
       .order('nombre')
       .then(async ({ data }) => {
         if (data) {
@@ -133,13 +133,13 @@ export default function Asesores() {
 
         <div className="agent-grid-inner" style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 48px'}}>
           {filtered.map(a => (
-            <div key={a.id} className="agent-card">
+            <Link key={a.id} href={'/asesores/'+(a.slug || a.id)} className="agent-card" style={{textDecoration:'none',color:'inherit'}}>
               <div style={{width:56,height:56,borderRadius:'50%',background:`oklch(0.85 0.04 ${a.hue})`,display:'grid',placeItems:'center',fontFamily:'var(--serif)',fontSize:22,color:`oklch(0.35 0.06 ${a.hue})`,flexShrink:0,overflow:'hidden'}}>
                 {a.foto_url ? <img src={a.foto_url} alt={a.nombre||''} style={{width:'100%',height:'100%',objectFit:'cover'}}/> : a.initial}
               </div>
               <div>
                 <div style={{fontFamily:'var(--serif)',fontSize:22,marginBottom:2}}>{a.name}</div>
-                <div style={{fontSize:12,color:'var(--ink-3)',marginBottom:10,letterSpacing:'0.04em'}}>{a.role}</div>
+                <div style={{fontSize:12,color:'var(--ink-3)',marginBottom:10,letterSpacing:'0.04em'}}>{a.role}{a.oficina_nombre ? ' · ' + a.oficina_nombre : ''}</div>
                 <p style={{fontSize:14,color:'var(--ink-2)',lineHeight:1.55,marginBottom:10}}>{a.bio}</p>
                 <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:12}}>
                   {a.specs.map((s:string) => <span key={s} style={{padding:'3px 10px',borderRadius:999,border:'1px solid var(--rule)',fontSize:11,color:'var(--ink-3)'}}>{s}</span>)}
@@ -156,7 +156,7 @@ export default function Asesores() {
                 </div>
               </div>
               <div className="arrow">→</div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

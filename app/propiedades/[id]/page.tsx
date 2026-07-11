@@ -10,7 +10,7 @@ import { OfertaForm } from '@/components/ofertas/OfertaForm'
 import { ContactoForm } from '@/components/contacto/ContactoForm'
 import type { CalificacionPublica } from '../../../lib/database.types'
 
-type PerfilAsesorState = { correo?: string, nombre?: string, foto_url?: string, equipo_nido_estado?: string, telefono?: string } | null
+type PerfilAsesorState = { correo?: string, nombre?: string, foto_url?: string, equipo_nido_estado?: string, telefono?: string, slug?: string | null, id?: string } | null
 
 interface Propiedad {
   id: string; titulo: string; descripcion: string; precio: number; tipo: string;
@@ -67,7 +67,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
       setPropiedad(data as Propiedad | null)
       setLoading(false)
       if (data && data.asesor_email) {
-        supabase.from('asesores_publicos').select('correo,nombre,foto_url,equipo_nido_estado').eq('correo', data.asesor_email).maybeSingle()
+        supabase.from('asesores_publicos').select('id,correo,nombre,foto_url,equipo_nido_estado,slug').eq('correo', data.asesor_email).maybeSingle()
           .then(({ data: pf }) => setPerfilAsesor(pf))
         supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', data.asesor_email).maybeSingle()
           .then(({ data: rat }) => setAsesorStats(s => ({ ...s, promedio: rat?.promedio ?? null, total: rat?.total ?? 0 })))
@@ -378,7 +378,7 @@ Respondé en español, tono cercano y profesional, respuestas concisas (máximo 
               <div style={{background:'white',border:'1px solid var(--rule)',borderRadius:16,overflow:'hidden'}}>
                 {/* Header asesor */}
                 <div style={{background:'var(--ink)',padding:'20px'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:14}}>
+                  <Link href={'/asesores/'+(perfilAsesor?.slug || perfilAsesor?.id || '')} style={{display:'flex',alignItems:'center',gap:14,textDecoration:'none',pointerEvents:(perfilAsesor?.slug || perfilAsesor?.id) ? 'auto' : 'none'}}>
                     <div style={{width:52,height:52,borderRadius:'50%',background:'linear-gradient(135deg,var(--accent),oklch(0.30 0.08 150))',display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'Cormorant Garamond',serif",fontSize:22,color:'oklch(0.85 0.06 80)',flexShrink:0,overflow:'hidden'}}>
                       {perfilAsesor?.foto_url
                         ? <img src={perfilAsesor.foto_url} alt={propiedad.asesor_nombre} style={{width:'100%',height:'100%',objectFit:'cover'}}/>
@@ -391,7 +391,7 @@ Respondé en español, tono cercano y profesional, respuestas concisas (máximo 
                         {perfilAsesor?.equipo_nido_estado === 'aprobado' ? 'Asesor NIDO' : 'Asesor afiliado a NIDO'}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 </div>
 
                 {/* Stats del asesor */}

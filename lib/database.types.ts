@@ -232,6 +232,12 @@ export interface Perfil {
   referido_por: string | null
   suspendido: boolean
   oficina_id: string | null
+  bio_publica: string | null
+  anos_experiencia: number | null
+  hobbies: Json | null
+  zona_trabajo_publica: string | null
+  slug: string | null
+  perfil_publico_visible: boolean | null
 }
 
 export interface CursoCompra {
@@ -455,6 +461,23 @@ export interface AsesorPublico {
   foto_url: string | null
   valeria_perfil: Json | null
   equipo_nido_estado: string | null
+  bio_publica: string | null
+  anos_experiencia: number | null
+  hobbies: Json | null
+  zona_trabajo_publica: string | null
+  slug: string | null
+  oficina_id: string | null
+  oficina_nombre: string | null
+}
+
+export interface CalificacionAsesor {
+  id: string | null
+  asesor_email: string | null
+  calificador_nombre: string | null
+  calificacion: number | null
+  comentario: string | null
+  propiedad_id: string | null
+  created_at: string | null
 }
 
 export interface AsesorCalificaciones {

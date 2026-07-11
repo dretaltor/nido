@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { useTrial } from '../../../lib/useTrial'
+import { generarSlugUnico } from '../../../lib/slug'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
 import type { Json } from '../../../lib/database.types'
@@ -195,14 +196,18 @@ export default function Perfil() {
   const [uploading, setUploading] = useState(false)
   const [perfil, setPerfil] = useState({ nombre:'', correo:'', telefono:'', cedula:'', codigo_corredor:'', foto_url:'' })
   const [pass, setPass] = useState({ nueva:'', confirmar:'' })
+  const [perfilPublico, setPerfilPublico] = useState({ bio_publica:'', anos_experiencia:'', zona_trabajo_publica:'', hobbies:'', slug:'', perfil_publico_visible:true })
+  const [savingPublico, setSavingPublico] = useState(false)
+  const [msgPublico, setMsgPublico] = useState('')
 
   const set = (k: string, v: string) => setPerfil(p => ({...p, [k]: v}))
+  const setPub = (k: string, v: string | boolean) => setPerfilPublico(p => ({...p, [k]: v}))
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
       setUser(user)
-      const { data } = await supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,codigo_corredor,foto_url,verificado,verificacion_estado,verificacion_notas,cedula_frente_url,cedula_reverso_url,selfie_url,compania,plan,valeria_perfil,valeria_onboarding_completo,contrato_asesor_aceptado,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,created_at').eq('id', user.id).maybeSingle()
+      const { data } = await supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,codigo_corredor,foto_url,verificado,verificacion_estado,verificacion_notas,cedula_frente_url,cedula_reverso_url,selfie_url,compania,plan,valeria_perfil,valeria_onboarding_completo,contrato_asesor_aceptado,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,created_at,bio_publica,anos_experiencia,hobbies,zona_trabajo_publica,slug,perfil_publico_visible').eq('id', user.id).maybeSingle()
       setPerfil({
         nombre: data?.nombre || user.user_metadata?.nombre || '',
         correo: user.email || '',
@@ -210,6 +215,14 @@ export default function Perfil() {
         cedula: data?.cedula || '',
         codigo_corredor: data?.codigo_corredor || '',
         foto_url: data?.foto_url || '',
+      })
+      setPerfilPublico({
+        bio_publica: data?.bio_publica || '',
+        anos_experiencia: data?.anos_experiencia != null ? String(data.anos_experiencia) : '',
+        zona_trabajo_publica: data?.zona_trabajo_publica || '',
+        hobbies: Array.isArray(data?.hobbies) ? (data.hobbies as string[]).join(', ') : '',
+        slug: data?.slug || '',
+        perfil_publico_visible: data?.perfil_publico_visible !== false,
       })
       setLoading(false)
     })
@@ -228,6 +241,33 @@ export default function Perfil() {
     }
     setSaving(false)
     setTimeout(() => setMsg(''), 4000)
+  }
+
+  const savePerfilPublico = async () => {
+    if (!user) return
+    setSavingPublico(true); setMsgPublico('')
+    try {
+      let slug = perfilPublico.slug
+      if (!slug) slug = await generarSlugUnico(perfil.nombre || 'asesor', user.id)
+      const hobbiesArr = perfilPublico.hobbies.split(',').map(h => h.trim()).filter(Boolean)
+      const { error } = await supabase.from('perfiles').update({
+        bio_publica: perfilPublico.bio_publica || null,
+        anos_experiencia: perfilPublico.anos_experiencia ? parseInt(perfilPublico.anos_experiencia) : null,
+        zona_trabajo_publica: perfilPublico.zona_trabajo_publica || null,
+        hobbies: hobbiesArr,
+        slug,
+        perfil_publico_visible: perfilPublico.perfil_publico_visible,
+        updated_at: new Date().toISOString(),
+      }).eq('id', user.id)
+      if (error) throw error
+      setPerfilPublico(p => ({ ...p, slug }))
+      setMsgPublico('✓ Perfil público guardado')
+    } catch (err) {
+      setMsgPublico('Error: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setSavingPublico(false)
+      setTimeout(() => setMsgPublico(''), 4000)
+    }
   }
 
   const savePass = async () => {
@@ -382,6 +422,69 @@ export default function Perfil() {
           <div style={{ marginTop:20, display:'flex', justifyContent:'flex-end' }}>
             <button className="save-btn" onClick={savePerfil} disabled={saving}>
               {saving ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          </div>
+        </div>
+
+        {/* Perfil público */}
+        <div className="section-card">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:8, flexWrap:'wrap', gap:8 }}>
+            <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)' }}>Perfil público</div>
+            {perfilPublico.slug && (
+              <a href={'/asesores/'+perfilPublico.slug} target="_blank" style={{ fontSize:12, color:'var(--accent)', fontWeight:500 }}>Ver mi perfil público →</a>
+            )}
+          </div>
+          <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65, marginBottom:20 }}>
+            Esta información aparece en tu landing pública de asesor, a la que llegan los compradores cuando tocan tu nombre en la ficha de una propiedad.
+          </p>
+
+          <div style={{ marginBottom:16 }}>
+            <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Sobre vos</label>
+            <textarea
+              className="field-input"
+              placeholder="Contales a los compradores quién sos, tu enfoque de trabajo, qué te hace diferente..."
+              value={perfilPublico.bio_publica}
+              onChange={e => setPub('bio_publica', e.target.value)}
+              rows={4}
+              style={{ resize:'vertical', fontFamily:'var(--sans)' }}
+            />
+          </div>
+
+          <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+            <div>
+              <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Años de experiencia</label>
+              <input className="field-input" type="number" min={0} max={80} placeholder="8" value={perfilPublico.anos_experiencia} onChange={e => setPub('anos_experiencia', e.target.value)}/>
+            </div>
+            <div>
+              <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Zona de trabajo</label>
+              <input className="field-input" placeholder="Escazú, Santa Ana y Guanacaste" value={perfilPublico.zona_trabajo_publica} onChange={e => setPub('zona_trabajo_publica', e.target.value)}/>
+            </div>
+          </div>
+
+          <div style={{ marginBottom:20 }}>
+            <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Hobbies e intereses</label>
+            <input className="field-input" placeholder="Golf, cocina, running, surf" value={perfilPublico.hobbies} onChange={e => setPub('hobbies', e.target.value)}/>
+            <p style={{ fontSize:11, color:'var(--ink-3)', marginTop:4 }}>Separados por coma — le dan un toque humano a tu perfil.</p>
+          </div>
+
+          <div onClick={() => setPub('perfil_publico_visible', !perfilPublico.perfil_publico_visible)} style={{ display:'flex', gap:12, alignItems:'flex-start', padding:'14px 16px', background: perfilPublico.perfil_publico_visible ? 'var(--accent-tint)' : 'var(--bg)', border:'1px solid '+(perfilPublico.perfil_publico_visible?'oklch(0.85 0.04 150)':'var(--rule)'), borderRadius:10, cursor:'pointer', marginBottom:20 }}>
+            <div style={{ width:20, height:20, borderRadius:4, border:'2px solid '+(perfilPublico.perfil_publico_visible?'var(--accent)':'var(--rule)'), background:perfilPublico.perfil_publico_visible?'var(--accent)':'transparent', display:'grid', placeItems:'center', flexShrink:0, marginTop:1 }}>
+              {perfilPublico.perfil_publico_visible && <span style={{ color:'white', fontSize:12, fontWeight:700 }}>✓</span>}
+            </div>
+            <div style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6 }}>
+              <strong>Mostrar mi perfil público</strong> — si lo desactivás, tu landing de asesor no será accesible y tu nombre en las fichas de propiedad no va a linkear a ningún lado.
+            </div>
+          </div>
+
+          {msgPublico && (
+            <div style={{ marginBottom:16, padding:'10px 14px', background: msgPublico.startsWith('✓') ? 'var(--accent-tint)' : 'oklch(0.97 0.03 20)', border:'1px solid '+(msgPublico.startsWith('✓')?'oklch(0.85 0.04 150)':'oklch(0.85 0.06 20)'), borderRadius:8, fontSize:13, color: msgPublico.startsWith('✓') ? 'var(--accent)' : 'oklch(0.45 0.08 20)' }}>
+              {msgPublico}
+            </div>
+          )}
+
+          <div style={{ display:'flex', justifyContent:'flex-end' }}>
+            <button className="save-btn" onClick={savePerfilPublico} disabled={savingPublico}>
+              {savingPublico ? 'Guardando...' : 'Guardar perfil público'}
             </button>
           </div>
         </div>
