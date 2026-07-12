@@ -172,5 +172,32 @@ export async function GET(req: NextRequest) {
     } catch {}
   }
 
-  return NextResponse.json({ ok: true, enviados, resenasSolicitadas, seguimientosEnviados })
+  // Suspension automatica de trials vencidos: sin esto, una suscripcion con
+  // es_trial=true cuyo trial_fin ya paso quedaba con activo=true indefinidamente
+  // (el bloqueo de acceso en el dashboard ya funciona porque useTrial() calcula
+  // el vencimiento en el cliente en cada carga, pero el panel admin seguia
+  // contando esas cuentas como "activas" para siempre, y nadie le avisaba al
+  // asesor que su trial termino). No se borra nada: activo pasa a false y
+  // es_trial queda en true como marca historica de que hubo un trial que vencio
+  // sin conversion a plan pago.
+  const { data: trialsVencidos } = await supabaseAdmin
+    .from('suscripciones')
+    .select('correo')
+    .eq('es_trial', true)
+    .eq('activo', true)
+    .lt('trial_fin', new Date().toISOString())
+
+  let trialsSuspendidos = 0
+
+  for (const s of (trialsVencidos || [])) {
+    await supabaseAdmin.from('suscripciones').update({ activo: false, updated_at: new Date().toISOString() }).eq('correo', s.correo)
+    const { data: asesor } = await supabaseAdmin.from('perfiles').select('nombre,telefono').eq('correo', s.correo).maybeSingle()
+    if (asesor?.telefono) {
+      const msg = `🏠 *NIDO* — Hola ${asesor.nombre || ''}, tu prueba gratis de 7 días con el plan Black terminó. Para seguir publicando y usando Valeria IA, activá un plan en https://www.nido-cr.com/precios. Si ya hiciste el pago, avisanos por este medio y activamos tu cuenta.`
+      await sendWhatsApp(asesor.telefono, msg).catch(() => {})
+    }
+    trialsSuspendidos++
+  }
+
+  return NextResponse.json({ ok: true, enviados, resenasSolicitadas, seguimientosEnviados, trialsSuspendidos })
 }

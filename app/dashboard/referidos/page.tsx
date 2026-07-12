@@ -15,6 +15,7 @@ const CSS = `
   .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:500}
   .nav-link{font-size:13px;color:var(--ink-2);text-decoration:none}
   .nav-link.active{color:var(--ink);font-weight:500}
+  @media(max-width:900px){.nav-links{display:none!important}.top-nav-pad{padding:14px 16px!important}}
 `
 
 export default function Referidos() {
@@ -68,9 +69,9 @@ export default function Referidos() {
 
       {/* Nav */}
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1400, margin:'0 auto' }}>
+        <div className="top-nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1400, margin:'0 auto' }}>
           <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:24, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
-          <div style={{ display:'flex', gap:28, alignItems:'center' }}>
+          <div className="nav-links" style={{ display:'flex', gap:28, alignItems:'center' }}>
             <a href="/dashboard" className="nav-link">Dashboard</a>
             <a href="/dashboard/crm" className="nav-link">CRM</a>
             <Link href="/propiedades" className="nav-link">Portal</Link>

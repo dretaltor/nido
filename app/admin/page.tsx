@@ -237,6 +237,9 @@ export default function AdminPanel() {
   const [busquedaGlobal, setBusquedaGlobal] = useState('')
   const [kycSeleccionados, setKycSeleccionados] = useState<string[]>([])
   const [aprobandoLote, setAprobandoLote] = useState(false)
+  const [filtroSus, setFiltroSus] = useState('pendientes')
+  const [susSeleccionadas, setSusSeleccionadas] = useState<string[]>([])
+  const [activandoLote, setActivandoLote] = useState(false)
   const [msg, setMsg] = useState('')
   const [adminUser, setAdminUser] = useState<User | null>(null)
 
@@ -304,6 +307,27 @@ export default function AdminPanel() {
     logAccion('Cambió plan', 'suscripcion', correo, 'Nuevo plan: ' + plan)
     loadAll()
     setMsg('✓ Plan actualizado a ' + plan)
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  // Activa una suscripcion pendiente (pago manual ya confirmado por el equipo,
+  // ver comprobante recibido por WhatsApp) sin tocar el plan que el asesor ya
+  // eligio al registrarse.
+  const activarSuscripcion = async (correo: string) => {
+    await supabase.from('suscripciones').update({ activo: true, es_trial: false, updated_at: new Date().toISOString() }).eq('correo', correo)
+    logAccion('Activó suscripción', 'suscripcion', correo)
+  }
+
+  const activarSuscripcionesLote = async (correos: string[]) => {
+    setActivandoLote(true)
+    for (const correo of correos) {
+      await activarSuscripcion(correo)
+    }
+    logAccion('Activó suscripciones en lote', 'suscripcion', undefined, correos.length + ' cuentas')
+    setSusSeleccionadas([])
+    setActivandoLote(false)
+    loadAll()
+    setMsg('✓ ' + correos.length + ' suscripcion' + (correos.length > 1 ? 'es activadas' : ' activada'))
     setTimeout(() => setMsg(''), 3000)
   }
 
@@ -857,21 +881,63 @@ export default function AdminPanel() {
                 </div>
               ))}
             </div>
-            <div className="card">
-              {suscripciones.map(s => (
-                <div key={s.id} className="row" onClick={() => setSel({...s, _tipo:'suscripcion'})}>
-                  <div style={{ flex:1 }}>
-                    <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{s.correo}</div>
-                    <div style={{ fontSize:12, color:'var(--ink-3)' }}>{s.periodo} · {s.created_at ? new Date(s.created_at).toLocaleDateString('es-CR') : '—'}</div>
+            {(() => {
+              const pendientes = suscripciones.filter(s => !s.activo && !s.es_trial)
+              const susFiltradas = filtroSus === 'pendientes' ? pendientes : filtroSus === 'activas' ? suscripciones.filter(s => s.activo) : suscripciones
+              return (
+                <>
+                  <div style={{ display:'flex', gap:8, marginBottom:16, justifyContent:'space-between', flexWrap:'wrap' }}>
+                    <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                      {['pendientes','activas','todas'].map(f => (
+                        <button key={f} className={'tab'+(filtroSus===f?' active':'')} onClick={() => { setFiltroSus(f); setSusSeleccionadas([]) }}>
+                          {f==='pendientes'?'Pendientes de activación':f==='activas'?'Activas':'Todas'}
+                          <span style={{ marginLeft:6, opacity:0.6 }}>
+                            ({f==='pendientes'?pendientes.length:f==='activas'?suscripciones.filter(s=>s.activo).length:suscripciones.length})
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                    {susSeleccionadas.length > 0 && (
+                      <button onClick={() => activarSuscripcionesLote(susSeleccionadas)} disabled={activandoLote} className="btn btn-primary" style={{ opacity:activandoLote?0.6:1 }}>
+                        {activandoLote ? 'Activando...' : '✓ Activar ' + susSeleccionadas.length + ' seleccionada' + (susSeleccionadas.length>1?'s':'')}
+                      </button>
+                    )}
                   </div>
-                  <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
-                    <span style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)' }}>${getPlanConfig(s.plan).precioMensual}/mes</span>
-                    <span className="badge" style={{ background:s.plan==='enterprise'?'oklch(0.93 0.03 240)':'var(--accent-tint)', color:s.plan==='enterprise'?'oklch(0.35 0.08 240)':'var(--accent)', textTransform:'uppercase' }}>{getPlanConfig(s.plan).nombrePublico}</span>
-                    <span className="badge" style={{ background:s.activo?'var(--accent-tint)':'oklch(0.93 0.005 80)', color:s.activo?'var(--accent)':'var(--ink-3)' }}>{s.activo?'Activa':'Inactiva'}</span>
+                  {filtroSus === 'pendientes' && pendientes.length > 0 && (
+                    <div style={{ marginBottom:10 }}>
+                      <label style={{ fontSize:12, color:'var(--ink-3)', display:'flex', alignItems:'center', gap:8, cursor:'pointer' }}>
+                        <input type="checkbox" checked={susSeleccionadas.length===pendientes.length} onChange={e => setSusSeleccionadas(e.target.checked ? pendientes.map(s=>s.correo) : [])}/>
+                        Seleccionar todas las pendientes
+                      </label>
+                    </div>
+                  )}
+                  <div className="card">
+                    {susFiltradas.map(s => (
+                      <div key={s.id} className="row" onClick={() => setSel({...s, _tipo:'suscripcion'})}>
+                        {filtroSus === 'pendientes' && (
+                          <input type="checkbox" checked={susSeleccionadas.includes(s.correo)} onClick={e => e.stopPropagation()} onChange={e => setSusSeleccionadas(p => e.target.checked ? [...p, s.correo] : p.filter(c => c !== s.correo))} style={{ marginRight:12 }}/>
+                        )}
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{s.correo}</div>
+                          <div style={{ fontSize:12, color:'var(--ink-3)' }}>{s.periodo} · {s.created_at ? new Date(s.created_at).toLocaleDateString('es-CR') : '—'}</div>
+                        </div>
+                        <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
+                          <span style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)' }}>${getPlanConfig(s.plan).precioMensual}/mes</span>
+                          <span className="badge" style={{ background:s.plan==='enterprise'?'oklch(0.93 0.03 240)':'var(--accent-tint)', color:s.plan==='enterprise'?'oklch(0.35 0.08 240)':'var(--accent)', textTransform:'uppercase' }}>{getPlanConfig(s.plan).nombrePublico}</span>
+                          <span className="badge" style={{ background:s.activo?'var(--accent-tint)':'oklch(0.93 0.005 80)', color:s.activo?'var(--accent)':'var(--ink-3)' }}>{s.activo?'Activa':(s.es_trial?'Trial':'Pendiente')}</span>
+                          {!s.activo && !s.es_trial && (
+                            <button onClick={async e => { e.stopPropagation(); await activarSuscripcion(s.correo); loadAll(); setMsg('✓ Suscripción activada'); setTimeout(()=>setMsg(''),3000) }} className="btn btn-primary" style={{ padding:'4px 12px', fontSize:12 }}>Activar</button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {susFiltradas.length === 0 && (
+                      <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--ink-3)', fontSize:13 }}>No hay suscripciones en esta vista.</div>
+                    )}
                   </div>
-                </div>
-              ))}
-            </div>
+                </>
+              )
+            })()}
           </div>
         )}
 

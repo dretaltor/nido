@@ -102,6 +102,7 @@ Solo el texto del artículo, sin título, sin encabezados markdown.`
     .article-body p{font-size:16px;color:var(--ink-2);line-height:1.85;margin-bottom:20px}
     .rel-card{background:white;border:1px solid var(--rule);border-radius:10px;padding:16px;cursor:pointer;transition:all 0.2s}
     .rel-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+    @media(max-width:640px){.noticia-nav-links{display:none!important}.noticia-nav-pad{padding:14px 16px!important}}
   `
 
   if (!noticia) return (
@@ -117,9 +118,9 @@ Solo el texto del artículo, sin título, sin encabezados markdown.`
 
       {/* Nav */}
       <nav style={{ position:'sticky', top:0, zIndex:50, background:'oklch(0.97 0.005 80/0.95)', backdropFilter:'blur(12px)', borderBottom:'1px solid var(--rule)' }}>
-        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1100, margin:'0 auto' }}>
+        <div className="noticia-nav-pad" style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 40px', maxWidth:1100, margin:'0 auto' }}>
           <Link href="/" style={{ fontFamily:'var(--serif)', fontSize:22, color:'var(--ink)' }}>NIDO<span style={{ color:'var(--accent)' }}>.</span></Link>
-          <div style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
+          <div className="noticia-nav-links" style={{ display:'flex', gap:24, fontSize:13, color:'var(--ink-3)' }}>
             <Link href="/propiedades">Portal</Link>
             <Link href="/noticias" style={{ color:'var(--accent)', fontWeight:500 }}>← Noticias</Link>
           </div>

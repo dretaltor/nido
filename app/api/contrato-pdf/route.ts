@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit } from '../../../lib/rateLimit'
+import { clavesClausulas, numerarClausulas, type TipoContrato } from '../../../lib/clausulas'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -108,11 +109,15 @@ export async function GET(req: NextRequest) {
   <li>c) Dar por terminado el contrato sin penalización alguna.</li>`}
 </ul>` : ''
 
-  const numClausulasPrevias = 3 + (incluyeAdmin ? 1 : 0) + ((esExclusividad || esAlquiler) ? 2 : 0)
-  const ORDINALES = ['Primera','Segunda','Tercera','Cuarta','Quinta','Sexta','Sétima','Octava','Novena','Décima']
-  const c6 = ORDINALES[numClausulasPrevias]
-  const c7 = ORDINALES[numClausulasPrevias + 1]
-  const c8 = ORDINALES[numClausulasPrevias + 2]
+  // Compartido con app/dashboard/propietario/contrato/page.tsx (lib/clausulas.ts)
+  // para que la numeracion del PDF firmado nunca quede desincronizada de lo que
+  // la persona vio en pantalla antes de firmar.
+  const clausulasActivas = clavesClausulas(tipo as TipoContrato, incluyeAdmin)
+  const numClausula = numerarClausulas(clausulasActivas)
+  const c6 = numClausula.OBLIGACIONES
+  const c7 = numClausula.DATOS
+  const c8 = numClausula.DISPUTAS
+  const c9 = numClausula.DESTINO
 
   const fotoItem = esAlquiler
     ? (incluyeAdmin ? '' : '<li>Fotografía profesional básica de la propiedad</li>')
@@ -215,6 +220,9 @@ ${clausulaExclusividad}
 
 <h3>Cláusula ${c8} — Resolución de Disputas</h3>
 <p>Cualquier controversia derivada del presente contrato se resolverá preferiblemente de manera amigable. En caso de no alcanzarse un acuerdo, las partes se someten a la jurisdicción de los Tribunales de Justicia de la República de Costa Rica, con renuncia expresa a cualquier otro fuero.</p>
+
+<h3>Cláusula ${c9} — Destino de la Publicación al Finalizar el Contrato</h3>
+<p>Al finalizar o terminar este contrato por cualquier causa, NIDO retira la publicación de la propiedad del portal público en un plazo máximo de 5 días hábiles, salvo que EL PROPIETARIO solicite su retiro inmediato. Las fotografías y datos de la propiedad se conservan conforme a los plazos indicados en la Política de Privacidad de NIDO, y pueden eliminarse antes a solicitud expresa de EL PROPIETARIO.</p>
 
 <div class="gaudi-box">
   <div class="gaudi-title">Instrucciones para firma digital con GAUDI</div>

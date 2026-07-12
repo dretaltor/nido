@@ -5,6 +5,7 @@ import { supabase } from '../../../../lib/supabase'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
 import type { Propietario, Propiedad, Contrato } from '../../../../lib/database.types'
+import { clavesClausulas, numerarClausulas } from '../../../../lib/clausulas'
 
 export default function ContratoPage() {
   return (
@@ -69,13 +70,11 @@ function Contrato() {
   // Numeracion dinamica de clausulas: la lista de clausulas cambia segun el modo
   // (venta con/sin exclusividad, o alquiler con administracion opcional), asi que
   // se calcula un mapa etiqueta->ordinal en vez de hardcodear "CLAUSULA CUARTA" etc.
-  const ORDINALES = ['PRIMERA','SEGUNDA','TERCERA','CUARTA','QUINTA','SEXTA','SÉTIMA','OCTAVA','NOVENA','DÉCIMA']
-  const clausulasActivas = ['OBJETO','SERVICIOS','COMISION']
-  if (tipoContrato === 'alquiler' && deseaAdministracion) clausulasActivas.push('ADMINISTRACION')
-  if (tipoContrato !== 'no_exclusivo') clausulasActivas.push('EXCLUSIVIDAD', 'RENOVACION')
-  clausulasActivas.push('OBLIGACIONES', 'DATOS', 'DISPUTAS', 'DESTINO')
+  // Compartido con app/api/contrato-pdf/route.ts (lib/clausulas.ts) para que la
+  // numeracion en pantalla y en el PDF firmado nunca queden desincronizadas.
+  const clausulasActivas = clavesClausulas(tipoContrato, deseaAdministracion)
   const N: Record<string, string> = {}
-  clausulasActivas.forEach((c, i) => { N[c] = ORDINALES[i] })
+  Object.entries(numerarClausulas(clausulasActivas)).forEach(([clave, ordinal]) => { N[clave] = ordinal.toUpperCase() })
 
   const startDraw = (e: React.MouseEvent<HTMLCanvasElement>) => {
     setDrawing(true)
