@@ -160,7 +160,7 @@ export default function Privacidad() {
         <div className="section">
           <h2>10. Transferencias internacionales</h2>
           <p>
-            Algunos de nuestros proveedores (Supabase, Stripe, Vercel) procesan datos fuera de Costa Rica, principalmente en Estados Unidos. Estas transferencias se realizan bajo garantías contractuales adecuadas y con proveedores que cumplen estándares internacionales equivalentes a la Ley 8968.
+            Algunos de nuestros proveedores (Supabase, Vercel) procesan datos fuera de Costa Rica, principalmente en Estados Unidos. Estas transferencias se realizan bajo garantías contractuales adecuadas y con proveedores que cumplen estándares internacionales equivalentes a la Ley 8968. Si en el futuro incorporamos un procesador de pagos internacional (por ejemplo Stripe), esta sección se actualizará antes de que ese proveedor reciba cualquier dato tuyo.
           </p>
         </div>
 

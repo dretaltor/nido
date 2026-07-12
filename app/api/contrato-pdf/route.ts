@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit } from '../../../lib/rateLimit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -46,6 +47,11 @@ export async function GET(req: NextRequest) {
   const { data: esAdmin } = await supabaseAdmin.from('admins').select('correo').eq('correo', user.email).maybeSingle()
   if (!esElMismoPropietario && !esAdmin) {
     return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
+
+  const permitido = await checkRateLimit('contrato-pdf:' + user.email, 20, 10)
+  if (!permitido) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes, espera unos minutos' }, { status: 429 })
   }
 
   const { data: prop } = await supabaseAdmin.from('propietarios').select('*').eq('correo', correo).maybeSingle()

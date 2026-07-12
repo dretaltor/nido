@@ -40,6 +40,7 @@ function Contrato() {
   const [drawing, setDrawing] = useState(false)
   const [firmaDigital, setFirmaDigital] = useState('')
   const [firmaFisicaUrl, setFirmaFisicaUrl] = useState('')
+  const [firmaFisicaPath, setFirmaFisicaPath] = useState('')
   const [uploadingFirma, setUploadingFirma] = useState(false)
   const [aceptaTerminos, setAceptaTerminos] = useState(false)
   const [contratoError, setContratoError] = useState('')
@@ -119,7 +120,10 @@ function Contrato() {
       const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Error al subir archivo')
-      setFirmaFisicaUrl(json.publicUrl)
+      setFirmaFisicaPath(json.path)
+      const urlRes = await fetch('/api/kyc-url', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+session?.access_token}, body:JSON.stringify({path: json.path}) })
+      const urlJson = await urlRes.json()
+      if (urlRes.ok) setFirmaFisicaUrl(urlJson.signedUrl)
     } catch (err) {
       setContratoError('Error al subir firma: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
@@ -154,7 +158,7 @@ function Contrato() {
       periodo_dias: (tipoContrato === 'exclusividad' || tipoContrato === 'alquiler') ? diasExclusividad : null,
       precio_mensual: null,
       firma_tipo: firmaTipo,
-      firma_url: firmaTipo === 'digital' ? firmaDigital : firmaFisicaUrl,
+      firma_url: firmaTipo === 'digital' ? firmaDigital : firmaFisicaPath,
       firmado_propietario: true,
       firmado_nido: false,
       comision_porcentaje: tipoContrato === 'alquiler' ? null : 4,
@@ -581,8 +585,7 @@ function Contrato() {
                     const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
                     const json = await res.json()
                     if (!res.ok) { setContratoError('Error al subir: ' + (json.error || 'intenta de nuevo')); setUploadingFirma(false); return }
-                    const publicUrl = json.publicUrl
-                    setFirmaDigital(publicUrl)
+                    setFirmaDigital(json.path)
                     setUploadingFirma(false)
                   }}/>
                 </label>

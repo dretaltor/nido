@@ -38,6 +38,7 @@ export default function PerfilPropietario() {
   const [msgPass, setMsgPass] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadingDoc, setUploadingDoc] = useState<string|null>(null)
+  const [docError, setDocError] = useState('')
   const [tab, setTab] = useState('perfil')
 
   const [form, setForm] = useState({ nombre:'', correo:'', telefono:'', cedula:'', relacion:'' })
@@ -85,26 +86,45 @@ export default function PerfilPropietario() {
     const file = e.target.files?.[0]
     if (!file || !user) return
     setUploading(true)
-    const ext = file.name.split('.').pop()
-    const path = 'propietarios/' + user.id + '.' + ext
-    await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
-    const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
-    await supabase.from('propietarios').update({ foto_url: publicUrl }).eq('correo', user.email!)
-    setPropietario((p) => ({ ...(p||{}), foto_url: publicUrl }))
-    setUploading(false)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('tipo', 'perfil_propietario')
+      const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Error al subir')
+      const publicUrl = json.publicUrl
+      await supabase.from('propietarios').update({ foto_url: publicUrl }).eq('correo', user.email!)
+      setPropietario((p) => ({ ...(p||{}), foto_url: publicUrl }))
+    } catch (err) {
+      setMsg('Error al subir foto: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setUploading(false)
+    }
   }
 
   const uploadDoc = async (tipo: string, file: File) => {
     if (!user) return
     setUploadingDoc(tipo)
-    const ext = file.name.split('.').pop()
-    const path = 'kyc-propietarios/' + user.id + '_' + tipo + '.' + ext
-    await supabase.storage.from('Propiedades').upload(path, file, { upsert: true })
-    const { data: { publicUrl } } = supabase.storage.from('Propiedades').getPublicUrl(path)
-    const update: Record<string, unknown> = { [tipo + '_url']: publicUrl, verificacion_estado: 'en_revision' }
-    await supabase.from('propietarios').update(update).eq('correo', user.email!)
-    setPropietario((p) => ({ ...(p||{}), [tipo + '_url']: publicUrl, verificacion_estado: 'en_revision' }))
-    setUploadingDoc(null)
+    setDocError('')
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('tipo', tipo + '_prop')
+      const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || 'Error al subir')
+      const path = json.path
+      const update: Record<string, unknown> = { [tipo + '_url']: path, verificacion_estado: 'en_revision' }
+      await supabase.from('propietarios').update(update).eq('correo', user.email!)
+      setPropietario((p) => ({ ...(p||{}), [tipo + '_url']: path, verificacion_estado: 'en_revision' }))
+    } catch (err) {
+      setDocError('Error al subir documento: ' + (err instanceof Error ? err.message : String(err)))
+    } finally {
+      setUploadingDoc(null)
+    }
   }
 
   if (loading) return <div style={{ padding:40, fontFamily:'sans-serif', color:'#999' }}>Cargando perfil...</div>
@@ -247,6 +267,8 @@ export default function PerfilPropietario() {
                 </div>
                 {propietario?.verificacion_notas && <p style={{ fontSize:13, color:'var(--ink-2)', marginTop:8, lineHeight:1.6 }}>Nota: {propietario.verificacion_notas}</p>}
               </div>
+
+              {docError && <div style={{ marginBottom:16, padding:'10px 14px', background:'oklch(0.97 0.03 20)', border:'1px solid oklch(0.85 0.06 20)', borderRadius:8, fontSize:13, color:'oklch(0.45 0.08 20)' }}>{docError}</div>}
 
               {/* Documentos */}
               <div style={{ display:'flex', flexDirection:'column', gap:10, marginBottom:20 }}>

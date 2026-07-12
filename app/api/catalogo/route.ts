@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -17,7 +18,14 @@ function csvEscape(valor: string): string {
   return `"${v}"`
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Feed publico sin auth (lo consume Meta Commerce Manager) — limite generoso
+  // por IP para evitar scraping/abuso sin romper el polling legitimo de Meta.
+  const permitido = await checkRateLimit('catalogo:' + getClientIp(req), 60, 10)
+  if (!permitido) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes' }, { status: 429 })
+  }
+
   const { data: propiedades, error } = await supabaseAdmin
     .from('propiedades')
     .select('id, titulo, descripcion, precio, tipo, operacion, zona, imagen_url, fotos, disponible, verificacion_estado, ref_id')

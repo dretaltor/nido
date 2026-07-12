@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { sendWhatsApp } from '../../../lib/whatsapp'
 import { notificarAsesorBlack } from '../../../lib/whatsappNotify'
 import type { Lead } from '../../../lib/database.types'
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -10,9 +11,19 @@ const supabaseAdmin = createClient(
 )
 
 export async function GET(req: NextRequest) {
+  // Sin fallback hardcodeado: si CRON_SECRET no esta configurado en el entorno,
+  // la ruta queda cerrada (falla cerrado) en vez de aceptar un secreto adivinable
+  // que quedaba visible en el codigo fuente.
+  if (!process.env.CRON_SECRET) {
+    return NextResponse.json({ error: 'CRON_SECRET no configurado' }, { status: 500 })
+  }
   const auth = req.headers.get('authorization')
-  if (auth !== 'Bearer ' + (process.env.CRON_SECRET || 'nido-cron-2026-secret')) {
+  if (auth !== 'Bearer ' + process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const permitido = await checkRateLimit('recordatorios:' + getClientIp(req), 10, 10)
+  if (!permitido) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes' }, { status: 429 })
   }
 
   const manana = new Date()

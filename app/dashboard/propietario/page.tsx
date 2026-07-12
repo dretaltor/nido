@@ -1086,9 +1086,20 @@ export default function DashboardPropietario() {
                         <div style={{ fontSize:11, textTransform:'uppercase', letterSpacing:'0.1em', color:'var(--ink-3)', marginBottom:4 }}>Documento firmado</div>
                         <div style={{ fontSize:14, fontWeight:500 }}>Contrato de corretaje · {contrato.firma_tipo === 'digital' ? 'Firma digital GAUDI' : 'Firma física'}</div>
                       </div>
-                      <a href={contrato.firma_url} target="_blank" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>
-                        📄 Ver documento
-                      </a>
+                      {contrato.firma_tipo === 'digital' && contrato.firma_url?.startsWith('data:') ? (
+                        <a href={contrato.firma_url} target="_blank" style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>
+                          📄 Ver documento
+                        </a>
+                      ) : (
+                        <button onClick={async () => {
+                          const { data: { session } } = await supabase.auth.getSession()
+                          const res = await fetch('/api/kyc-url', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+session?.access_token}, body: JSON.stringify({ path: contrato.firma_url }) })
+                          const json = await res.json()
+                          if (res.ok && json.signedUrl) window.open(json.signedUrl, '_blank')
+                        }} style={{ display:'inline-flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:999, background:'var(--ink)', color:'white', fontSize:13, fontWeight:500, border:'none', cursor:'pointer' }}>
+                          📄 Ver documento
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

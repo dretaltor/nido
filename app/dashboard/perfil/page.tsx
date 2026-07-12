@@ -132,10 +132,10 @@ function VerificacionKYC({ userId }: { userId: string }) {
       const res = await fetch('/api/upload-firma', { method: 'POST', body: fd, headers: { 'Authorization': 'Bearer ' + session?.access_token } })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Error al subir')
-      const publicUrl = json.publicUrl
-      const update = { [tipo + '_url']: publicUrl }
+      const path = json.path
+      const update = { [tipo + '_url']: path }
       await supabase.from('perfiles').upsert({ id: userId, ...update, verificacion_estado: 'en_revision' })
-      setDocs(p => ({ ...p, [tipo + '_url']: publicUrl }))
+      setDocs(p => ({ ...p, [tipo + '_url']: path }))
       setEstado((p) => ({ ...(p||{}), verificacion_estado: 'en_revision' }))
     } catch (err) {
       setKycError('Error al subir documento: ' + (err instanceof Error ? err.message : String(err)))
@@ -193,7 +193,12 @@ function VerificacionKYC({ userId }: { userId: string }) {
               <div>
                 {url ? (
                   <div style={{ display:'flex', gap:8 }}>
-                    <a href={url} target="_blank" style={{ fontSize:12, color:'var(--accent)', fontWeight:500 }}>Ver →</a>
+                    <button onClick={async () => {
+                      const { data: { session } } = await supabase.auth.getSession()
+                      const res = await fetch('/api/kyc-url', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+session?.access_token}, body: JSON.stringify({ path: url }) })
+                      const json = await res.json()
+                      if (res.ok && json.signedUrl) window.open(json.signedUrl, '_blank')
+                    }} style={{ fontSize:12, color:'var(--accent)', fontWeight:500, background:'none', border:'none', padding:0, cursor:'pointer' }}>Ver →</button>
                     <button onClick={() => (refs as Record<string, React.RefObject<HTMLInputElement | null>>)[item.key].current?.click()} style={{ fontSize:12, color:'var(--ink-3)', background:'none', border:'1px solid var(--rule)', padding:'4px 10px', borderRadius:999, cursor:'pointer' }}>Cambiar</button>
                   </div>
                 ) : (

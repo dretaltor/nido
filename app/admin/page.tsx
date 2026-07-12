@@ -2015,7 +2015,12 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               <span style={{ fontSize:13, color:doc.url?'var(--accent)':'var(--ink-3)', display:'flex', alignItems:'center', gap:8 }}>
                 {doc.url?'✓':'○'} {doc.label}
               </span>
-              {doc.url && <a href={doc.url} target="_blank" style={{ fontSize:12, color:'var(--accent)', fontWeight:500 }}>Ver →</a>}
+              {doc.url && <button onClick={async () => {
+                const { data: { session } } = await supabase.auth.getSession()
+                const res = await fetch('/api/kyc-url', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+session?.access_token}, body: JSON.stringify({ path: doc.url }) })
+                const json = await res.json()
+                if (res.ok && json.signedUrl) window.open(json.signedUrl, '_blank')
+              }} style={{ fontSize:12, color:'var(--accent)', fontWeight:500, background:'none', border:'none', padding:0, cursor:'pointer' }}>Ver →</button>}
             </div>
           ))}
         </div>
@@ -2319,14 +2324,30 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
         {sel.firma_url && (
           <div style={{ marginBottom:20 }}>
             <div style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Documento firmado</div>
-            <a href={sel.firma_url} target="_blank" style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', background:'var(--bg)' }}>
-              <span style={{ fontSize:20 }}>{sel.firma_tipo==='digital'?'🔐':'📄'}</span>
-              <div>
-                <div style={{ fontSize:13, fontWeight:500 }}>Ver documento firmado</div>
-                <div style={{ fontSize:11, color:'var(--ink-3)' }}>{sel.firma_tipo==='digital'?'PDF firmado con GAUDI':'Firma física escaneada'}</div>
-              </div>
-              <span style={{ marginLeft:'auto', color:'var(--accent)' }}>→</span>
-            </a>
+            {sel.firma_tipo === 'digital' && sel.firma_url.startsWith('data:') ? (
+              <a href={sel.firma_url} target="_blank" style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, textDecoration:'none', color:'var(--ink)', background:'var(--bg)' }}>
+                <span style={{ fontSize:20 }}>{sel.firma_tipo==='digital'?'🔐':'📄'}</span>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:500 }}>Ver documento firmado</div>
+                  <div style={{ fontSize:11, color:'var(--ink-3)' }}>{sel.firma_tipo==='digital'?'PDF firmado con GAUDI':'Firma física escaneada'}</div>
+                </div>
+                <span style={{ marginLeft:'auto', color:'var(--accent)' }}>→</span>
+              </a>
+            ) : (
+              <button onClick={async () => {
+                const { data: { session } } = await supabase.auth.getSession()
+                const res = await fetch('/api/kyc-url', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+session?.access_token}, body: JSON.stringify({ path: sel.firma_url }) })
+                const json = await res.json()
+                if (res.ok && json.signedUrl) window.open(json.signedUrl, '_blank')
+              }} style={{ display:'flex', alignItems:'center', gap:10, padding:'12px 16px', border:'1px solid var(--rule)', borderRadius:10, color:'var(--ink)', background:'var(--bg)', width:'100%', cursor:'pointer' }}>
+                <span style={{ fontSize:20 }}>{sel.firma_tipo==='digital'?'🔐':'📄'}</span>
+                <div>
+                  <div style={{ fontSize:13, fontWeight:500 }}>Ver documento firmado</div>
+                  <div style={{ fontSize:11, color:'var(--ink-3)' }}>{sel.firma_tipo==='digital'?'PDF firmado con GAUDI':'Firma física escaneada'}</div>
+                </div>
+                <span style={{ marginLeft:'auto', color:'var(--accent)' }}>→</span>
+              </button>
+            )}
           </div>
         )}
 
@@ -2436,7 +2457,12 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
               <span style={{ fontSize:13, color:doc.url?'var(--accent)':'var(--ink-3)', display:'flex', alignItems:'center', gap:8 }}>
                 {doc.url?'✓':'○'} {doc.label}
               </span>
-              {doc.url && <a href={doc.url} target="_blank" style={{ fontSize:12, color:'var(--accent)', fontWeight:500 }}>Ver →</a>}
+              {doc.url && <button onClick={async () => {
+                const { data: { session } } = await supabase.auth.getSession()
+                const res = await fetch('/api/kyc-url', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+session?.access_token}, body: JSON.stringify({ path: doc.url }) })
+                const json = await res.json()
+                if (res.ok && json.signedUrl) window.open(json.signedUrl, '_blank')
+              }} style={{ fontSize:12, color:'var(--accent)', fontWeight:500, background:'none', border:'none', padding:0, cursor:'pointer' }}>Ver →</button>}
             </div>
           ))}
         </div>

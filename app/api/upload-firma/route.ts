@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit } from '../../../lib/rateLimit'
 
 // Usa service role — bypassa RLS para storage
 const supabaseAdmin = createClient(
@@ -21,21 +22,37 @@ export async function POST(req: NextRequest) {
     }
     const userId = user.id // SIEMPRE el id real de la sesion, nunca el del body
 
+    const permitido = await checkRateLimit('upload-firma:' + userId, 20, 10)
+    if (!permitido) {
+      return NextResponse.json({ error: 'Demasiadas solicitudes, espera unos minutos' }, { status: 429 })
+    }
+
     const formData = await req.formData()
     const file = formData.get('file') as File
-    const tipo = formData.get('tipo') as string // 'gaudi' | 'fisica' | 'perfil' | 'cedula_frente' | 'cedula_reverso' | 'selfie'
+    const tipo = formData.get('tipo') as string // 'gaudi' | 'fisica' | 'perfil' | 'perfil_propietario' | 'cedula_frente' | 'cedula_reverso' | 'selfie' | 'cedula_frente_prop' | 'cedula_reverso_prop' | 'selfie_prop'
 
     if (!file) {
       return NextResponse.json({ error: 'Falta archivo' }, { status: 400 })
     }
 
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'El archivo no puede superar 10MB' }, { status: 400 })
+    }
+    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)) {
+      return NextResponse.json({ error: 'Tipo de archivo no permitido. Usá JPG, PNG, WEBP o PDF.' }, { status: 400 })
+    }
+
     const ext = file.name.split('.').pop()
     const tiposKYC = ['cedula_frente', 'cedula_reverso', 'selfie']
     const tiposKYCPropietario = ['cedula_frente_prop', 'cedula_reverso_prop', 'selfie_prop']
+    const esPrivado = tipo === 'gaudi' || tipo === 'fisica' || tiposKYC.includes(tipo) || tiposKYCPropietario.includes(tipo)
+    const bucket = esPrivado ? 'kyc-privado' : 'Propiedades'
     const path = tipo === 'gaudi'
       ? `contratos/${userId}_gaudi_${Date.now()}.${ext}`
       : tipo === 'perfil'
       ? `perfiles/${userId}.${ext}`
+      : tipo === 'perfil_propietario'
+      ? `perfiles/${userId}_propietario.${ext}`
       : tiposKYC.includes(tipo)
       ? `kyc/${userId}_${tipo}.${ext}`
       : tiposKYCPropietario.includes(tipo)
@@ -46,7 +63,7 @@ export async function POST(req: NextRequest) {
     const buffer = Buffer.from(arrayBuffer)
 
     const { error: uploadError } = await supabaseAdmin.storage
-      .from('Propiedades')
+      .from(bucket)
       .upload(path, buffer, {
         contentType: file.type,
         upsert: true
@@ -55,6 +72,10 @@ export async function POST(req: NextRequest) {
     if (uploadError) {
       console.error('Upload error:', uploadError)
       return NextResponse.json({ error: uploadError.message }, { status: 500 })
+    }
+
+    if (esPrivado) {
+      return NextResponse.json({ success: true, path })
     }
 
     const { data: { publicUrl } } = supabaseAdmin.storage
