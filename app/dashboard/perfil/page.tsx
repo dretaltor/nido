@@ -81,6 +81,34 @@ function ValeriaPerfilResumen({ userId }: { userId: string }) {
   )
 }
 
+// Tu perfil público solo se muestra si estás verificado (KYC) y completaste el
+// onboarding de Valeria — son requisitos preexistentes de la vista asesores_publicos,
+// no de esta sección. Este aviso evita que alguien llene y guarde su bio/hobbies
+// pensando que ya es visible, y solo al hacer clic en "Ver mi perfil público" se
+// encuentre con un "No encontramos este perfil de asesor".
+function AvisoPerfilPublico({ userId }: { userId: string }) {
+  const [estado, setEstado] = useState<{ verificado: boolean | null, valeria_onboarding_completo: boolean | null } | null>(null)
+
+  useEffect(() => {
+    if (!userId) return
+    supabase.from('perfiles').select('verificado,valeria_onboarding_completo').eq('id', userId).maybeSingle()
+      .then(({ data }) => setEstado(data))
+  }, [userId])
+
+  if (!estado || (estado.verificado && estado.valeria_onboarding_completo)) return null
+
+  const faltantes = [
+    !estado.verificado && 'tu verificación de identidad (KYC)',
+    !estado.valeria_onboarding_completo && 'el onboarding de Valeria',
+  ].filter(Boolean).join(' y ')
+
+  return (
+    <div style={{ marginBottom:16, padding:'10px 14px', background:'oklch(0.97 0.03 60)', border:'1px solid oklch(0.85 0.06 60)', borderRadius:8, fontSize:13, color:'oklch(0.4 0.08 60)' }}>
+      Tu perfil público todavía no es visible para compradores: falta completar {faltantes}. Podés guardar esta información igual — se publicará automáticamente en cuanto cumplas esos requisitos.
+    </div>
+  )
+}
+
 function VerificacionKYC({ userId }: { userId: string }) {
   const [estado, setEstado] = useState<KycEstado>(null)
   const [uploading, setUploading] = useState<string | null>(null)
@@ -437,6 +465,8 @@ export default function Perfil() {
           <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.65, marginBottom:20 }}>
             Esta información aparece en tu landing pública de asesor, a la que llegan los compradores cuando tocan tu nombre en la ficha de una propiedad.
           </p>
+
+          {user?.id && <AvisoPerfilPublico userId={user.id} />}
 
           <div style={{ marginBottom:16 }}>
             <label style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', display:'block', marginBottom:6 }}>Sobre vos</label>

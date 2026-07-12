@@ -10,7 +10,7 @@ import { OfertaForm } from '@/components/ofertas/OfertaForm'
 import { ContactoForm } from '@/components/contacto/ContactoForm'
 import type { CalificacionPublica } from '../../../lib/database.types'
 
-type PerfilAsesorState = { correo?: string, nombre?: string, foto_url?: string, equipo_nido_estado?: string, telefono?: string, slug?: string | null, id?: string } | null
+type PerfilAsesorState = { correo?: string, nombre?: string, foto_url?: string, equipo_nido_estado?: string, telefono?: string, slug?: string | null, id?: string, oficina_nombre?: string | null } | null
 
 interface Propiedad {
   id: string; titulo: string; descripcion: string; precio: number; tipo: string;
@@ -67,7 +67,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
       setPropiedad(data as Propiedad | null)
       setLoading(false)
       if (data && data.asesor_email) {
-        supabase.from('asesores_publicos').select('id,correo,nombre,foto_url,equipo_nido_estado,slug').eq('correo', data.asesor_email).maybeSingle()
+        supabase.from('asesores_publicos').select('id,correo,nombre,foto_url,equipo_nido_estado,telefono,slug,oficina_nombre').eq('correo', data.asesor_email).maybeSingle()
           .then(({ data: pf }) => setPerfilAsesor(pf))
         supabase.from('asesor_calificaciones').select('promedio,total').eq('asesor_email', data.asesor_email).maybeSingle()
           .then(({ data: rat }) => setAsesorStats(s => ({ ...s, promedio: rat?.promedio ?? null, total: rat?.total ?? 0 })))
@@ -388,7 +388,7 @@ Respondé en español, tono cercano y profesional, respuestas concisas (máximo 
                       <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,color:'white',marginBottom:2}}>{propiedad.asesor_nombre}</div>
                       <div style={{fontSize:11,color:'rgba(255,255,255,0.5)',display:'flex',alignItems:'center',gap:6}}>
                         <span style={{width:6,height:6,borderRadius:'50%',background:'#22c55e',display:'inline-block'}}/>
-                        {perfilAsesor?.equipo_nido_estado === 'aprobado' ? 'Asesor NIDO' : 'Asesor afiliado a NIDO'}
+                        {perfilAsesor?.equipo_nido_estado === 'aprobado' ? 'Asesor NIDO' : ('Asesor afiliado a NIDO' + (perfilAsesor?.oficina_nombre ? ' · ' + perfilAsesor.oficina_nombre : ''))}
                       </div>
                     </div>
                   </Link>

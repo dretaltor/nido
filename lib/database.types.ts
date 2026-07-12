@@ -461,6 +461,7 @@ export interface AsesorPublico {
   foto_url: string | null
   valeria_perfil: Json | null
   equipo_nido_estado: string | null
+  telefono: string | null
   bio_publica: string | null
   anos_experiencia: number | null
   hobbies: Json | null

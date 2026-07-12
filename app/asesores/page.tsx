@@ -31,7 +31,7 @@ export default function Asesores() {
   const [spec, setSpec] = useState('Todas')
   useEffect(() => {
     supabase.from('asesores_publicos')
-      .select('id,nombre,correo,foto_url,valeria_perfil,equipo_nido_estado,bio_publica,anos_experiencia,hobbies,zona_trabajo_publica,slug,oficina_id,oficina_nombre')
+      .select('id,nombre,correo,foto_url,valeria_perfil,equipo_nido_estado,telefono,bio_publica,anos_experiencia,hobbies,zona_trabajo_publica,slug,oficina_id,oficina_nombre')
       .order('nombre')
       .then(async ({ data }) => {
         if (data) {

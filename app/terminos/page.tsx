@@ -88,7 +88,7 @@ export default function Terminos() {
         <div className="section">
           <h2>6. Planes y pagos</h2>
           <h3>6.1 Planes disponibles</h3>
-          <p>NIDO ofrece los planes Despega (gratuito, hasta 5 propiedades), Elite ($59/mes) y Black ($149/mes). Los precios y características vigentes de cada plan se publican en <a href="/precios">nido-cr.com/precios</a> y prevalecen sobre cualquier monto mencionado en otro lugar. Los precios pueden cambiar con 30 días de aviso previo.</p>
+          <p>NIDO ofrece los planes Despega (gratuito, hasta 5 propiedades), Elite ($59/mes) y Black ($99/mes). Los precios y características vigentes de cada plan se publican en <a href="/precios">nido-cr.com/precios</a> y prevalecen sobre cualquier monto mencionado en otro lugar. Los precios pueden cambiar con 30 días de aviso previo.</p>
           <h3>6.2 Facturación</h3>
           <p>Actualmente la activación y renovación de los planes de pago se gestiona de forma manual por el equipo de NIDO, tras confirmar el pago realizado por los medios que se te indiquen al momento de suscribirte (no se procesa mediante cobro automático recurrente con tarjeta en este momento). Si en el futuro NIDO incorpora un procesador de pagos automatizado, esta sección y la Política de Privacidad se actualizarán para reflejarlo antes de su entrada en vigencia.</p>
           <h3>6.3 Cancelación y reembolsos</h3>

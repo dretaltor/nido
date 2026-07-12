@@ -52,10 +52,10 @@ const PLANES = [
     id: 'enterprise',
     nombre: 'Black',
     desc: 'Para asesores top y equipos que quieren dominar el mercado.',
-    precio_mes: 149,
-    precio_ano: 115,
-    badge: 'Mayor valor',
-    cta: 'Empezar Black',
+    precio_mes: 99,
+    precio_ano: 76,
+    badge: 'Mayor valor · 7 días gratis',
+    cta: 'Empezar Black gratis 7 días',
     href: '/registro?plan=enterprise',
     featured: true,
     features: [
@@ -139,11 +139,15 @@ export default function Precios() {
 
   const PLANES_INFO: Record<string, {nombre:string, precio:string, precioAnual:string}> = {
     pro: { nombre:'NIDO Elite', precio:'$59/mes', precioAnual:'$45/mes (facturado anual)' },
-    enterprise: { nombre:'NIDO Black', precio:'$149/mes', precioAnual:'$115/mes (facturado anual)' },
+    enterprise: { nombre:'NIDO Black', precio:'$99/mes', precioAnual:'$76/mes (facturado anual)' },
   }
 
   const handleSuscribirse = async (planId: string) => {
     if (planId === 'gratis') { router.push('/registro'); return }
+    // Promo de lanzamiento: Black arranca con 7 días gratis, así que no tiene
+    // sentido pedir pago por adelantado — va directo al registro, que activa
+    // el trial automáticamente (ver app/registro/page.tsx).
+    if (planId === 'enterprise') { router.push('/registro?plan=enterprise'); return }
     setPlanSeleccionado(planId)
     setShowPago(true)
   }
@@ -319,7 +323,7 @@ export default function Precios() {
             Empezá gratis.<br/>Crecé cuando estés listo.
           </h2>
           <p style={{ fontSize:14, color:'rgba(255,255,255,0.5)', lineHeight:1.65, marginBottom:28, maxWidth:420, margin:'0 auto 28px' }}>
-            No necesitás tarjeta de crédito para empezar. El plan Despega incluye 7 días de Black gratis para probar todo.
+            No necesitás tarjeta de crédito para empezar. Por lanzamiento, tanto el plan Despega como Black arrancan con 7 días de Black gratis para probar todo.
           </p>
           <div style={{ display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap' }}>
             <a href="/registro" style={{ background:'var(--accent)', color:'white', padding:'13px 28px', borderRadius:999, fontSize:14, fontWeight:500, textDecoration:'none', display:'inline-block' }}>Crear cuenta gratis →</a>

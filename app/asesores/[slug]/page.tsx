@@ -26,13 +26,14 @@ export default function PerfilAsesor({ params }: { params: Promise<{ slug: strin
   const [notFound, setNotFound] = useState(false)
   const [propiedades, setPropiedades] = useState<PropiedadMini[]>([])
   const [resenas, setResenas] = useState<Partial<CalificacionPublica>[]>([])
+  const [califCounts, setCalifCounts] = useState<number[]>([0, 0, 0, 0, 0])
   const [stats, setStats] = useState<{ promedio: number | null, total: number, cerradas: number, activas: number }>({ promedio: null, total: 0, cerradas: 0, activas: 0 })
 
   useEffect(() => {
     let cancelado = false
     async function cargar() {
       setLoading(true)
-      const cols = 'id,nombre,correo,foto_url,valeria_perfil,equipo_nido_estado,bio_publica,anos_experiencia,hobbies,zona_trabajo_publica,slug,oficina_id,oficina_nombre'
+      const cols = 'id,nombre,correo,foto_url,valeria_perfil,equipo_nido_estado,telefono,bio_publica,anos_experiencia,hobbies,zona_trabajo_publica,slug,oficina_id,oficina_nombre'
       let { data } = await supabase.from('asesores_publicos').select(cols).eq('slug', slug).maybeSingle()
       if (!data) {
         const byId = await supabase.from('asesores_publicos').select(cols).eq('id', slug).maybeSingle()
@@ -59,6 +60,10 @@ export default function PerfilAsesor({ params }: { params: Promise<{ slug: strin
       const califs = (calif.data || []).map((c) => c.calificacion || 0)
       const total = califs.length
       const promedio = total > 0 ? Math.round((califs.reduce((a, b) => a + b, 0) / total) * 10) / 10 : null
+      // Las barras de distribucion se calculan sobre el set completo (calif, sin
+      // limite), no sobre `resenas` (limitado a 12 para la lista de comentarios),
+      // para que la suma de las barras siempre coincida con el total mostrado.
+      setCalifCounts([1, 2, 3, 4, 5].map(n => califs.filter(c => c === n).length))
       setStats({ promedio, total, cerradas: cerradas.count || 0, activas: activas.count || 0 })
       setLoading(false)
     }
@@ -80,10 +85,9 @@ export default function PerfilAsesor({ params }: { params: Promise<{ slug: strin
   )
 
   const esEquipoNido = asesor.equipo_nido_estado === 'aprobado'
-  const hobbies = Array.isArray(asesor.hobbies) ? (asesor.hobbies as string[]) : []
-  const califCounts = [1, 2, 3, 4, 5].map(n => resenas.filter(r => r.calificacion === n).length)
-  const califTotalMostrado = resenas.length
+  const hobbies = Array.isArray(asesor.hobbies) ? (asesor.hobbies as string[]).filter(h => typeof h === 'string') : []
   const maxCount = Math.max(1, ...califCounts)
+  const numeroWhatsapp = (asesor.telefono || '').replace(/[^0-9]/g, '')
 
   return (
     <main style={{ fontFamily: "'DM Sans',sans-serif", background: 'var(--bg)', minHeight: '100vh', color: 'var(--ink)' }}>
@@ -130,7 +134,9 @@ export default function PerfilAsesor({ params }: { params: Promise<{ slug: strin
               </div>
             )}
             <div style={{ display: 'flex', gap: 10 }}>
-              <a href={'https://wa.me/?text=' + encodeURIComponent('Hola ' + (asesor.nombre || '') + ', vi tu perfil en NIDO y me gustaría contactarte.')} target="_blank" style={{ padding: '10px 20px', borderRadius: 999, background: '#22c55e', color: 'white', fontSize: 13, fontWeight: 500 }}>💬 Contactar por WhatsApp</a>
+              {numeroWhatsapp && (
+                <a href={'https://wa.me/' + numeroWhatsapp + '?text=' + encodeURIComponent('Hola ' + (asesor.nombre || '') + ', vi tu perfil en NIDO y me gustaría contactarte.')} target="_blank" style={{ padding: '10px 20px', borderRadius: 999, background: '#22c55e', color: 'white', fontSize: 13, fontWeight: 500 }}>💬 Contactar por WhatsApp</a>
+              )}
               <a href={'mailto:' + asesor.correo} style={{ padding: '10px 20px', borderRadius: 999, border: '1px solid var(--rule)', fontSize: 13, color: 'var(--ink-2)' }}>✉ Correo</a>
             </div>
           </div>
@@ -210,7 +216,7 @@ export default function PerfilAsesor({ params }: { params: Promise<{ slug: strin
             ))}
           </div>
         )}
-        {califTotalMostrado === 0 && (
+        {stats.total === 0 && (
           <p style={{ fontSize: 14, color: 'var(--ink-3)', marginTop: 16 }}>Este asesor todavía no tiene reseñas.</p>
         )}
       </section>

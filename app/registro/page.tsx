@@ -8,13 +8,13 @@ import { supabase } from '../../lib/supabase'
 const PLANES_INFO: Record<string, { nombre: string, precio: string, color: string }> = {
   gratis: { nombre: 'Despega', precio: '$0 · 7 días de Black gratis', color: 'var(--ink)' },
   pro: { nombre: 'Elite', precio: '$59/mes', color: 'var(--accent)' },
-  enterprise: { nombre: 'Black', precio: '$149/mes', color: 'oklch(0.20 0.005 80)' },
+  enterprise: { nombre: 'Black', precio: '$99/mes · 7 días gratis', color: 'oklch(0.20 0.005 80)' },
 }
 
 const PLANES_CARDS = [
   { id: 'gratis', nombre: 'Despega', precio: '$0', sub: '7 días de Black gratis, luego se bloquea hasta suscribirte', color: 'var(--ink-2)' },
   { id: 'pro', nombre: 'Elite', precio: '$59/mes', sub: 'Valeria IA, CRM completo, Academia', color: 'var(--accent)' },
-  { id: 'enterprise', nombre: 'Black', precio: '$149/mes', sub: 'Todo ilimitado + soporte prioritario', color: 'oklch(0.20 0.005 80)' },
+  { id: 'enterprise', nombre: 'Black', precio: '$99/mes', sub: 'Todo ilimitado + soporte prioritario · 7 días gratis por lanzamiento', color: 'oklch(0.20 0.005 80)' },
 ]
 
 function RegistroInner() {
@@ -81,7 +81,10 @@ function RegistroInner() {
         }
 
         // Crear suscripcion inicial
-        if (plan === 'gratis' && !cedulaYaUsada) {
+        // Promo de lanzamiento: el trial de 7 dias con Black aplica tanto si eligen
+        // el plan gratis Despega como si eligen Black directamente — antes Black
+        // directo quedaba pendiente de activacion manual sin trial.
+        if ((plan === 'gratis' || plan === 'enterprise') && !cedulaYaUsada) {
           // Trial de 7 dias con TODO el plan Black activo
           const trialFin = new Date()
           trialFin.setDate(trialFin.getDate() + 7)
@@ -170,6 +173,11 @@ function RegistroInner() {
           {plan === 'gratis' && (
             <div style={{ marginTop:8, fontSize:12, color:'var(--accent)', background:'var(--accent-tint)', padding:'8px 12px', borderRadius:8 }}>
               ✦ Empezás con el plan Black completo gratis por 7 días. Después necesitás elegir un plan pago para seguir publicando.
+            </div>
+          )}
+          {plan === 'enterprise' && (
+            <div style={{ marginTop:8, fontSize:12, color:'var(--accent)', background:'var(--accent-tint)', padding:'8px 12px', borderRadius:8 }}>
+              ✦ Promo de lanzamiento: tu cuenta arranca de inmediato con Black gratis por 7 días, sin pago por adelantado. Después de los 7 días, el plan queda en $99/mes.
             </div>
           )}
         </div>
