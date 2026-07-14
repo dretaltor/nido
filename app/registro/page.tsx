@@ -52,61 +52,82 @@ function RegistroInner() {
     if (error) { setError(error.message.includes('already') || error.message.includes('registered') ? 'Este correo ya está registrado. Intentá iniciar sesión.' : 'Error al registrarse: ' + error.message) }
     else {
       // Auto login after registration
-      const { data: loginData } = await supabase.auth.signInWithPassword({ email, password })
-      if (loginData?.user) {
-        // Crear fila en perfiles INMEDIATAMENTE — no esperar al onboarding
-        await supabase.from('perfiles').upsert({
-          id: loginData.user.id,
-          nombre,
-          correo: email,
-          cedula: cedulaLimpia,
-          plan,
-          compania: tipoTrabajo === 'compania' ? companiaNombre.trim() : null,
-          solicita_equipo_nido: tipoTrabajo === 'equipo_nido',
-          equipo_nido_estado: tipoTrabajo === 'equipo_nido' ? 'pendiente' : null,
-          valeria_onboarding_completo: false,
-          created_at: new Date().toISOString(),
-        })
-
-        // Programa de referidos: si vino con un ?ref=CODIGO, registrar la referencia
-        if (refCode) {
-          try {
-            await supabase.rpc('registrar_referido', {
-              p_codigo: refCode,
-              p_referido_email: email,
-              p_referido_tipo: 'asesor',
-              p_referido_nombre: nombre,
-            })
-          } catch {}
-        }
-
-        // Crear suscripcion inicial
-        // Promo de lanzamiento: el trial de 7 dias con Black aplica tanto si eligen
-        // el plan gratis Despega como si eligen Black directamente — antes Black
-        // directo quedaba pendiente de activacion manual sin trial.
-        if ((plan === 'gratis' || plan === 'enterprise') && !cedulaYaUsada) {
-          // Trial de 7 dias con TODO el plan Black activo
-          const trialFin = new Date()
-          trialFin.setDate(trialFin.getDate() + 7)
-          await supabase.from('suscripciones').upsert({
-            correo: email,
-            plan: 'enterprise',
-            activo: true,
-            es_trial: true,
-            trial_fin: trialFin.toISOString(),
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'correo' })
-        } else {
-          // Plan pago elegido, o cedula ya uso un trial antes — queda pendiente de activacion por NIDO
-          await supabase.from('suscripciones').upsert({
-            correo: email,
-            plan: plan === 'gratis' ? 'gratis' : plan,
-            activo: false,
-            es_trial: false,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: 'correo' })
-        }
+      const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({ email, password })
+      if (!loginData?.user) {
+        // Antes esto se ignoraba y se redirigía igual al onboarding sin sesión
+        // ni perfil creado (pasaba, por ejemplo, si el correo aún no estaba
+        // confirmado). Ahora se avisa y no se avanza.
+        setError(
+          loginError?.message?.includes('confirm')
+            ? 'Tu cuenta fue creada. Confirmá tu correo (revisá tu bandeja de entrada) y luego ingresá desde /login.'
+            : 'Tu cuenta fue creada pero no pudimos iniciar sesión automáticamente. Intentá ingresar desde /login.'
+        )
+        setLoading(false)
+        return
       }
+
+      // Crear fila en perfiles INMEDIATAMENTE — no esperar al onboarding
+      const { error: perfilError } = await supabase.from('perfiles').upsert({
+        id: loginData.user.id,
+        nombre,
+        correo: email,
+        cedula: cedulaLimpia,
+        plan,
+        compania: tipoTrabajo === 'compania' ? companiaNombre.trim() : null,
+        solicita_equipo_nido: tipoTrabajo === 'equipo_nido',
+        equipo_nido_estado: tipoTrabajo === 'equipo_nido' ? 'pendiente' : null,
+        valeria_onboarding_completo: false,
+        created_at: new Date().toISOString(),
+      })
+      if (perfilError) {
+        // Antes este error se ignoraba por completo: la cuenta de auth y la
+        // suscripción se creaban igual, pero la fila de perfiles (de la que
+        // depende TODO lo demás — verlo en el admin, Valeria, el contrato)
+        // simplemente no existía, en silencio.
+        setError('Tu cuenta se creó pero hubo un error guardando tu perfil. Escribinos a soporte con este detalle: ' + perfilError.message)
+        setLoading(false)
+        return
+      }
+
+      // Programa de referidos: si vino con un ?ref=CODIGO, registrar la referencia
+      if (refCode) {
+        try {
+          await supabase.rpc('registrar_referido', {
+            p_codigo: refCode,
+            p_referido_email: email,
+            p_referido_tipo: 'asesor',
+            p_referido_nombre: nombre,
+          })
+        } catch {}
+      }
+
+      // Crear suscripcion inicial
+      // Promo de lanzamiento: el trial de 7 dias con Black aplica tanto si eligen
+      // el plan gratis Despega como si eligen Black directamente — antes Black
+      // directo quedaba pendiente de activacion manual sin trial.
+      if ((plan === 'gratis' || plan === 'enterprise') && !cedulaYaUsada) {
+        // Trial de 7 dias con TODO el plan Black activo
+        const trialFin = new Date()
+        trialFin.setDate(trialFin.getDate() + 7)
+        await supabase.from('suscripciones').upsert({
+          correo: email,
+          plan: 'enterprise',
+          activo: true,
+          es_trial: true,
+          trial_fin: trialFin.toISOString(),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'correo' })
+      } else {
+        // Plan pago elegido, o cedula ya uso un trial antes — queda pendiente de activacion por NIDO
+        await supabase.from('suscripciones').upsert({
+          correo: email,
+          plan: plan === 'gratis' ? 'gratis' : plan,
+          activo: false,
+          es_trial: false,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: 'correo' })
+      }
+
       if (typeof window !== 'undefined') localStorage.setItem('nido_user_tipo', 'asesor')
       window.location.href = '/dashboard/valeria-onboarding'
     }

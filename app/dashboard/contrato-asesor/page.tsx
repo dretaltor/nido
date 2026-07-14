@@ -11,6 +11,7 @@ export default function ContratoAsesor() {
   const [checked, setChecked] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -25,13 +26,23 @@ export default function ContratoAsesor() {
   const aceptar = async () => {
     if (!checked || !user) return
     setSaving(true)
-    await supabase.from('perfiles').upsert({
+    setError('')
+    // Se incluye correo explícitamente porque perfiles.correo es NOT NULL: si por
+    // algún motivo la fila del perfil todavía no existe, un upsert sin correo
+    // fallaría al intentar el INSERT. Antes este error se ignoraba en silencio
+    // y la UI mostraba "aceptado" aunque nada se hubiera guardado.
+    const { error } = await supabase.from('perfiles').upsert({
       id: user.id,
+      correo: user.email,
       contrato_asesor_aceptado: true,
       contrato_asesor_aceptado_at: new Date().toISOString(),
     })
-    setAceptado(true)
     setSaving(false)
+    if (error) {
+      setError('No se pudo guardar tu aceptación del contrato. Intentá de nuevo — si el problema sigue, escribinos a soporte. (' + error.message + ')')
+      return
+    }
+    setAceptado(true)
     setTimeout(() => router.push('/dashboard/nueva-propiedad'), 1200)
   }
 
@@ -107,6 +118,12 @@ export default function ContratoAsesor() {
               <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop:3 }} />
               <span>He leído y acepto los Términos de Afiliación de Asesor NIDO.</span>
             </label>
+
+            {error && (
+              <div style={{ background:'oklch(0.97 0.03 20)', border:'1px solid oklch(0.85 0.06 20)', borderRadius:10, padding:'12px 16px', marginBottom:16, color:'oklch(0.45 0.08 20)', fontSize:13 }}>
+                {error}
+              </div>
+            )}
 
             <button onClick={aceptar} disabled={!checked || saving} style={{ width:'100%', padding:'14px', borderRadius:999, background:'oklch(0.20 0.005 80)', color:'white', border:'none', fontSize:15, fontWeight:500, cursor: checked ? 'pointer' : 'not-allowed', opacity: checked ? 1 : 0.5 }}>
               {saving ? 'Guardando...' : 'Aceptar y continuar →'}

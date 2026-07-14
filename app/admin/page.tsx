@@ -242,6 +242,11 @@ export default function AdminPanel() {
   const [activandoLote, setActivandoLote] = useState(false)
   const [msg, setMsg] = useState('')
   const [adminUser, setAdminUser] = useState<User | null>(null)
+  const [modalNuevoAsesor, setModalNuevoAsesor] = useState(false)
+  const [nuevoAsesor, setNuevoAsesor] = useState({ nombre:'', correo:'', telefono:'', plan:'gratis', activarTrial:true })
+  const [creandoAsesor, setCreandoAsesor] = useState(false)
+  const [errorNuevoAsesor, setErrorNuevoAsesor] = useState('')
+  const [linkClaveNuevoAsesor, setLinkClaveNuevoAsesor] = useState('')
 
   const loadAll = async () => {
     const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }, { data: pagosRef }, { data: lds }, { data: audit }, { data: adms }, { data: ofs }, { data: ccs }, { data: alts }, { data: wal }] = await Promise.all([
@@ -300,6 +305,26 @@ export default function AdminPanel() {
       admin_email: adminUser?.email || 'desconocido',
       accion, entidad_tipo: entidadTipo || null, entidad_id: entidadId || null, detalle: detalle || null,
     }).then(() => {}, () => {})
+  }
+
+  const crearAsesor = async () => {
+    setCreandoAsesor(true)
+    setErrorNuevoAsesor('')
+    setLinkClaveNuevoAsesor('')
+    const { data: { session } } = await supabase.auth.getSession()
+    const res = await fetch('/api/admin/crear-asesor', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+      body: JSON.stringify(nuevoAsesor),
+    })
+    const json = await res.json()
+    setCreandoAsesor(false)
+    if (!res.ok) { setErrorNuevoAsesor(json.error || 'Error creando el asesor'); return }
+    logAccion('Creó asesor manualmente', 'asesor', json.id, nuevoAsesor.correo)
+    setLinkClaveNuevoAsesor(json.linkClave || '')
+    loadAll()
+    setMsg('✓ Asesor creado: ' + nuevoAsesor.correo)
+    setTimeout(() => setMsg(''), 4000)
   }
 
   const cambiarPlan = async (correo: string, plan: string) => {
@@ -762,6 +787,9 @@ export default function AdminPanel() {
               </div>
               <div style={{ display:'flex', gap:10, alignItems:'center' }}>
                 <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar asesor..." className="field" style={{ width:220 }}/>
+                <button onClick={() => { setModalNuevoAsesor(true); setErrorNuevoAsesor(''); setLinkClaveNuevoAsesor(''); setNuevoAsesor({ nombre:'', correo:'', telefono:'', plan:'gratis', activarTrial:true }) }} style={{ padding:'10px 18px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap' }}>
+                  + Nuevo asesor
+                </button>
               </div>
             </div>
 
@@ -800,6 +828,55 @@ export default function AdminPanel() {
                     </div>
                   )
                 })}
+            </div>
+          </div>
+        )}
+
+        {modalNuevoAsesor && (
+          <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100, padding:24 }} onClick={() => setModalNuevoAsesor(false)}>
+            <div className="card" style={{ maxWidth:440, width:'100%', padding:28 }} onClick={e => e.stopPropagation()}>
+              {linkClaveNuevoAsesor ? (
+                <>
+                  <div style={{ fontSize:16, fontWeight:500, marginBottom:8 }}>✓ Asesor creado</div>
+                  <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.6, marginBottom:14 }}>
+                    Enviale este link para que defina su propia contraseña e ingrese a NIDO:
+                  </p>
+                  <div style={{ background:'var(--bg-elev)', border:'1px solid var(--rule)', borderRadius:8, padding:'10px 12px', fontSize:12, wordBreak:'break-all', marginBottom:16 }}>
+                    {linkClaveNuevoAsesor}
+                  </div>
+                  <div style={{ display:'flex', gap:10 }}>
+                    <button onClick={() => { navigator.clipboard.writeText(linkClaveNuevoAsesor) }} style={{ flex:1, padding:'10px', borderRadius:8, border:'1px solid var(--rule)', background:'var(--bg)', cursor:'pointer', fontSize:13 }}>Copiar link</button>
+                    <button onClick={() => setModalNuevoAsesor(false)} style={{ flex:1, padding:'10px', borderRadius:8, border:'none', background:'var(--ink)', color:'white', cursor:'pointer', fontSize:13 }}>Cerrar</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize:16, fontWeight:500, marginBottom:16 }}>Crear nuevo asesor</div>
+                  {errorNuevoAsesor && (
+                    <div style={{ background:'oklch(0.97 0.03 20)', border:'1px solid oklch(0.85 0.06 20)', borderRadius:8, padding:'10px 14px', marginBottom:14, color:'oklch(0.45 0.08 20)', fontSize:13 }}>{errorNuevoAsesor}</div>
+                  )}
+                  <div style={{ display:'flex', flexDirection:'column', gap:12, marginBottom:16 }}>
+                    <input className="field" placeholder="Nombre completo" value={nuevoAsesor.nombre} onChange={e => setNuevoAsesor({...nuevoAsesor, nombre:e.target.value})}/>
+                    <input className="field" type="email" placeholder="Correo electrónico" value={nuevoAsesor.correo} onChange={e => setNuevoAsesor({...nuevoAsesor, correo:e.target.value})}/>
+                    <input className="field" placeholder="Teléfono (opcional)" value={nuevoAsesor.telefono} onChange={e => setNuevoAsesor({...nuevoAsesor, telefono:e.target.value})}/>
+                    <select className="field" value={nuevoAsesor.plan} onChange={e => setNuevoAsesor({...nuevoAsesor, plan:e.target.value})}>
+                      <option value="gratis">Despega</option>
+                      <option value="pro">Elite</option>
+                      <option value="enterprise">Black</option>
+                    </select>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'var(--ink-2)' }}>
+                      <input type="checkbox" checked={nuevoAsesor.activarTrial} onChange={e => setNuevoAsesor({...nuevoAsesor, activarTrial:e.target.checked})}/>
+                      Activar de inmediato con trial Black de 7 días
+                    </label>
+                  </div>
+                  <div style={{ display:'flex', gap:10 }}>
+                    <button onClick={() => setModalNuevoAsesor(false)} style={{ flex:1, padding:'10px', borderRadius:8, border:'1px solid var(--rule)', background:'var(--bg)', cursor:'pointer', fontSize:13 }}>Cancelar</button>
+                    <button onClick={crearAsesor} disabled={creandoAsesor || !nuevoAsesor.nombre.trim() || !nuevoAsesor.correo.trim()} style={{ flex:1, padding:'10px', borderRadius:8, border:'none', background:'var(--accent)', color:'white', cursor:'pointer', fontSize:13, opacity: creandoAsesor?0.6:1 }}>
+                      {creandoAsesor ? 'Creando...' : 'Crear asesor'}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

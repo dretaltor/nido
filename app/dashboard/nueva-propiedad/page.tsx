@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { getPlanConfig } from '../../../lib/planes'
 import { COSTA_RICA } from '../../../lib/costaRicaData'
 import { addWatermark } from '../../../lib/watermark'
+import { usdACrc, fmtCrc, TIPO_CAMBIO_USD_CRC } from '../../../lib/exchangeRate'
 
 const STEPS = [
   { key:'tipo', label:'Tipo', meta:'Operación y categoría' },
@@ -513,6 +514,11 @@ export default function NuevaPropiedad() {
             <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:24,color:'var(--ink-3)'}}>$</span>
             <input className="wiz-input" type="number" placeholder={String(suggested)} value={data.price} onChange={e => patch({price:e.target.value})} style={{fontSize:22,fontFamily:"'JetBrains Mono',monospace",maxWidth:220}}/>
           </div>
+          {!!parseInt(data.price) && (
+            <p style={{fontSize:12,color:'var(--ink-3)',marginTop:8}}>
+              ≈ {fmtCrc(usdACrc(parseInt(data.price)))} {data.op==='alquiler'?'colones/mes':'colones'} · tipo de cambio referencial ₡{TIPO_CAMBIO_USD_CRC}/$1, se muestra como guía en el portal
+            </p>
+          )}
           <div style={{marginTop:20,background:'var(--bg-elev)',border:'1px solid var(--rule)',borderRadius:8,padding:'16px 20px'}}>
             <div style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:10}}>
               <span>{fmtP(Math.round(suggested*0.92))}</span>
@@ -607,7 +613,7 @@ export default function NuevaPropiedad() {
           {label:'Fotos', body:data.photos.length+' fotos · '+(data.tour?'Tour 360° solicitado':'Sin tour'), step:4},
           {label:'Descripción', body:data.title||'Sin título', step:5},
           {label:'Datos registrales', body:data.numero_finca||'Pendiente', step:7},
-          {label:'Precio', body:data.price?'$'+parseInt(data.price).toLocaleString('en-US')+(data.op==='alquiler'?'/mes':''):'—', step:6},
+          {label:'Precio', body:data.price?'$'+parseInt(data.price).toLocaleString('en-US')+(data.op==='alquiler'?'/mes':'')+'  ·  ≈ '+fmtCrc(usdACrc(parseInt(data.price))):'—', step:6},
           ...(!adminMode && esIndependiente ? [{label:'Colaboración 50/50', body:data.colaboracion?'Abierta a otros asesores':'Solo yo', step:6}] : []),
         ].map(s => (
           <div key={s.label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid var(--rule-soft)'}}>
@@ -692,7 +698,10 @@ export default function NuevaPropiedad() {
             <div style={{padding:'14px 16px'}}>
               <div style={{display:'flex',justifyContent:'space-between',marginBottom:6}}>
                 <span style={{fontSize:11,textTransform:'uppercase',color:'var(--ink-3)'}}>{data.canton||'Ubicación'}</span>
-                <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13}}>{data.price?'$'+parseInt(data.price).toLocaleString('en-US'):'—'}</span>
+                <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,textAlign:'right'}}>
+                  {data.price?'$'+parseInt(data.price).toLocaleString('en-US'):'—'}
+                  {!!parseInt(data.price) && <><br/><span style={{fontSize:10,color:'var(--ink-3)'}}>≈ {fmtCrc(usdACrc(parseInt(data.price)))}</span></>}
+                </span>
               </div>
               <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,marginBottom:8}}>{data.title||'Sin título aún'}</div>
               <div style={{display:'flex',gap:12,fontSize:12,color:'var(--ink-3)'}}>

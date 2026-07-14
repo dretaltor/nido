@@ -12,6 +12,7 @@ export default function ContratoEquipoNido() {
   const [checked, setChecked] = useState(false)
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -27,13 +28,21 @@ export default function ContratoEquipoNido() {
   const aceptar = async () => {
     if (!checked || !user) return
     setSaving(true)
-    await supabase.from('perfiles').upsert({
+    setError('')
+    // correo explícito: perfiles.correo es NOT NULL, un upsert sin este campo
+    // fallaría silenciosamente si la fila del perfil no existiera todavía.
+    const { error } = await supabase.from('perfiles').upsert({
       id: user.id,
+      correo: user.email,
       contrato_equipo_nido_aceptado: true,
       contrato_equipo_nido_aceptado_at: new Date().toISOString(),
     })
-    setAceptado(true)
     setSaving(false)
+    if (error) {
+      setError('No se pudo guardar tu aceptación. Intentá de nuevo — si el problema sigue, escribinos a soporte. (' + error.message + ')')
+      return
+    }
+    setAceptado(true)
     setTimeout(() => router.push('/dashboard'), 1200)
   }
 
@@ -112,6 +121,12 @@ export default function ContratoEquipoNido() {
               <input type="checkbox" checked={checked} onChange={e => setChecked(e.target.checked)} style={{ marginTop:3 }} />
               <span>He leído y acepto el Addendum del Equipo NIDO, incluyendo el reparto de comisión 50/50 y que esta relación es independiente, sin beneficios laborales.</span>
             </label>
+
+            {error && (
+              <div style={{ background:'oklch(0.97 0.03 20)', border:'1px solid oklch(0.85 0.06 20)', borderRadius:10, padding:'12px 16px', marginBottom:16, color:'oklch(0.45 0.08 20)', fontSize:13 }}>
+                {error}
+              </div>
+            )}
 
             <button onClick={aceptar} disabled={!checked || saving} style={{ width:'100%', padding:'14px', borderRadius:999, background:'oklch(0.20 0.005 80)', color:'white', border:'none', fontSize:15, fontWeight:500, cursor: checked ? 'pointer' : 'not-allowed', opacity: checked ? 1 : 0.5 }}>
               {saving ? 'Guardando...' : 'Aceptar y unirme al Equipo NIDO →'}

@@ -134,7 +134,11 @@ function VerificacionKYC({ userId }: { userId: string }) {
       if (!res.ok) throw new Error(json.error || 'Error al subir')
       const path = json.path
       const update = { [tipo + '_url']: path }
-      await supabase.from('perfiles').upsert({ id: userId, ...update, verificacion_estado: 'en_revision' })
+      // correo explícito: perfiles.correo es NOT NULL, un upsert sin este campo
+      // fallaría en silencio si la fila del perfil no existiera todavía.
+      const { data: { user } } = await supabase.auth.getUser()
+      const { error: dbError } = await supabase.from('perfiles').upsert({ id: userId, correo: user?.email, ...update, verificacion_estado: 'en_revision' })
+      if (dbError) throw new Error(dbError.message)
       setDocs(p => ({ ...p, [tipo + '_url']: path }))
       setEstado((p) => ({ ...(p||{}), verificacion_estado: 'en_revision' }))
     } catch (err) {

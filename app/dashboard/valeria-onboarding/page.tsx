@@ -77,6 +77,7 @@ export default function ValeriaOnboarding() {
   const [mensajes, setMensajes] = useState<{rol: 'valeria'|'asesor', texto: string}[]>([])
   const [guardando, setGuardando] = useState(false)
   const [completado, setCompletado] = useState(false)
+  const [errorGuardado, setErrorGuardado] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -139,7 +140,8 @@ export default function ValeriaOnboarding() {
   const guardarPerfil = async (resp: Record<string, string | string[]>) => {
     if (!user) return
     setGuardando(true)
-    
+    setErrorGuardado('')
+
     const perfil = {
       nombre_asesor: resp.nombre,
       estilo_comunicacion: resp.estilo_comunicacion,
@@ -154,8 +156,12 @@ export default function ValeriaOnboarding() {
       configurado_at: new Date().toISOString(),
     }
 
-    await supabase.from('perfiles').upsert({
+    // correo explícito: perfiles.correo es NOT NULL. Si la fila del perfil no
+    // existiera todavía (bug de registro corregido, pero nos cubrimos igual),
+    // un upsert sin correo fallaría en el INSERT sin que se notara.
+    const { error } = await supabase.from('perfiles').upsert({
       id: user.id,
+      correo: user.email,
       nombre: resp.nombre,
       valeria_perfil: perfil,
       valeria_onboarding_completo: true,
@@ -163,6 +169,10 @@ export default function ValeriaOnboarding() {
     })
 
     setGuardando(false)
+    if (error) {
+      setErrorGuardado('No se pudo guardar tu configuración de Valeria. Por favor intentá de nuevo. (' + error.message + ')')
+      return
+    }
     setCompletado(true)
   }
 
@@ -285,6 +295,17 @@ export default function ValeriaOnboarding() {
         {guardando && (
           <div style={{ textAlign:'center', color:'rgba(255,255,255,0.4)', fontSize:13 }}>
             Guardando tu perfil...
+          </div>
+        )}
+
+        {errorGuardado && (
+          <div style={{ textAlign:'center' }}>
+            <div style={{ background:'oklch(0.3 0.06 20/0.2)', border:'1px solid oklch(0.6 0.1 20/0.4)', borderRadius:10, padding:'12px 16px', marginBottom:12, color:'oklch(0.8 0.08 20)', fontSize:13 }}>
+              {errorGuardado}
+            </div>
+            <button onClick={() => guardarPerfil(respuestas)} style={{ padding:'10px 24px', borderRadius:999, background:'oklch(0.42 0.06 150)', color:'white', border:'none', fontSize:13, cursor:'pointer' }}>
+              Reintentar guardar →
+            </button>
           </div>
         )}
       </div>
