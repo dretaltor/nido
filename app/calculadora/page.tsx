@@ -1,13 +1,18 @@
 'use client'
-import { Suspense, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import Nav from '../../components/Nav'
 import { LeadCaptureCalculadora } from '../../components/calculadoras/LeadCaptureCalculadora'
 import { useAsesorRef } from '../../lib/useAsesorRef'
+import { obtenerTipoCambioActual, TIPO_CAMBIO_USD_CRC } from '../../lib/exchangeRate'
 
-function fmt(n: number, currency: 'USD' | 'CRC') {
-  const symbol = currency === 'USD' ? '$' : '₡'
-  return symbol + Math.round(n).toLocaleString('es-CR')
+// Todos los montos internos (precio, cuotas, etc.) se calculan en USD. fmt()
+// convierte al tipo de cambio vigente cuando el toggle está en Colones — antes
+// solo cambiaba el símbolo sin convertir el monto, mostrando por ejemplo
+// "₡150,000" para una propiedad de $150,000 (~$280 reales).
+function fmt(n: number, currency: 'USD' | 'CRC', tipoCambio: number) {
+  if (currency === 'USD') return '$' + Math.round(n).toLocaleString('es-CR')
+  return '₡' + Math.round(n * tipoCambio).toLocaleString('es-CR')
 }
 
 function calcularCuota(precio: number, primaPct: number, tasaAnual: number, plazoAnios: number) {
@@ -32,6 +37,8 @@ export default function CalculadoraPage() {
 function CalculadoraInner() {
   const { asesorEmail, asesorNombre } = useAsesorRef()
   const [currency, setCurrency] = useState<'USD' | 'CRC'>('USD')
+  const [tipoCambio, setTipoCambio] = useState(TIPO_CAMBIO_USD_CRC)
+  useEffect(() => { obtenerTipoCambioActual().then(setTipoCambio) }, [])
 
   // ── Costos de cierre ──────────────────────────────────────────────
   const [precio, setPrecio] = useState(150000)
@@ -60,7 +67,7 @@ function CalculadoraInner() {
     { label: 'Entrada alta', detalle: '30% prima · 15 años', activo: false, ...calcularCuota(precioHipoteca, 30, tasaAnual, 15) },
   ], [precioHipoteca, primaPct, tasaAnual, plazoAnios])
 
-  const mensajeHipoteca = `Calculadora de cuota mensual: precio ${fmt(precioHipoteca, currency)}, ${primaPct}% de prima, ${tasaAnual}% a ${plazoAnios} años → cuota estimada ${fmt(cuotaMensual, currency)}/mes. Gastos de cierre estimados: ${fmt(totalCierre, currency)}.`
+  const mensajeHipoteca = `Calculadora de cuota mensual: precio ${fmt(precioHipoteca, currency, tipoCambio)}, ${primaPct}% de prima, ${tasaAnual}% a ${plazoAnios} años → cuota estimada ${fmt(cuotaMensual, currency, tipoCambio)}/mes. Gastos de cierre estimados: ${fmt(totalCierre, currency, tipoCambio)}.`
 
   return (
     <main style={{ minHeight: '100vh', background: '#FAFAF8', fontFamily: '"DM Sans", system-ui, sans-serif' }}>
@@ -114,11 +121,11 @@ function CalculadoraInner() {
               <input type="number" value={precio} onChange={e => setPrecio(Number(e.target.value) || 0)} />
             </div>
 
-            <div className="calc-line"><span>Impuesto de traspaso (1.5%)</span><span>{fmt(traspaso, currency)}</span></div>
-            <div className="calc-line"><span>Timbres y derechos de registro (~0.8%)</span><span>{fmt(timbresRegistro, currency)}</span></div>
-            <div className="calc-line"><span>Honorarios notariales (~1.25%)</span><span>{fmt(honorariosNotariales, currency)}</span></div>
-            <div className="calc-line"><span>IVA sobre honorarios (13%)</span><span>{fmt(ivaHonorarios, currency)}</span></div>
-            <div className="calc-line total"><span>Total estimado ({pctCierre.toFixed(1)}%)</span><span>{fmt(totalCierre, currency)}</span></div>
+            <div className="calc-line"><span>Impuesto de traspaso (1.5%)</span><span>{fmt(traspaso, currency, tipoCambio)}</span></div>
+            <div className="calc-line"><span>Timbres y derechos de registro (~0.8%)</span><span>{fmt(timbresRegistro, currency, tipoCambio)}</span></div>
+            <div className="calc-line"><span>Honorarios notariales (~1.25%)</span><span>{fmt(honorariosNotariales, currency, tipoCambio)}</span></div>
+            <div className="calc-line"><span>IVA sobre honorarios (13%)</span><span>{fmt(ivaHonorarios, currency, tipoCambio)}</span></div>
+            <div className="calc-line total"><span>Total estimado ({pctCierre.toFixed(1)}%)</span><span>{fmt(totalCierre, currency, tipoCambio)}</span></div>
 
             <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 16, lineHeight: 1.5 }}>
               Estimado educativo con base en porcentajes típicos del mercado costarricense. Los honorarios notariales
@@ -151,10 +158,10 @@ function CalculadoraInner() {
               <input type="number" value={plazoAnios} onChange={e => setPlazoAnios(Number(e.target.value) || 0)} />
             </div>
 
-            <div className="calc-line"><span>Monto a financiar</span><span>{fmt(montoFinanciado, currency)}</span></div>
-            <div className="calc-line"><span>Total de intereses</span><span>{fmt(totalIntereses, currency)}</span></div>
-            <div className="calc-line"><span>Total pagado al final del plazo</span><span>{fmt(totalPagado, currency)}</span></div>
-            <div className="calc-line total"><span>Cuota mensual estimada</span><span>{fmt(cuotaMensual, currency)}</span></div>
+            <div className="calc-line"><span>Monto a financiar</span><span>{fmt(montoFinanciado, currency, tipoCambio)}</span></div>
+            <div className="calc-line"><span>Total de intereses</span><span>{fmt(totalIntereses, currency, tipoCambio)}</span></div>
+            <div className="calc-line"><span>Total pagado al final del plazo</span><span>{fmt(totalPagado, currency, tipoCambio)}</span></div>
+            <div className="calc-line total"><span>Cuota mensual estimada</span><span>{fmt(cuotaMensual, currency, tipoCambio)}</span></div>
 
             <button onClick={() => setComparar(!comparar)} style={{ marginTop: 16, width: '100%', padding: '10px', borderRadius: 999, background: comparar ? '#1B5E3B' : 'rgba(27,94,59,0.06)', color: comparar ? 'white' : '#1B5E3B', border: 'none', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit' }}>
               {comparar ? 'Ocultar comparación de escenarios' : 'Comparar 3 escenarios →'}
@@ -178,9 +185,9 @@ function CalculadoraInner() {
                 <div key={e.label} style={{ border: e.activo ? '2px solid #1B5E3B' : '1px solid rgba(27,94,59,0.1)', borderRadius: 14, padding: '18px 16px', background: e.activo ? 'rgba(27,94,59,0.04)' : 'transparent' }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: e.activo ? '#1B5E3B' : '#0D1F15', marginBottom: 2 }}>{e.label}</div>
                   <div style={{ fontSize: 11, color: '#9CA3AF', marginBottom: 12 }}>{e.detalle}</div>
-                  <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 22, color: '#0D1F15', marginBottom: 8 }}>{fmt(e.cuotaMensual, currency)}<span style={{ fontSize: 12, color: '#9CA3AF' }}>/mes</span></div>
-                  <div style={{ fontSize: 12, color: '#6B7280', display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}><span>Financiado</span><span>{fmt(e.montoFinanciado, currency)}</span></div>
-                  <div style={{ fontSize: 12, color: '#6B7280', display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}><span>Intereses totales</span><span>{fmt(e.totalIntereses, currency)}</span></div>
+                  <div style={{ fontFamily: '"Cormorant Garamond", serif', fontSize: 22, color: '#0D1F15', marginBottom: 8 }}>{fmt(e.cuotaMensual, currency, tipoCambio)}<span style={{ fontSize: 12, color: '#9CA3AF' }}>/mes</span></div>
+                  <div style={{ fontSize: 12, color: '#6B7280', display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}><span>Financiado</span><span>{fmt(e.montoFinanciado, currency, tipoCambio)}</span></div>
+                  <div style={{ fontSize: 12, color: '#6B7280', display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}><span>Intereses totales</span><span>{fmt(e.totalIntereses, currency, tipoCambio)}</span></div>
                 </div>
               ))}
             </div>

@@ -5,7 +5,7 @@ import { supabase } from '../../../lib/supabase'
 import { getPlanConfig } from '../../../lib/planes'
 import { COSTA_RICA } from '../../../lib/costaRicaData'
 import { addWatermark } from '../../../lib/watermark'
-import { usdACrc, fmtCrc, TIPO_CAMBIO_USD_CRC } from '../../../lib/exchangeRate'
+import { usdACrc, crcAUsd, fmtCrc, obtenerTipoCambioActual, TIPO_CAMBIO_USD_CRC } from '../../../lib/exchangeRate'
 
 const STEPS = [
   { key:'tipo', label:'Tipo', meta:'Operación y categoría' },
@@ -34,6 +34,18 @@ export default function NuevaPropiedad() {
   const [limiteAlcanzado, setLimiteAlcanzado] = useState(false)
   const [planActual, setPlanActual] = useState<string>('gratis')
   const [propiedadesActuales, setPropiedadesActuales] = useState(0)
+
+  // Tipo de cambio USD->CRC vigente (se actualiza a diario vía cron, ver
+  // lib/exchangeRate.ts). Mientras carga, se usa el valor de respaldo.
+  const [tipoCambio, setTipoCambio] = useState(TIPO_CAMBIO_USD_CRC)
+  useEffect(() => { obtenerTipoCambioActual().then(setTipoCambio) }, [])
+
+  // El precio se guarda siempre en USD (data.price), pero el asesor puede
+  // escribirlo en colones — precioMoneda controla qué unidad está tipeando
+  // ahora mismo, y precioCrcTexto guarda el texto crudo de ese input para
+  // que no "salte" por redondeos en cada tecla.
+  const [precioMoneda, setPrecioMoneda] = useState<'USD'|'CRC'>('USD')
+  const [precioCrcTexto, setPrecioCrcTexto] = useState('')
 
   // Modo admin: un admin registra la propiedad y la asigna a otro asesor (ej. Equipo NIDO)
   const [adminMode, setAdminMode] = useState(false)
@@ -509,14 +521,43 @@ export default function NuevaPropiedad() {
         <h1 className="wiz-h1">Definí el <em>precio</em>.</h1>
         <p className="wiz-sub">Valeria estimó un rango de mercado para tu propiedad.</p>
         <div className="field-group">
-          <label className="field-label">{data.op==='alquiler'?'Renta mensual':'Precio de venta'} (USD)</label>
-          <div style={{display:'flex',alignItems:'center',gap:8}}>
-            <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:24,color:'var(--ink-3)'}}>$</span>
-            <input className="wiz-input" type="number" placeholder={String(suggested)} value={data.price} onChange={e => patch({price:e.target.value})} style={{fontSize:22,fontFamily:"'JetBrains Mono',monospace",maxWidth:220}}/>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+            <label className="field-label" style={{marginBottom:0}}>{data.op==='alquiler'?'Renta mensual':'Precio de venta'}</label>
+            <div style={{display:'inline-flex',border:'1px solid var(--rule)',borderRadius:999,overflow:'hidden'}}>
+              {(['USD','CRC'] as const).map(m => (
+                <button key={m} type="button" onClick={() => {
+                  if (m === precioMoneda) return
+                  if (m === 'CRC') {
+                    // Entrando a modo colones: se semilla el input con el equivalente actual
+                    setPrecioCrcTexto(parseInt(data.price) ? String(usdACrc(parseInt(data.price), tipoCambio)) : '')
+                  }
+                  setPrecioMoneda(m)
+                }} style={{padding:'5px 14px',border:'none',background:precioMoneda===m?'var(--ink)':'transparent',color:precioMoneda===m?'white':'var(--ink-3)',fontSize:12,fontWeight:500,cursor:'pointer'}}>
+                  {m==='USD'?'USD $':'Colones ₡'}
+                </button>
+              ))}
+            </div>
           </div>
+          {precioMoneda === 'USD' ? (
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:24,color:'var(--ink-3)'}}>$</span>
+              <input className="wiz-input" type="number" placeholder={String(suggested)} value={data.price} onChange={e => patch({price:e.target.value})} style={{fontSize:22,fontFamily:"'JetBrains Mono',monospace",maxWidth:220}}/>
+            </div>
+          ) : (
+            <div style={{display:'flex',alignItems:'center',gap:8}}>
+              <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:24,color:'var(--ink-3)'}}>₡</span>
+              <input className="wiz-input" type="number" placeholder={String(usdACrc(suggested, tipoCambio))} value={precioCrcTexto} onChange={e => {
+                setPrecioCrcTexto(e.target.value)
+                patch({price: e.target.value ? String(crcAUsd(parseFloat(e.target.value), tipoCambio)) : ''})
+              }} style={{fontSize:22,fontFamily:"'JetBrains Mono',monospace",maxWidth:260}}/>
+            </div>
+          )}
           {!!parseInt(data.price) && (
             <p style={{fontSize:12,color:'var(--ink-3)',marginTop:8}}>
-              ≈ {fmtCrc(usdACrc(parseInt(data.price)))} {data.op==='alquiler'?'colones/mes':'colones'} · tipo de cambio referencial ₡{TIPO_CAMBIO_USD_CRC}/$1, se muestra como guía en el portal
+              {precioMoneda === 'USD'
+                ? '≈ ' + fmtCrc(usdACrc(parseInt(data.price), tipoCambio)) + ' ' + (data.op==='alquiler'?'colones/mes':'colones')
+                : '≈ $' + parseInt(data.price).toLocaleString('en-US') + (data.op==='alquiler'?'/mes':'') + ' USD'
+              } · tipo de cambio de referencia ₡{tipoCambio.toFixed(2)}/$1 (actualizado a diario, ref. BCCR) — la propiedad se guarda y publica en USD
             </p>
           )}
           <div style={{marginTop:20,background:'var(--bg-elev)',border:'1px solid var(--rule)',borderRadius:8,padding:'16px 20px'}}>
@@ -613,7 +654,7 @@ export default function NuevaPropiedad() {
           {label:'Fotos', body:data.photos.length+' fotos · '+(data.tour?'Tour 360° solicitado':'Sin tour'), step:4},
           {label:'Descripción', body:data.title||'Sin título', step:5},
           {label:'Datos registrales', body:data.numero_finca||'Pendiente', step:7},
-          {label:'Precio', body:data.price?'$'+parseInt(data.price).toLocaleString('en-US')+(data.op==='alquiler'?'/mes':'')+'  ·  ≈ '+fmtCrc(usdACrc(parseInt(data.price))):'—', step:6},
+          {label:'Precio', body:data.price?'$'+parseInt(data.price).toLocaleString('en-US')+(data.op==='alquiler'?'/mes':'')+'  ·  ≈ '+fmtCrc(usdACrc(parseInt(data.price), tipoCambio)):'—', step:6},
           ...(!adminMode && esIndependiente ? [{label:'Colaboración 50/50', body:data.colaboracion?'Abierta a otros asesores':'Solo yo', step:6}] : []),
         ].map(s => (
           <div key={s.label} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'14px 0',borderBottom:'1px solid var(--rule-soft)'}}>
@@ -700,7 +741,7 @@ export default function NuevaPropiedad() {
                 <span style={{fontSize:11,textTransform:'uppercase',color:'var(--ink-3)'}}>{data.canton||'Ubicación'}</span>
                 <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:13,textAlign:'right'}}>
                   {data.price?'$'+parseInt(data.price).toLocaleString('en-US'):'—'}
-                  {!!parseInt(data.price) && <><br/><span style={{fontSize:10,color:'var(--ink-3)'}}>≈ {fmtCrc(usdACrc(parseInt(data.price)))}</span></>}
+                  {!!parseInt(data.price) && <><br/><span style={{fontSize:10,color:'var(--ink-3)'}}>≈ {fmtCrc(usdACrc(parseInt(data.price), tipoCambio))}</span></>}
                 </span>
               </div>
               <div style={{fontFamily:"'Cormorant Garamond',serif",fontSize:20,marginBottom:8}}>{data.title||'Sin título aún'}</div>
