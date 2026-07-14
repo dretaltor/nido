@@ -304,6 +304,7 @@ export interface Propiedad {
   topografia: string | null
   uso_suelo: string | null
   terreno_tipo: string | null
+  es_condominio?: boolean | null
   cuota_condominal: number | null
   estacionamientos: number | null
   lote_m2: number | null

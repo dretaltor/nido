@@ -15,17 +15,24 @@ const STEPS = [
   { key:'fotos', label:'Fotos', meta:'Imágenes y tour' },
   { key:'desc', label:'Descripción', meta:'La historia' },
   { key:'precio', label:'Precio', meta:'Y rango sugerido' },
+  { key:'registral', label:'Datos registrales', meta:'Registro Nacional' },
   { key:'rev', label:'Revisar', meta:'Y publicar' },
 ]
 
-const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la montaña','Pet friendly','Jardín privado','Patio','Terraza','Balcón','Aire acondicionado','Cocina italiana','Isla en cocina','Walk-in closet','Cuarto de servicio','Gimnasio','Salón de eventos','Coworking','Rooftop','BBQ','Jacuzzi','Smart home','Generador eléctrico','Paneles solares','Cisterna','Seguridad 24/7','Acceso controlado','Internet 1 Gbps','Cerca de escuelas']
+const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la montaña','Pet friendly','Jardín privado','Patio','Terraza','Balcón','Aire acondicionado','Cocina italiana','Isla en cocina','Walk-in closet','Cuarto de servicio','Gimnasio','Salón de eventos','Coworking','Rooftop','BBQ','Jacuzzi','Smart home','Generador eléctrico','Paneles solares','Cisterna','Seguridad 24/7','Acceso controlado','Internet 1 Gbps','Cerca de escuelas','Sauna','Cancha de tenis','Cancha multiuso','Muelle privado','Ascensor','Depósito/bodega','Área de lavandería','Cuarto de juegos','Cine en casa','Bar/wine cellar','Casa de huéspedes','Zona pet friendly común','Área de picnic','Senderos naturales','Vista a la ciudad','Vista al lago/río','Amueblado','Financiamiento del vendedor']
 
 type Photo = {id:number,url:string,uploading?:boolean}
 
 export default function NuevaPropiedad() {
   const [current, setCurrent] = useState(0)
   const [completed, setCompleted] = useState(new Set())
-  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', distrito:'', direccion:'', topografia:'', uso_suelo:'', terreno_tipo:'residencial', cuota_condominal:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'', numero_finca:'', numero_plano:'', naturaleza:'', area_registral:'', colindancias:'', gravamenes:'', anotaciones:'', libre_gravamenes:false, colaboracion:true })
+  const [data, setData] = useState({ op:'venta', kind:'casa', provincia:'', canton:'', distrito:'', direccion:'', topografia:'', uso_suelo:'', terreno_tipo:'residencial', es_condominio:false, cuota_condominal:'', beds:3, baths:2, parking:2, area:0, lot:0, year:0, amenities:[] as string[], photos:[] as {id:number,url:string,uploading?:boolean}[], tour:false, title:'', desc:'', price:'', whatsapp:'', numero_finca:'', numero_plano:'', naturaleza:'', area_registral:'', colindancias:'', gravamenes:'', anotaciones:'', libre_gravamenes:false, colaboracion:true })
+  // Verificación de finca duplicada: un mismo número de finca no debería
+  // registrarse dos veces (son valores únicos del Registro Nacional). Se
+  // consulta vía RPC (no expone datos registrales de otras propiedades,
+  // solo si existe y el nombre del asesor que ya la registró).
+  const [fincaDuplicada, setFincaDuplicada] = useState<{existe:boolean, asesor_nombre:string|null}|null>(null)
+  const [checkingFinca, setCheckingFinca] = useState(false)
   const [colaboracionElegida, setColaboracionElegida] = useState(false)
   const [esIndependiente, setEsIndependiente] = useState(false)
   const [published, setPublished] = useState(false)
@@ -39,6 +46,30 @@ export default function NuevaPropiedad() {
   // lib/exchangeRate.ts). Mientras carga, se usa el valor de respaldo.
   const [tipoCambio, setTipoCambio] = useState(TIPO_CAMBIO_USD_CRC)
   useEffect(() => { obtenerTipoCambioActual().then(setTipoCambio) }, [])
+
+  // Chequeo (con debounce) de que el número de finca no esté ya registrado
+  // por otra propiedad -- son valores únicos y solo debería registrarse por
+  // un asesor a la vez, salvo que NIDO autorice explícitamente un listado
+  // compartido entre asesores.
+  useEffect(() => {
+    const finca = data.numero_finca.trim()
+    if (finca.length < 4) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setFincaDuplicada(null)
+      return
+    }
+    let activo = true
+    setCheckingFinca(true)
+    const t = setTimeout(() => {
+      supabase.rpc('verificar_finca_duplicada', { p_numero_finca: finca }).then(({ data: rows, error }) => {
+        if (!activo) return
+        setCheckingFinca(false)
+        if (error || !rows || !rows[0]) { setFincaDuplicada(null); return }
+        setFincaDuplicada({ existe: rows[0].existe, asesor_nombre: rows[0].asesor_nombre })
+      })
+    }, 600)
+    return () => { activo = false; clearTimeout(t) }
+  }, [data.numero_finca])
 
   // El precio se guarda siempre en USD (data.price), pero el asesor puede
   // escribirlo en colones — precioMoneda controla qué unidad está tipeando
@@ -133,7 +164,18 @@ export default function NuevaPropiedad() {
   const handlePublish = async () => {
     setPublishing(true)
     try {
+      // Chequeo final de defensa -- por si el asesor saltó el paso de datos
+      // registrales sin esperar la verificación en tiempo real.
+      if (data.numero_finca.trim()) {
+        const { data: rows } = await supabase.rpc('verificar_finca_duplicada', { p_numero_finca: data.numero_finca.trim() })
+        if (rows && rows[0] && rows[0].existe) {
+          alert('Este número de finca ya está registrado por otra propiedad. Si es un listado compartido legítimo, contactá a NIDO para autorizarlo manualmente.')
+          setPublishing(false)
+          return
+        }
+      }
       const { data: { user } } = await supabase.auth.getUser()
+      const esCondominio = data.kind==='lote' ? data.terreno_tipo==='condominio' : data.es_condominio
       await supabase.from('propiedades').insert({
         titulo: data.title || data.kind + ' en ' + data.canton,
         descripcion: data.desc,
@@ -157,7 +199,8 @@ export default function NuevaPropiedad() {
         topografia: data.kind==='lote' ? data.topografia : null,
         uso_suelo: data.kind==='lote' ? data.uso_suelo : null,
         terreno_tipo: data.kind==='lote' ? data.terreno_tipo : null,
-        cuota_condominal: data.kind==='lote' && data.terreno_tipo==='condominio' && data.cuota_condominal ? parseFloat(data.cuota_condominal) : null,
+        es_condominio: esCondominio,
+        cuota_condominal: esCondominio && data.cuota_condominal ? parseFloat(data.cuota_condominal) : null,
         disponible: adminMode ? true : false,
         verificacion_estado: adminMode ? 'aprobada' : 'pendiente_verificacion',
         asesor_email: adminMode ? (asesorAsignado?.email||'') : (user?.email||''),
@@ -211,6 +254,8 @@ export default function NuevaPropiedad() {
     { label:'Al menos 4 fotos', done:data.photos.length>=4 },
     { label:'Título y descripción', done:!!data.title && data.desc.length>20 },
     { label:'Precio definido', done:!!data.price },
+    ...((data.kind==='lote' && data.terreno_tipo==='condominio') || (data.kind!=='lote' && data.es_condominio) ? [{ label:'Cuota condominal', done:!!data.cuota_condominal }] : []),
+    { label:'Número de finca sin duplicados', done:!!data.numero_finca && !fincaDuplicada?.existe },
     ...(!adminMode && esIndependiente ? [{ label:'Colaboración entre asesores', done:colaboracionElegida }] : []),
   ]
 
@@ -428,10 +473,27 @@ export default function NuevaPropiedad() {
             )}
           </>
         ) : (
-        <div className="field-group">
-          <label className="field-label">Año de construcción</label>
-          <input className="wiz-input" type="number" placeholder="2021" value={data.year||''} onChange={e => patch({year:parseInt(e.target.value)||0})} style={{maxWidth:160}}/>
-        </div>
+        <>
+          <div className="field-group">
+            <label className="field-label">Año de construcción</label>
+            <input className="wiz-input" type="number" placeholder="2021" value={data.year||''} onChange={e => patch({year:parseInt(e.target.value)||0})} style={{maxWidth:160}}/>
+          </div>
+          <div className="field-group">
+            <label className="field-label">¿Está en condominio?</label>
+            <div className="toggle-group">
+              {[[false,'No, independiente'],[true,'Sí, en condominio']].map(([v,l]) => (
+                <button key={String(v)} className={data.es_condominio===v?'active':''} onClick={() => patch({es_condominio:v as boolean})}>{l as string}</button>
+              ))}
+            </div>
+          </div>
+          {data.es_condominio && (
+            <div className="field-group">
+              <label className="field-label">Cuota condominal mensual (USD) *</label>
+              <input className="wiz-input" type="number" placeholder="150" value={data.cuota_condominal||''} onChange={e => patch({cuota_condominal:e.target.value})} style={{maxWidth:200}}/>
+              <p style={{fontSize:12,color:'var(--ink-3)',marginTop:8}}>Obligatorio para propiedades en condominio.</p>
+            </div>
+          )}
+        </>
         )}
       </div>
     )
@@ -599,13 +661,26 @@ export default function NuevaPropiedad() {
         <h1 className="wiz-h1">Información <em>registral.</em></h1>
         <p className="wiz-sub">Necesitamos los datos del Registro Nacional para verificar y aprobar tu propiedad antes de publicarla.</p>
 
-        <div style={{background:'oklch(0.97 0.03 50)',border:'1px solid oklch(0.88 0.05 50)',borderRadius:10,padding:'14px 16px',marginBottom:24,fontSize:13,color:'oklch(0.40 0.06 50)',lineHeight:1.6}}>
+        <div style={{background:'oklch(0.97 0.03 50)',border:'1px solid oklch(0.88 0.05 50)',borderRadius:10,padding:'14px 16px',marginBottom:16,fontSize:13,color:'oklch(0.40 0.06 50)',lineHeight:1.6}}>
           ⚠️ <strong>Importante:</strong> NIDO no trabaja con propiedades que tengan gravámenes, hipotecas, embargos, anotaciones o cualquier limitación legal que impida o dificulte su libre venta o traspaso. Si tu propiedad tiene estas condiciones, no podrá ser publicada en la plataforma.
+        </div>
+
+        <div style={{background:'var(--accent-tint)',border:'1px solid oklch(0.85 0.04 150)',borderRadius:10,padding:'14px 16px',marginBottom:24,fontSize:13,color:'var(--ink-2)',lineHeight:1.6}}>
+          🔒 <strong>Uso interno y confidencial:</strong> esta información registral es únicamente para uso interno de NIDO y no se publica ni se muestra a compradores. NIDO garantiza que no se contactará al propietario directamente -- se usa exclusivamente para verificar que la propiedad cumple con todos los requisitos legales para su venta. Cualquier gestión o detalle sobre la propiedad se coordina siempre a través del asesor que la registra.
         </div>
 
         <div className="field-group" style={{marginBottom:16}}>
           <label className="field-label">Número de finca *</label>
           <input className="wiz-input" placeholder="Ej. 123456-000" value={data.numero_finca} onChange={e => setData(p => ({...p, numero_finca:e.target.value}))}/>
+          {checkingFinca && <p style={{fontSize:12,color:'var(--ink-3)',marginTop:8}}>Verificando que no esté ya registrada...</p>}
+          {!checkingFinca && fincaDuplicada?.existe && (
+            <p style={{fontSize:12,color:'oklch(0.5 0.15 30)',marginTop:8,lineHeight:1.5}}>
+              ⚠️ Este número de finca ya está registrado{fincaDuplicada.asesor_nombre ? ' por ' + fincaDuplicada.asesor_nombre : ' por otro asesor'}. Un mismo inmueble solo puede registrarse una vez -- si se trata de un listado compartido legítimo entre asesores, contactá a NIDO para autorizarlo manualmente.
+            </p>
+          )}
+          {!checkingFinca && data.numero_finca.trim().length >= 4 && fincaDuplicada && !fincaDuplicada.existe && (
+            <p style={{fontSize:12,color:'var(--accent)',marginTop:8}}>✓ Disponible, no hay otra propiedad registrada con esta finca.</p>
+          )}
         </div>
         <div className="field-group" style={{marginBottom:16}}>
           <label className="field-label">Número de plano catastrado</label>
@@ -687,7 +762,7 @@ export default function NuevaPropiedad() {
       <nav style={{position:'sticky',top:0,zIndex:50,background:'oklch(0.97 0.005 80/0.95)',backdropFilter:'blur(12px)',borderBottom:'1px solid var(--rule)'}}>
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 40px',maxWidth:1500,margin:'0 auto'}}>
           <Link href="/" style={{fontFamily:"'Cormorant Garamond',serif",fontSize:26,color:'var(--ink)',textDecoration:'none'}}>NIDO<span style={{color:'var(--accent)'}}>.</span></Link>
-          <div style={{fontSize:13,color:'var(--ink-3)'}}>{adminMode ? 'Modo admin' : 'Publicá tu propiedad'} · Paso {current+1} de 8</div>
+          <div style={{fontSize:13,color:'var(--ink-3)'}}>{adminMode ? 'Modo admin' : 'Publicá tu propiedad'} · Paso {current+1} de {STEPS.length}</div>
           <a href={adminMode ? '/admin' : (typeof window !== 'undefined' && localStorage.getItem('nido_user_tipo') === 'propietario' ? '/dashboard/propietario' : '/dashboard')} style={{border:'1px solid var(--rule)',color:'var(--ink)',padding:'8px 16px',borderRadius:999,fontSize:13,textDecoration:'none'}}>{adminMode ? 'Volver al admin' : 'Mi panel'}</a>
         </div>
       </nav>
@@ -717,11 +792,19 @@ export default function NuevaPropiedad() {
           {current < 8 && (
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:48,paddingTop:24,borderTop:'1px solid var(--rule)'}}>
               <button onClick={back} disabled={current===0} style={{display:'flex',alignItems:'center',gap:8,background:'none',border:'none',color:current===0?'var(--ink-3)':'var(--ink)',cursor:current===0?'default':'pointer',fontSize:14}}>← Atrás</button>
-              <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:'var(--ink-3)'}}>{String(current+1).padStart(2,'0')} / 08</span>
+              <span style={{fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:'var(--ink-3)'}}>{String(current+1).padStart(2,'0')} / {String(STEPS.length).padStart(2,'0')}</span>
               {(() => {
                 const requiereColaboracion = current === 6 && !adminMode && esIndependiente && !colaboracionElegida
+                const esCondominioLote = data.kind==='lote' && data.terreno_tipo==='condominio'
+                const esCondominioOtro = data.kind!=='lote' && data.es_condominio
+                const requiereCuotaCondominal = current === 2 && (esCondominioLote || esCondominioOtro) && !data.cuota_condominal
+                const requiereFincaUnica = current === 7 && !!fincaDuplicada?.existe
+                const bloqueado = requiereColaboracion || requiereCuotaCondominal || requiereFincaUnica
+                const motivo = requiereCuotaCondominal ? 'Indicá la cuota condominal mensual para continuar'
+                  : requiereFincaUnica ? 'Este número de finca ya está registrado -- resolvelo antes de continuar'
+                  : requiereColaboracion ? 'Confirmá si aceptás colaborar con otros asesores para continuar' : undefined
                 return (
-                  <button onClick={next} disabled={requiereColaboracion} title={requiereColaboracion?'Confirmá si aceptás colaborar con otros asesores para continuar':undefined} style={{background:'var(--ink)',color:'var(--bg)',border:'none',padding:'10px 24px',borderRadius:999,fontSize:14,cursor:requiereColaboracion?'default':'pointer',opacity:requiereColaboracion?0.5:1}}>Continuar →</button>
+                  <button onClick={next} disabled={bloqueado} title={motivo} style={{background:'var(--ink)',color:'var(--bg)',border:'none',padding:'10px 24px',borderRadius:999,fontSize:14,cursor:bloqueado?'default':'pointer',opacity:bloqueado?0.5:1}}>Continuar →</button>
                 )
               })()}
             </div>
