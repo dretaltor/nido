@@ -269,6 +269,8 @@ export interface Propiedad {
   titulo: string
   descripcion: string | null
   precio: number
+  moneda?: string | null
+  precio_moneda_original?: number | null
   tipo: string
   operacion: string
   habitaciones: number | null

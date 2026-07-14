@@ -6,6 +6,7 @@ import { exportToCSV } from '../../../lib/csvExport'
 import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
 import type { Propietario, Referido, Contrato, Propiedad, Lead, Oferta, Visita, CalificacionPublica } from '../../../lib/database.types'
+import { precioPrincipal } from '../../../lib/precioPropiedad'
 
 type PerfilProp = Partial<Propietario> & { [key: string]: unknown }
 type ContraModal = Partial<Oferta> | null
@@ -122,7 +123,7 @@ export default function DashboardPropietario() {
         .then(({ data }) => setReferidosReales(data || []))
       supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,fecha_inicio,fecha_vencimiento,periodo_dias,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,comision_porcentaje,incluye_administracion,administracion_porcentaje,notas,created_at').eq('propietario_correo', user.email!).in('estado', ['activo','pendiente']).order('created_at', { ascending: false }).limit(1).maybeSingle().then(({ data: c }) => { setContrato(c); setLoadingContrato(false) })
       // Fetch propiedades del propietario + leads + ofertas filtradas
-      supabase.from('propiedades').select('id,titulo,zona,precio,disponible,tipo,ref_id,fotos,habitaciones,banos,metros,operacion,asesor_email,asesor_nombre,asesor_whatsapp')
+      supabase.from('propiedades').select('id,titulo,zona,precio,moneda,precio_moneda_original,disponible,tipo,ref_id,fotos,habitaciones,banos,metros,operacion,asesor_email,asesor_nombre,asesor_whatsapp')
         .eq('propietario_email', user.email!)
         .then(({ data: props }) => {
           const propsData = (props || []) as Partial<Propiedad>[]
@@ -322,7 +323,7 @@ export default function DashboardPropietario() {
                       <span>{leadsDeEsta} consultas</span>
                       <span>{ofertasDeEsta} ofertas</span>
                     </div>
-                    <div style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)', marginTop:6 }}>${(p.precio||0).toLocaleString()}</div>
+                    <div style={{ fontFamily:'var(--mono)', fontSize:13, color:'var(--accent)', marginTop:6 }}>{precioPrincipal(p)}</div>
                   </div>
                 </div>
                 )
@@ -389,7 +390,7 @@ export default function DashboardPropietario() {
                       </div>
                       <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>{p.disponible ? 'Activa' : 'Inactiva'}</span>
                     </div>
-                    <div style={{ fontFamily:'var(--mono)', fontSize:18, color:'var(--accent)', marginBottom:16 }}>${Number(p.precio||0).toLocaleString()} USD</div>
+                    <div style={{ fontFamily:'var(--mono)', fontSize:18, color:'var(--accent)', marginBottom:16 }}>{precioPrincipal(p)}</div>
                     <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
                       {[
                         {l:'Consultas',v:leadsDeEsta.length},
@@ -640,8 +641,8 @@ export default function DashboardPropietario() {
             <div className="grid-2" style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:20 }}>
               <div className="card card-pad">
                 <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Tu propiedad</div>
-                <div style={{ fontFamily:'var(--serif)', fontSize:48, color:'var(--accent)', marginBottom:4 }}>${(propia.precio||0).toLocaleString()}</div>
-                <div style={{ fontSize:13, color:'var(--ink-3)' }}>Precio de lista actual</div>
+                <div style={{ fontFamily:'var(--serif)', fontSize:48, color:'var(--accent)', marginBottom:4 }}>{precioPrincipal(propia)}</div>
+                <div style={{ fontSize:13, color:'var(--ink-3)' }}>Precio de lista actual{propia.moneda==='CRC'&&propia.precio_moneda_original?' · comparables en USD abajo':''}</div>
               </div>
               <div className="card card-pad">
                 <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:12 }}>Promedio de zona</div>

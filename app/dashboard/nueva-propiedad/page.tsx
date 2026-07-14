@@ -138,6 +138,10 @@ export default function NuevaPropiedad() {
         titulo: data.title || data.kind + ' en ' + data.canton,
         descripcion: data.desc,
         precio: parseInt(data.price)||0,
+        moneda: precioMoneda,
+        // Congelado al momento de publicar -- no se recalcula con el tipo de
+        // cambio del día, igual que un precio en USD tampoco se reajusta solo.
+        precio_moneda_original: precioMoneda === 'CRC' ? (parseInt(precioCrcTexto)||0) : null,
         tipo: data.kind,
         operacion: data.op==='ambos'?'venta':data.op,
         habitaciones: data.beds,
@@ -187,7 +191,9 @@ export default function NuevaPropiedad() {
   }
 
   const suggested = Math.round((data.area||200) * (data.kind==='lote'?800:2400))
-  const fmtP = (n: number) => '$' + n.toLocaleString('en-US')
+  // El rango sugerido de Valeria se calcula siempre en USD, pero se muestra
+  // en la moneda que el asesor eligió para tasar la propiedad.
+  const fmtP = (n: number) => precioMoneda === 'CRC' ? fmtCrc(usdACrc(n, tipoCambio)) : '$' + n.toLocaleString('en-US')
   const removePhoto = (id: number) => setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => prev.filter(p => p.id !== id))
   const moveToFirst = (id: number) => setPhotos((prev: {id:number,url:string,uploading?:boolean}[]) => {
     const idx = prev.findIndex(p => p.id === id)

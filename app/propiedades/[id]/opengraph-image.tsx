@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og'
 import { createClient } from '@supabase/supabase-js'
+import { precioPrincipal } from '../../../lib/precioPropiedad'
 
 export const alt = 'Propiedad en NIDO'
 export const size = { width: 1200, height: 630 }
@@ -10,15 +11,11 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-function fmt(n: number): string {
-  return Math.round(n || 0).toLocaleString('en-US')
-}
-
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { data: p } = await supabase
     .from('propiedades')
-    .select('titulo,precio,zona,provincia,tipo,operacion,habitaciones,banos,metros,fotos')
+    .select('titulo,precio,moneda,precio_moneda_original,zona,provincia,tipo,operacion,habitaciones,banos,metros,fotos')
     .eq('id', id)
     .maybeSingle()
 
@@ -76,7 +73,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           </div>
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <div style={{ display: 'flex', fontSize: 44, color: 'white', fontWeight: 700 }}>
-              ${fmt(p?.precio || 0)}
+              {precioPrincipal({ precio: p?.precio || 0, moneda: p?.moneda, precio_moneda_original: p?.precio_moneda_original })}
             </div>
             {p?.tipo !== 'lote' && (
               <div style={{ display: 'flex', fontSize: 22, color: 'rgba(255,255,255,0.75)', marginLeft: 28 }}>

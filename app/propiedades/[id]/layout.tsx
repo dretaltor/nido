@@ -1,11 +1,12 @@
 import { Metadata } from 'next'
 import { supabase } from '../../../lib/supabase'
+import { precioPrincipal } from '../../../lib/precioPropiedad'
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params
   const { data: p } = await supabase
     .from('propiedades')
-    .select('titulo, descripcion, precio, zona, tipo, operacion, ref_id, fotos')
+    .select('titulo, descripcion, precio, moneda, precio_moneda_original, zona, tipo, operacion, ref_id, fotos')
     .eq('id', id)
     .maybeSingle()
 
@@ -15,7 +16,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   }
 
   const titulo = p.ref_id ? `${p.titulo} · ${p.ref_id} · NIDO` : `${p.titulo} · NIDO`
-  const precio = p.precio ? `$${Number(p.precio).toLocaleString()} USD` : ''
+  const precio = p.precio ? precioPrincipal(p) : ''
   const desc = p.descripcion
     ? p.descripcion.slice(0, 155)
     : `${p.tipo || 'Propiedad'} en ${p.operacion || 'venta'} en ${p.zona || 'Costa Rica'}. ${precio}. Encontrala en NIDO.`

@@ -9,11 +9,13 @@ import { useAuth } from '@/lib/context/AuthContext'
 import { OfertaForm } from '@/components/ofertas/OfertaForm'
 import { ContactoForm } from '@/components/contacto/ContactoForm'
 import type { CalificacionPublica } from '../../../lib/database.types'
+import { precioPrincipal, precioPrincipalPlano, simboloPrincipal } from '../../../lib/precioPropiedad'
+import { fmtCrc } from '../../../lib/exchangeRate'
 
 type PerfilAsesorState = { correo?: string, nombre?: string, foto_url?: string, equipo_nido_estado?: string, telefono?: string, slug?: string | null, id?: string, oficina_nombre?: string | null } | null
 
 interface Propiedad {
-  id: string; titulo: string; descripcion: string; precio: number; tipo: string;
+  id: string; titulo: string; descripcion: string; precio: number; moneda?: string; precio_moneda_original?: number; tipo: string;
   operacion: string; habitaciones: number; banos: number; metros: number;
   zona: string; direccion: string; asesor_nombre: string; asesor_email: string; asesor_telefono?: string; asesor_whatsapp: string; ref_id: string; fotos: string[];
   distrito?: string; provincia?: string; topografia?: string; uso_suelo?: string; terreno_tipo?: string; cuota_condominal?: number;
@@ -63,7 +65,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
 // Auth handled by AuthContext
-    supabase.from('propiedades').select('id,titulo,descripcion,tipo,precio,zona,provincia,canton,distrito,disponible,fotos,habitaciones,banos,metros,lote_m2,estacionamientos,amenidades,asesor_email,asesor_nombre,asesor_whatsapp,verificacion_estado,created_at').eq('id', id).single().then(({ data }) => {
+    supabase.from('propiedades').select('id,titulo,descripcion,tipo,precio,moneda,precio_moneda_original,zona,provincia,canton,distrito,disponible,fotos,habitaciones,banos,metros,lote_m2,estacionamientos,amenidades,asesor_email,asesor_nombre,asesor_whatsapp,verificacion_estado,created_at').eq('id', id).single().then(({ data }) => {
       setPropiedad(data as Propiedad | null)
       setLoading(false)
       if (data && data.asesor_email) {
@@ -86,18 +88,24 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
     })
   }, [id])
 
-  const fmt = (n: number) => '$' + n.toLocaleString('en-US')
+  // Si el asesor tasó la propiedad en colones, todo lo que se muestra de esta
+  // propiedad (precio, calculadora de cierre/hipoteca, mensaje de Valeria) se
+  // expresa en colones -- usando el monto que realmente escribió, no una
+  // conversión que cambiaría con el tipo de cambio del día.
+  const esCrc = propiedad?.moneda === 'CRC' && !!propiedad?.precio_moneda_original
+  const fmt = (n: number) => esCrc ? fmtCrc(n) : '$' + n.toLocaleString('en-US')
 
   const calc = useMemo(() => {
     if (!propiedad) return null
-    const monto = propiedad.precio * (1 - primaPct / 100)
+    const base = (propiedad.moneda === 'CRC' && propiedad.precio_moneda_original) ? propiedad.precio_moneda_original : propiedad.precio
+    const monto = base * (1 - primaPct / 100)
     const tasaMensual = tasaAnual / 100 / 12
     const n = plazoAnios * 12
     const cuota = tasaMensual === 0 ? monto / n : (monto * tasaMensual * Math.pow(1 + tasaMensual, n)) / (Math.pow(1 + tasaMensual, n) - 1)
-    const prima = propiedad.precio - monto
-    const traspaso = propiedad.precio * 0.015
-    const timbresRegistro = propiedad.precio * 0.008
-    const honorariosNotariales = propiedad.precio * 0.0125
+    const prima = base - monto
+    const traspaso = base * 0.015
+    const timbresRegistro = base * 0.008
+    const honorariosNotariales = base * 0.0125
     const ivaHonorarios = honorariosNotariales * 0.13
     const gastosCierre = traspaso + timbresRegistro + honorariosNotariales + ivaHonorarios
     return { cuota, prima, gastosCierre }
@@ -109,7 +117,7 @@ export default function PropiedadDetalle({ params }: { params: Promise<{ id: str
 
 Propiedad: ${propiedad.titulo}
 Zona: ${propiedad.zona}
-Precio: ${fmt(propiedad.precio)}${propiedad.operacion === 'alquiler' ? '/mes' : ''}
+Precio: ${precioPrincipal(propiedad)}${propiedad.operacion === 'alquiler' ? '/mes' : ''}
 Tipo: ${propiedad.tipo} · ${propiedad.operacion}
 
 Respondé en español, tono cercano y profesional, respuestas concisas (máximo 4-5 oraciones). Ayudá con dudas sobre la propiedad, la zona, el proceso de compra y financiamiento. Si no sabés algo específico de esta propiedad, sugerí contactar al asesor.`
@@ -245,7 +253,7 @@ Respondé en español, tono cercano y profesional, respuestas concisas (máximo 
               {propiedad.ref_id && <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:'var(--accent)',letterSpacing:'0.12em',marginBottom:6}}>{propiedad.ref_id}</div>}
               <h1 style={{fontFamily:"'Cormorant Garamond',serif",fontSize:'clamp(32px,4vw,52px)',fontWeight:400,lineHeight:1.05,marginBottom:12}}>{propiedad.titulo}</h1>
               <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:28,color:'var(--accent)',marginBottom:4}}>
-                {fmt(propiedad.precio)}{propiedad.operacion==='alquiler'?<span style={{fontSize:14,color:'var(--ink-3)'}}>/mes</span>:null}
+                {precioPrincipal(propiedad)}{propiedad.operacion==='alquiler'?<span style={{fontSize:14,color:'var(--ink-3)'}}>/mes</span>:null}
               </div>
               <div style={{fontSize:13,color:'var(--ink-3)'}}>{propiedad.direccion}</div>
             </div>
@@ -449,7 +457,7 @@ Respondé en español, tono cercano y profesional, respuestas concisas (máximo 
                   <a href={'https://wa.me/'+((perfilAsesor?.telefono||propiedad.asesor_whatsapp||'50688226436').replace(/[^0-9]/g,''))+'?text=Hola, me interesa la propiedad '+propiedad.titulo} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,background:'#22c55e',color:'white',fontSize:13,fontWeight:500,textDecoration:'none'}}>
                     <span>💬</span> Contactar por WhatsApp
                   </a>
-                  <a href={'https://wa.me/?text='+encodeURIComponent('🏠 Te comparto esta propiedad en NIDO: '+propiedad.titulo+' - '+propiedad.zona+' - $'+propiedad.precio.toLocaleString()+' - https://www.nido-cr.com/propiedades/'+propiedad.id)} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,border:'1px solid var(--rule)',color:'var(--ink)',fontSize:13,fontWeight:500,textDecoration:'none'}}>
+                  <a href={'https://wa.me/?text='+encodeURIComponent('🏠 Te comparto esta propiedad en NIDO: '+propiedad.titulo+' - '+propiedad.zona+' - '+simboloPrincipal(propiedad)+precioPrincipalPlano(propiedad)+' - https://www.nido-cr.com/propiedades/'+propiedad.id)} target="_blank" style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,border:'1px solid var(--rule)',color:'var(--ink)',fontSize:13,fontWeight:500,textDecoration:'none'}}>
                     <span>🔗</span> Compartir ficha por WhatsApp
                   </a>
                   <a href={'mailto:'+propiedad.asesor_email+'?subject=Consulta sobre '+propiedad.titulo} style={{display:'flex',alignItems:'center',justifyContent:'center',gap:8,padding:'11px',borderRadius:999,border:'1px solid var(--rule)',color:'var(--ink)',fontSize:13,fontWeight:500,textDecoration:'none'}}>

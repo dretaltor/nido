@@ -40,8 +40,8 @@ export function StructuredDataProperty({ propiedad }: { propiedad: Partial<Propi
     address: { '@type': 'PostalAddress', addressLocality: propiedad.zona, addressCountry: 'CR' },
     offers: {
       '@type': 'Offer',
-      price: propiedad.precio,
-      priceCurrency: 'USD',
+      price: propiedad.moneda === 'CRC' && propiedad.precio_moneda_original ? propiedad.precio_moneda_original : propiedad.precio,
+      priceCurrency: propiedad.moneda === 'CRC' && propiedad.precio_moneda_original ? 'CRC' : 'USD',
       availability: 'https://schema.org/InStock',
     },
     numberOfRooms: propiedad.habitaciones,

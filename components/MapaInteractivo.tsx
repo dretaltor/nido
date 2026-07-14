@@ -6,6 +6,8 @@ interface PropiedadMapa {
   id: string
   titulo: string
   precio: number
+  moneda?: string
+  precio_moneda_original?: number
   operacion?: string
   zona: string
   distrito?: string
@@ -81,9 +83,12 @@ export default function MapaInteractivo({ propiedades, onSelect }: Props) {
 
           bounds.extend(coords)
 
-          const priceLabel = p.operacion === 'alquiler'
-            ? '$' + (p.precio / 1000).toFixed(1) + 'k/m'
-            : '$' + (p.precio / 1000).toFixed(0) + 'k'
+          // Si el asesor la tasó en colones, la etiqueta del mapa también se
+          // abrevia en colones (millones) en vez de dólares (miles).
+          const esCrc = p.moneda === 'CRC' && !!p.precio_moneda_original
+          const monto = esCrc ? (p.precio_moneda_original as number) : p.precio
+          const abreviado = esCrc ? '₡' + (monto / 1000000).toFixed(1) + 'M' : '$' + (monto / 1000).toFixed(0) + 'k'
+          const priceLabel = p.operacion === 'alquiler' ? abreviado + '/m' : abreviado
 
           const el = document.createElement('div')
           el.style.cssText = 'display:flex;flex-direction:column;align-items:center;cursor:pointer'

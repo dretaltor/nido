@@ -4,17 +4,17 @@ import { supabase } from '../../../../lib/supabase'
 import { ZONAS, getZonaBySlug } from '../../../../lib/zonas'
 import { ZonaLeadForm } from '../../../../components/zonas/ZonaLeadForm'
 import Link from 'next/link'
+import { precioPrincipal } from '../../../../lib/precioPropiedad'
 
 export const revalidate = 3600
 export const dynamicParams = true
 
 const HUES = [80, 50, 200, 130, 160, 240, 100, 170]
-function fmt(n: number): string { return n.toLocaleString('en-US') }
 
 const getListado = cache(async (zonaNombre: string) => {
   const { data } = await supabase
     .from('propiedades')
-    .select('id,ref_id,titulo,precio,tipo,operacion,habitaciones,banos,metros,lote_m2,zona,provincia,fotos')
+    .select('id,ref_id,titulo,precio,moneda,precio_moneda_original,tipo,operacion,habitaciones,banos,metros,lote_m2,zona,provincia,fotos')
     .eq('zona', zonaNombre)
     .eq('disponible', true)
     .eq('verificacion_estado', 'aprobada')
@@ -141,7 +141,7 @@ export default async function ZonaPage({ params }: { params: Promise<{ zona: str
                   <div style={{ padding: '16px 18px 18px' }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 6 }}>
                       <span style={{ fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-3)' }}>{p.zona}</span>
-                      <span style={{ fontFamily: 'var(--mono)', fontSize: 15 }}>${fmt(p.precio)}</span>
+                      <span style={{ fontFamily: 'var(--mono)', fontSize: 15 }}>{precioPrincipal(p)}</span>
                     </div>
                     <h3 style={{ fontFamily: 'var(--serif)', fontSize: 20, fontWeight: 400, margin: '0 0 10px', lineHeight: 1.1 }}>{p.titulo}</h3>
                     <div style={{ display: 'flex', gap: 14, fontSize: 13, color: 'var(--ink-3)' }}>

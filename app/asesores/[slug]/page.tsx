@@ -3,13 +3,14 @@ import Link from 'next/link'
 import { useEffect, useState, use } from 'react'
 import { supabase } from '../../../lib/supabase'
 import type { AsesorPublico, CalificacionPublica } from '../../../lib/database.types'
-
-function fmt(n: number): string { return n.toLocaleString('en-US') }
+import { precioPrincipal } from '../../../lib/precioPropiedad'
 
 interface PropiedadMini {
   id: string
   titulo: string
   precio: number
+  moneda?: string
+  precio_moneda_original?: number
   zona: string
   tipo: string
   operacion?: string
@@ -48,7 +49,7 @@ export default function PerfilAsesor({ params }: { params: Promise<{ slug: strin
       setAsesor(data)
       const correo = data.correo as string
       const [props, resenasData, calif, cerradas, activas] = await Promise.all([
-        supabase.from('propiedades').select('id,titulo,precio,zona,tipo,operacion,habitaciones,banos,metros,fotos').eq('asesor_email', correo).eq('disponible', true).order('created_at', { ascending: false }),
+        supabase.from('propiedades').select('id,titulo,precio,moneda,precio_moneda_original,zona,tipo,operacion,habitaciones,banos,metros,fotos').eq('asesor_email', correo).eq('disponible', true).order('created_at', { ascending: false }),
         supabase.from('calificaciones_publicas').select('calificador_nombre,calificacion,comentario,created_at').eq('asesor_email', correo).order('created_at', { ascending: false }).limit(12),
         supabase.from('calificaciones_publicas').select('calificacion').eq('asesor_email', correo),
         supabase.from('comisiones').select('id', { count: 'exact', head: true }).eq('asesor_email', correo).eq('estado', 'cobrada'),
@@ -175,7 +176,7 @@ export default function PerfilAsesor({ params }: { params: Promise<{ slug: strin
                 <div style={{ padding: '14px 16px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--ink-3)', marginBottom: 6 }}>
                     <span>{p.zona}</span>
-                    <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>${fmt(p.precio)}</span>
+                    <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>{precioPrincipal(p)}</span>
                   </div>
                   <div style={{ fontFamily: 'var(--serif)', fontSize: 19 }}>{p.titulo}</div>
                 </div>

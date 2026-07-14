@@ -7,6 +7,7 @@ import Link from 'next/link'
 import type { User } from '@supabase/supabase-js'
 import type { Propiedad, Lead, Oferta, Perfil, Visita, Tarea, Suscripcion, AsesorCalificaciones } from '../../lib/database.types'
 import { getPlanConfig } from '../../lib/planes'
+import { precioPrincipal } from '../../lib/precioPropiedad'
 
 type OfertaSel = Oferta & { tipo_vista?: string }
 
@@ -118,7 +119,7 @@ export default function Dashboard() {
       supabase.from('suscripciones').select('plan,activo,es_trial,trial_fin').eq('correo', user.email).maybeSingle()
         .then(({ data }) => { setSuscripcion(data); setCheckandoTrial(false) })
       Promise.all([
-        supabase.from('propiedades').select('id,titulo,tipo,precio,zona,provincia,disponible,verificacion_estado,fotos,asesor_email,created_at').eq('asesor_email', user.email),
+        supabase.from('propiedades').select('id,titulo,tipo,precio,moneda,precio_moneda_original,zona,provincia,disponible,verificacion_estado,fotos,asesor_email,created_at').eq('asesor_email', user.email),
         supabase.from('leads').select('id,nombre,email,telefono,estado,propiedad_id,asesor_email,created_at').order('created_at', { ascending: false }),
         supabase.from('ofertas').select('id,comprador_nombre,comprador_telefono,comprador_email,propiedad_id,asesor_email,valor_oferta,condiciones,estado,tipo_compra,created_at').eq('asesor_email', user.email).order('created_at', { ascending: false }),
       ]).then(([{ data: props }, { data: leadsData }, { data: ofertasData }]) => {
@@ -320,7 +321,7 @@ export default function Dashboard() {
                     <div style={{ fontSize:12, color:'var(--ink-3)' }}>{p.zona||'—'}</div>
                   </div>
                   <div style={{ textAlign:'right', flexShrink:0 }}>
-                    <div style={{ fontFamily:'var(--mono)', fontSize:13, marginBottom:4 }}>{p.precio?'$'+p.precio.toLocaleString('en-US'):'—'}</div>
+                    <div style={{ fontFamily:'var(--mono)', fontSize:13, marginBottom:4 }}>{p.precio?precioPrincipal(p):'—'}</div>
                     <span className={'badge '+(p.disponible?'badge-active':'badge-paused')}>{p.disponible?'Activa':'Pausada'}</span>
                   </div>
                 </a>

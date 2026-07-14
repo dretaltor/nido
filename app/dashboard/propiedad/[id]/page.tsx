@@ -8,6 +8,7 @@ import { addWatermark } from '../../../../lib/watermark'
 import type { User } from '@supabase/supabase-js'
 import type { Propiedad } from '../../../../lib/database.types'
 import type { Provincia, Canton } from '../../../../lib/costaRicaData'
+import { usdACrc, crcAUsd, fmtCrc, obtenerTipoCambioActual, TIPO_CAMBIO_USD_CRC } from '../../../../lib/exchangeRate'
 
 const AMENITIES = ['Piscina','Piscina infinita','Vista al mar','Vista a la montaña','Pet friendly','Jardín privado','Patio','Terraza','Balcón','Aire acondicionado','Cocina italiana','Isla en cocina','Walk-in closet','Cuarto de servicio','Gimnasio','Salón de eventos','Coworking','Rooftop','BBQ','Jacuzzi','Smart home','Generador eléctrico','Paneles solares','Cisterna','Seguridad 24/7','Acceso controlado','Internet 1 Gbps','Cerca de escuelas']
 
@@ -27,6 +28,13 @@ export default function EditarPropiedad() {
   const [p, setP] = useState<PropForm | null>(null)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
 
+  // Igual que en el wizard de publicación: el precio se guarda siempre en USD,
+  // pero si la propiedad fue tasada en colones, se sigue editando en colones.
+  const [tipoCambio, setTipoCambio] = useState(TIPO_CAMBIO_USD_CRC)
+  const [precioMoneda, setPrecioMoneda] = useState<'USD'|'CRC'>('USD')
+  const [precioCrcTexto, setPrecioCrcTexto] = useState('')
+  useEffect(() => { obtenerTipoCambioActual().then(setTipoCambio) }, [])
+
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { router.push('/login'); return }
@@ -34,6 +42,10 @@ export default function EditarPropiedad() {
       const { data, error } = await supabase.from('propiedades').select('*').eq('id', id).maybeSingle()
       if (error || !data || data.asesor_email !== user.email) { setNotFound(true); setLoading(false); return }
       setP({ ...data, fotos: data.fotos || [], amenidades: data.amenidades || [] })
+      if (data.moneda === 'CRC' && data.precio_moneda_original) {
+        setPrecioMoneda('CRC')
+        setPrecioCrcTexto(String(data.precio_moneda_original))
+      }
       setLoading(false)
     })
   }, [id])
@@ -102,6 +114,8 @@ export default function EditarPropiedad() {
       titulo: p.titulo,
       descripcion: p.descripcion,
       precio: parseInt(String(p.precio||0)) || 0,
+      moneda: precioMoneda,
+      precio_moneda_original: precioMoneda === 'CRC' ? (parseInt(precioCrcTexto)||0) : null,
       zona: p.zona,
       provincia: p.provincia,
       distrito: p.distrito,
@@ -219,8 +233,35 @@ export default function EditarPropiedad() {
             <textarea className="inp" rows={4} value={p.descripcion||''} onChange={e => patch({descripcion:e.target.value})}/>
           </div>
           <div>
-            <label className="lbl">Precio (USD)</label>
-            <input className="inp" type="number" value={p.precio||''} onChange={e => patch({precio:e.target.value})} style={{maxWidth:220}}/>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:6 }}>
+              <label className="lbl" style={{ marginBottom:0 }}>Precio</label>
+              <div style={{ display:'inline-flex', border:'1px solid var(--rule, #ddd)', borderRadius:999, overflow:'hidden' }}>
+                {(['USD','CRC'] as const).map(m => (
+                  <button key={m} type="button" onClick={() => {
+                    if (m === precioMoneda) return
+                    if (m === 'CRC') setPrecioCrcTexto(parseInt(String(p.precio||0)) ? String(usdACrc(parseInt(String(p.precio||0)), tipoCambio)) : '')
+                    setPrecioMoneda(m)
+                  }} style={{ padding:'4px 12px', border:'none', background: precioMoneda===m ? '#1a1a1a' : 'transparent', color: precioMoneda===m ? 'white' : '#666', fontSize:11, fontWeight:500, cursor:'pointer' }}>
+                    {m==='USD'?'USD $':'Colones ₡'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {precioMoneda === 'USD' ? (
+              <input className="inp" type="number" value={p.precio||''} onChange={e => patch({precio:e.target.value})} style={{maxWidth:220}}/>
+            ) : (
+              <input className="inp" type="number" value={precioCrcTexto} onChange={e => {
+                setPrecioCrcTexto(e.target.value)
+                patch({precio: e.target.value ? String(crcAUsd(parseFloat(e.target.value), tipoCambio)) : ''})
+              }} style={{maxWidth:260}}/>
+            )}
+            {!!parseInt(String(p.precio||0)) && (
+              <p style={{ fontSize:12, color:'#999', marginTop:6 }}>
+                {precioMoneda === 'USD'
+                  ? '≈ ' + fmtCrc(usdACrc(parseInt(String(p.precio||0)), tipoCambio))
+                  : '≈ $' + parseInt(String(p.precio||0)).toLocaleString('en-US') + ' USD'}
+              </p>
+            )}
           </div>
         </div>
 

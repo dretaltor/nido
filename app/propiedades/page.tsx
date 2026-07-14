@@ -5,12 +5,11 @@ import dynamic from 'next/dynamic'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '@/lib/context/AuthContext'
 import { GuardarBusquedaModal } from '../../components/alertas/GuardarBusquedaModal'
+import { precioPrincipal, precioPrincipalPlano, simboloPrincipal } from '../../lib/precioPropiedad'
 
 const MapaInteractivo = dynamic(() => import('../../components/MapaInteractivo'), { ssr: false })
 
 const HUES = [80, 50, 200, 130, 160, 240, 100, 170]
-
-function fmt(n: number): string { return n.toLocaleString('en-US') }
 
 function Icon({ name }: { name: string }) {
   const p = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none' as const, stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
@@ -31,6 +30,8 @@ interface Propiedad {
   titulo: string
   descripcion?: string
   precio: number
+  moneda?: string
+  precio_moneda_original?: number
   tipo: string
   operacion?: string
   habitaciones: number
@@ -53,7 +54,7 @@ interface Propiedad {
 
 function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: number, fav: boolean, onFav: () => void, onOpen: () => void }) {
   const hue = HUES[index % HUES.length]
-  const priceLabel = `$${fmt(p.precio)}`
+  const priceLabel = precioPrincipal(p)
   return (
     <article onClick={onOpen} style={{ background: 'var(--bg-card)', border: '1px solid var(--rule)', borderRadius: 8, overflow: 'hidden', cursor: 'pointer', transition: 'box-shadow 0.2s' }}
       onMouseEnter={e => (e.currentTarget.style.boxShadow = 'var(--shadow-md)')}
@@ -97,7 +98,7 @@ function PropertyCard({ p, index, fav, onFav, onOpen }: { p: Propiedad, index: n
           <b style={{ color: 'var(--accent)', marginRight: 6 }}>↳ Valeria IA</b>
           Propiedad verificada · Disponible para visita virtual
         <div style={{ display:'flex', gap:8, marginTop:10 }}>
-          <a href={'https://wa.me/?text='+encodeURIComponent('🏠 '+p.titulo+' - '+p.zona+' $'+fmt(p.precio)+' https://www.nido-cr.com/propiedades/'+p.id)} target='_blank' onClick={e => e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:999, background:'#22c55e', color:'white', fontSize:12, fontWeight:500, textDecoration:'none' }}>💬 Compartir</a>
+          <a href={'https://wa.me/?text='+encodeURIComponent('🏠 '+p.titulo+' - '+p.zona+' '+simboloPrincipal(p)+precioPrincipalPlano(p)+' https://www.nido-cr.com/propiedades/'+p.id)} target='_blank' onClick={e => e.stopPropagation()} style={{ display:'flex', alignItems:'center', gap:6, padding:'7px 14px', borderRadius:999, background:'#22c55e', color:'white', fontSize:12, fontWeight:500, textDecoration:'none' }}>💬 Compartir</a>
         </div>
         </div>
 
@@ -128,7 +129,7 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 16 }}>
               <h2 style={{ fontFamily: 'var(--serif)', fontSize: 36, fontWeight: 400, lineHeight: 1.05, margin: 0 }}>{p.titulo}</h2>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontFamily: 'var(--mono)', fontSize: 18 }}>{'$'}{fmt(p.precio)}</div>
+                <div style={{ fontFamily: 'var(--mono)', fontSize: 18 }}>{precioPrincipal(p)}</div>
                 <div style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-3)', marginTop: 4 }}>{'precio venta'}</div>
               </div>
             </div>
@@ -152,7 +153,7 @@ function Drawer({ p, fav, onFav, onClose }: { p: Propiedad, fav: boolean, onFav:
             ))}
           </div>
           <div style={{ display:'flex', gap:10, marginBottom:24 }}>
-            <a href={'https://wa.me/?text='+encodeURIComponent('🏠 NIDO: '+p.titulo+' - '+p.zona+' $'+fmt(p.precio)+' https://www.nido-cr.com/propiedades/'+p.id)} target="_blank" style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', borderRadius:999, background:'#22c55e', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>💬 Compartir en WhatsApp</a>
+            <a href={'https://wa.me/?text='+encodeURIComponent('🏠 NIDO: '+p.titulo+' - '+p.zona+' '+simboloPrincipal(p)+precioPrincipalPlano(p)+' https://www.nido-cr.com/propiedades/'+p.id)} target="_blank" style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', borderRadius:999, background:'#22c55e', color:'white', fontSize:13, fontWeight:500, textDecoration:'none' }}>💬 Compartir en WhatsApp</a>
             <a href={'/propiedades/'+p.id} target="_blank" style={{ display:'flex', alignItems:'center', gap:8, padding:'11px 20px', borderRadius:999, border:'1px solid var(--rule)', fontSize:13, color:'var(--ink)', textDecoration:'none' }}>🔗 Ver ficha completa</a>
           </div>
           <div style={{ marginBottom: 28 }}>
@@ -200,7 +201,7 @@ export default function Propiedades() {
 
   const cargar = () => {
     setLoading(true)
-    supabase.from('propiedades').select('id,titulo,tipo,operacion,precio,zona,provincia,canton,distrito,fotos,habitaciones,banos,metros,lote_m2,asesor_email,asesor_nombre,asesor_whatsapp,created_at').eq('disponible', true).eq('verificacion_estado', 'aprobada').then(({ data }) => {
+    supabase.from('propiedades').select('id,titulo,tipo,operacion,precio,moneda,precio_moneda_original,zona,provincia,canton,distrito,fotos,habitaciones,banos,metros,lote_m2,asesor_email,asesor_nombre,asesor_whatsapp,created_at').eq('disponible', true).eq('verificacion_estado', 'aprobada').then(({ data }) => {
       setPropiedades((data || []) as unknown as Propiedad[])
       setLoading(false)
     })

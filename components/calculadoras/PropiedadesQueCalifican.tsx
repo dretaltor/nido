@@ -2,11 +2,14 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
+import { precioPrincipal } from '../../lib/precioPropiedad'
 
 interface PropiedadMatch {
   id: string
   titulo: string
   precio: number
+  moneda?: string
+  precio_moneda_original?: number
   tipo: string
   zona: string
   habitaciones: number | null
@@ -32,7 +35,7 @@ export function PropiedadesQueCalifican({ precioMax, precioMin, titulo, limite =
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     let q = supabase.from('propiedades')
-      .select('id,titulo,precio,tipo,zona,habitaciones,banos,metros,fotos')
+      .select('id,titulo,precio,moneda,precio_moneda_original,tipo,zona,habitaciones,banos,metros,fotos')
       .eq('disponible', true)
       .eq('verificacion_estado', 'aprobada')
       .eq('operacion', 'venta')
@@ -68,7 +71,7 @@ export function PropiedadesQueCalifican({ precioMax, precioMin, titulo, limite =
               <div style={{ padding: '12px 14px' }}>
                 <div style={{ fontSize: 13, fontWeight: 500, color: '#0D1F15', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.titulo}</div>
                 <div style={{ fontSize: 12, color: '#9CA3AF', marginBottom: 6 }}>{p.zona}</div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#1B5E3B' }}>${p.precio.toLocaleString('es-CR')}</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#1B5E3B' }}>{precioPrincipal(p)}</div>
               </div>
             </Link>
           )

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import Link from 'next/link'
+import { precioPrincipal } from '../../lib/precioPropiedad'
 
 interface Propiedad {
   id: string
@@ -10,6 +11,8 @@ interface Propiedad {
   provincia: string
   canton?: string
   precio: number
+  moneda?: string
+  precio_moneda_original?: number
   habitaciones?: number
   banos?: number
   metros?: number
@@ -25,7 +28,7 @@ export default function Alquiler() {
   useEffect(() => {
     supabase
       .from('propiedades')
-      .select('id,titulo,tipo,provincia,canton,precio,habitaciones,banos,metros,fotos,disponible')
+      .select('id,titulo,tipo,provincia,canton,precio,moneda,precio_moneda_original,habitaciones,banos,metros,fotos,disponible')
       .eq('operacion', 'alquiler')
       .eq('disponible', true)
       .eq('verificacion_estado', 'aprobada')
@@ -39,7 +42,7 @@ export default function Alquiler() {
   const tiposDisponibles = ['Todos', ...Array.from(new Set(propiedades.map(p => p.tipo))).filter(Boolean)]
   const filtered = propiedades.filter(p => tab === 'Todos' || p.tipo === tab)
   const featured = propiedades[0] || null
-  const fmt = (n: number) => '$' + n.toLocaleString('en-US')
+  const fmt = precioPrincipal
   const hueForTipo = (tipo: string) => ({ 'casa':50, 'apartamento':200, 'lote':130, 'local':280 }[tipo] ?? 80)
 
   return (
@@ -113,7 +116,7 @@ export default function Alquiler() {
                 </div>
               </div>
               <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',marginTop:24,paddingTop:20,borderTop:'1px solid var(--rule)'}}>
-                <div style={{fontFamily:'var(--mono)',fontSize:24}}>{fmt(featured.precio)}<span style={{fontSize:12,color:'var(--ink-3)',marginLeft:4,fontFamily:'var(--sans)'}}>/mes</span></div>
+                <div style={{fontFamily:'var(--mono)',fontSize:24}}>{fmt(featured)}<span style={{fontSize:12,color:'var(--ink-3)',marginLeft:4,fontFamily:'var(--sans)'}}>/mes</span></div>
                 <a href={`/propiedades/${featured.id}`} style={{background:'var(--ink)',color:'var(--bg)',padding:'10px 20px',borderRadius:999,fontSize:13}}>Ver propiedad →</a>
               </div>
             </div>
@@ -155,7 +158,7 @@ export default function Alquiler() {
                   <div style={{padding:'16px 2px 0'}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',gap:12}}>
                       <span style={{fontSize:11,letterSpacing:'0.14em',textTransform:'uppercase',color:'var(--ink-3)'}}>{loc}</span>
-                      <span style={{fontFamily:'var(--mono)',fontSize:13}}>{fmt(p.precio)}<small style={{color:'var(--ink-3)',fontFamily:'var(--sans)',marginLeft:2}}>/mes</small></span>
+                      <span style={{fontFamily:'var(--mono)',fontSize:13}}>{fmt(p)}<small style={{color:'var(--ink-3)',fontFamily:'var(--sans)',marginLeft:2}}>/mes</small></span>
                     </div>
                     <h3 style={{fontFamily:'var(--serif)',fontSize:22,lineHeight:1.15,fontWeight:400,margin:'6px 0 8px'}}>{p.titulo}</h3>
                     <div style={{display:'flex',gap:14,fontSize:12,color:'var(--ink-2)'}}>
