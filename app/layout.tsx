@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next'
+import { Analytics } from '@vercel/analytics/next'
 import { StructuredDataOrg, StructuredDataWebsite } from '@/components/seo/StructuredData'
 import { AuthProvider } from '@/lib/context/AuthContext'
 import ChatWidgetComprador from '@/components/soporte/ChatWidgetComprador'
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <StructuredDataWebsite/>
         <AuthProvider>{children}</AuthProvider>
         <ChatWidgetComprador/>
+        <Analytics/>
       </body>
     </html>
   )
