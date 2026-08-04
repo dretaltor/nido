@@ -582,6 +582,7 @@ export default function Dashboard() {
           <div className="dash-grid" style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
             {[
               { href:'/dashboard/nueva-propiedad', icon:'＋', label:'Nueva propiedad', desc:'Wizard de 8 pasos' },
+              { href:'/dashboard/importar-propiedades', icon:'⇪', label:'Importar cartera', desc:'Cargá varias propiedades desde un CSV' },
               { href:'/dashboard/crm', icon:'◎', label:'CRM de leads', desc:'Gestionar contactos' },
               { href:'/dashboard/comisiones', icon:'$', label:'Comisiones', desc:'Tracker de cierres' },
               { href:'/dashboard/equipo', icon:'👥', label:'Equipo', desc:'Invitar agentes y ver reportes' },
