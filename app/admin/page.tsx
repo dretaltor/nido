@@ -44,6 +44,8 @@ type SelItem = {
   contrato_equipo_nido_aceptado_at?: string | null
   correo?: string
   creado_por?: string | null
+  es_fundador?: boolean | null
+  descuento_pct?: number | null
   created_at?: string | null
   cuota_condominal?: number | null
   descripcion?: string | null
@@ -243,7 +245,7 @@ export default function AdminPanel() {
   const [msg, setMsg] = useState('')
   const [adminUser, setAdminUser] = useState<User | null>(null)
   const [modalNuevoAsesor, setModalNuevoAsesor] = useState(false)
-  const [nuevoAsesor, setNuevoAsesor] = useState({ nombre:'', correo:'', telefono:'', plan:'gratis', activarTrial:true })
+  const [nuevoAsesor, setNuevoAsesor] = useState({ nombre:'', correo:'', telefono:'', plan:'gratis', activarTrial:true, esFundador:false })
   const [creandoAsesor, setCreandoAsesor] = useState(false)
   const [errorNuevoAsesor, setErrorNuevoAsesor] = useState('')
   const [linkClaveNuevoAsesor, setLinkClaveNuevoAsesor] = useState('')
@@ -332,6 +334,29 @@ export default function AdminPanel() {
     logAccion('Cambió plan', 'suscripcion', correo, 'Nuevo plan: ' + plan)
     loadAll()
     setMsg('✓ Plan actualizado a ' + plan)
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  // Programa "asesor fundador": para un asesor que ya se registró solo (no
+  // creado desde el admin), otorga el mismo beneficio -- trial extendido a
+  // 21 días (si todavía no pagó) + 20% de descuento permanente. Si ya es una
+  // suscripción activa y paga, solo marca el descuento para el próximo cobro
+  // manual, sin tocar el plan ni la fecha de trial.
+  const marcarFundador = async (correo: string) => {
+    const sus = suscripciones.find(s => s.correo === correo)
+    const payload: Record<string, unknown> = { correo, es_fundador: true, descuento_pct: 20, updated_at: new Date().toISOString() }
+    if (!sus?.activo) {
+      const trialFin = new Date()
+      trialFin.setDate(trialFin.getDate() + 21)
+      payload.plan = 'enterprise'
+      payload.activo = true
+      payload.es_trial = true
+      payload.trial_fin = trialFin.toISOString()
+    }
+    await supabase.from('suscripciones').upsert(payload, { onConflict: 'correo' })
+    logAccion('Marcó como asesor fundador', 'suscripcion', correo, '')
+    loadAll()
+    setMsg('⭐ ' + correo + ' marcado como asesor fundador')
     setTimeout(() => setMsg(''), 3000)
   }
 
@@ -787,7 +812,7 @@ export default function AdminPanel() {
               </div>
               <div style={{ display:'flex', gap:10, alignItems:'center' }}>
                 <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar asesor..." className="field" style={{ width:220 }}/>
-                <button onClick={() => { setModalNuevoAsesor(true); setErrorNuevoAsesor(''); setLinkClaveNuevoAsesor(''); setNuevoAsesor({ nombre:'', correo:'', telefono:'', plan:'gratis', activarTrial:true }) }} style={{ padding:'10px 18px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap' }}>
+                <button onClick={() => { setModalNuevoAsesor(true); setErrorNuevoAsesor(''); setLinkClaveNuevoAsesor(''); setNuevoAsesor({ nombre:'', correo:'', telefono:'', plan:'gratis', activarTrial:true, esFundador:false }) }} style={{ padding:'10px 18px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap' }}>
                   + Nuevo asesor
                 </button>
               </div>
@@ -866,7 +891,11 @@ export default function AdminPanel() {
                     </select>
                     <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'var(--ink-2)' }}>
                       <input type="checkbox" checked={nuevoAsesor.activarTrial} onChange={e => setNuevoAsesor({...nuevoAsesor, activarTrial:e.target.checked})}/>
-                      Activar de inmediato con trial Black de 7 días
+                      Activar de inmediato con trial Black de {nuevoAsesor.esFundador ? '21' : '7'} días
+                    </label>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, color:'var(--accent)', background:'var(--accent-tint)', padding:'8px 10px', borderRadius:8 }}>
+                      <input type="checkbox" checked={nuevoAsesor.esFundador} onChange={e => setNuevoAsesor({...nuevoAsesor, esFundador:e.target.checked})}/>
+                      ⭐ Asesor fundador (trial de 21 días + 20% de descuento permanente)
                     </label>
                   </div>
                   <div style={{ display:'flex', gap:10 }}>
@@ -1887,6 +1916,7 @@ export default function AdminPanel() {
               suscripciones={suscripciones}
               onClose={() => setSel(null)}
               onCambiarPlan={cambiarPlan}
+              onMarcarFundador={marcarFundador}
               onAprobarKYC={aprobarKYC}
               onTogglePropiedad={togglePropiedad}
               onVerificarPropiedad={verificarPropiedad}
@@ -2039,11 +2069,12 @@ function MensajeForm({ asesores, propietarios, onSend }: {
 }
 
 // ── DRAWER DETALLE ──
-function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onActualizarReferido, onResponderEquipoNido, onSuspender, onActualizarComision, onEditarPropiedad, onLog, onMsg, onReload }: {
+function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onMarcarFundador, onAprobarKYC, onTogglePropiedad, onVerificarPropiedad, onEnviarMensaje, onActualizarReferido, onResponderEquipoNido, onSuspender, onActualizarComision, onEditarPropiedad, onLog, onMsg, onReload }: {
   sel: SelItem
   suscripciones: Suscripcion[]
   onClose: () => void
   onCambiarPlan: (correo: string, plan: string) => void
+  onMarcarFundador: (correo: string) => void
   onAprobarKYC: (id: string, aprobar: boolean, notas?: string) => void
   onTogglePropiedad: (id: string, disponible: boolean) => void
   onVerificarPropiedad: (id: string, aprobar: boolean, notas?: string) => void
@@ -2412,12 +2443,20 @@ function DrawerDetalle({ sel, suscripciones, onClose, onCambiarPlan, onAprobarKY
           { l:'Período', v:sel.periodo },
           { l:'Estado', v:sel.activo?'Activa':'Inactiva' },
           { l:'Inicio', v:sel.created_at?new Date(sel.created_at).toLocaleDateString('es-CR'):'—' },
+          { l:'Asesor fundador', v:sel.es_fundador?('⭐ Sí · '+(sel.descuento_pct||0)+'% descuento permanente'):'No' },
         ].map(f => (
           <div key={f.l} style={{ display:'flex', justifyContent:'space-between', padding:'10px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
             <span style={{ color:'var(--ink-3)' }}>{f.l}</span>
             <span style={{ fontWeight:500 }}>{f.v}</span>
           </div>
         ))}
+        {!sel.es_fundador && (
+          <div style={{ marginTop:16 }}>
+            <button onClick={() => onMarcarFundador(sel.correo||'')} className="btn btn-primary" style={{ width:'100%' }}>
+              ⭐ Marcar como asesor fundador (trial 21 días + 20% descuento permanente)
+            </button>
+          </div>
+        )}
         <div style={{ marginTop:20 }}>
           <div style={{ fontSize:11, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>Cambiar plan manualmente</div>
           <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:8 }}>

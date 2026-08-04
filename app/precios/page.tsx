@@ -1,7 +1,8 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { supabase } from '../../lib/supabase'
 
 const PLANES = [
   {
@@ -132,14 +133,27 @@ export default function Precios() {
   const [showPago, setShowPago] = useState(false)
   const [planSeleccionado, setPlanSeleccionado] = useState<string>('')
 
+  // Programa "asesor fundador" (lanzamiento cerrado): descuento permanente
+  // que un admin activa manualmente. Si el usuario logueado es fundador, los
+  // precios de esta página y el monto a pagar se ajustan automáticamente.
+  const [descuentoPct, setDescuentoPct] = useState(0)
+  useEffect(() => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (!user?.email) return
+      const { data } = await supabase.from('suscripciones').select('es_fundador,descuento_pct').eq('correo', user.email).maybeSingle()
+      if (data?.es_fundador) setDescuentoPct(data.descuento_pct || 0)
+    })
+  }, [])
+  const conDescuento = (n: number) => descuentoPct > 0 ? Math.round(n * (1 - descuentoPct / 100)) : n
+
   const SINPE = '8822-6436'
   const IBAN = 'CR21015200009876543210'
   const BANCO = 'Banco Nacional de Costa Rica'
   const CUENTA_NOMBRE = 'NIDO Plataforma Inmobiliaria'
 
   const PLANES_INFO: Record<string, {nombre:string, precio:string, precioAnual:string}> = {
-    pro: { nombre:'NIDO Elite', precio:'$59/mes', precioAnual:'$45/mes (facturado anual)' },
-    enterprise: { nombre:'NIDO Black', precio:'$99/mes', precioAnual:'$76/mes (facturado anual)' },
+    pro: { nombre:'NIDO Elite', precio:'$'+conDescuento(59)+'/mes', precioAnual:'$'+conDescuento(45)+'/mes (facturado anual)' },
+    enterprise: { nombre:'NIDO Black', precio:'$'+conDescuento(99)+'/mes', precioAnual:'$'+conDescuento(76)+'/mes (facturado anual)' },
   }
 
   const handleSuscribirse = async (planId: string) => {
@@ -205,15 +219,23 @@ export default function Precios() {
 
               <div>
                 <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:p.featured?'oklch(0.85 0.06 80)':'var(--ink-3)', marginBottom:8 }}>{p.nombre}</div>
+                {descuentoPct > 0 && p.precio_mes > 0 && (
+                  <div style={{ fontSize:11, fontWeight:600, color:p.featured?'oklch(0.85 0.06 80)':'var(--accent)', marginBottom:4 }}>⭐ Precio fundador · -{descuentoPct}%</div>
+                )}
                 <div style={{ display:'flex', alignItems:'baseline', gap:6, marginBottom:6 }}>
+                  {descuentoPct > 0 && p.precio_mes > 0 && (
+                    <span style={{ fontSize:18, color:p.featured?'rgba(255,255,255,0.4)':'var(--ink-3)', textDecoration:'line-through' }}>
+                      ${anual ? p.precio_ano : p.precio_mes}
+                    </span>
+                  )}
                   <span style={{ fontFamily:'var(--serif)', fontSize:52, fontWeight:400, color:p.featured?'white':'var(--ink)', lineHeight:1 }}>
-                    {p.precio_mes === 0 ? 'Gratis' : (anual ? p.precio_ano : p.precio_mes) === 0 ? 'Gratis' : '$' + (anual ? p.precio_ano : p.precio_mes)}
+                    {p.precio_mes === 0 ? 'Gratis' : (anual ? p.precio_ano : p.precio_mes) === 0 ? 'Gratis' : '$' + conDescuento(anual ? p.precio_ano : p.precio_mes)}
                   </span>
                   {p.precio_mes > 0 && <span style={{ fontSize:14, color:p.featured?'rgba(255,255,255,0.5)':'var(--ink-3)' }}>/mes</span>}
                 </div>
                 {p.precio_mes > 0 && anual && (
                   <div style={{ fontSize:12, color:p.featured?'rgba(255,255,255,0.5)':'var(--ink-3)', marginBottom:4 }}>
-                    Facturado como ${p.precio_ano * 12}/año
+                    Facturado como ${conDescuento(p.precio_ano) * 12}/año
                   </div>
                 )}
                 <p style={{ fontSize:13, color:p.featured?'rgba(255,255,255,0.6)':'var(--ink-2)', lineHeight:1.55, marginTop:8 }}>{p.desc}</p>

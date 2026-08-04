@@ -34,6 +34,9 @@ export async function POST(req: NextRequest) {
     const telefono = body?.telefono ? String(body.telefono).trim() : null
     const plan = ['gratis', 'pro', 'enterprise'].includes(body?.plan) ? body.plan : 'gratis'
     const activarTrial = !!body?.activarTrial
+    // Programa "asesor fundador" (lanzamiento cerrado): trial de 21 días en
+    // vez de 7, y 20% de descuento permanente cuando pase a un plan pago.
+    const esFundador = !!body?.esFundador
 
     if (!nombre) return NextResponse.json({ error: 'Falta el nombre' }, { status: 400 })
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) return NextResponse.json({ error: 'Correo inválido' }, { status: 400 })
@@ -69,13 +72,15 @@ export async function POST(req: NextRequest) {
 
     if (activarTrial) {
       const trialFin = new Date()
-      trialFin.setDate(trialFin.getDate() + 7)
+      trialFin.setDate(trialFin.getDate() + (esFundador ? 21 : 7))
       await supabaseAdmin.from('suscripciones').upsert({
         correo,
         plan: 'enterprise',
         activo: true,
         es_trial: true,
         trial_fin: trialFin.toISOString(),
+        es_fundador: esFundador,
+        descuento_pct: esFundador ? 20 : 0,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'correo' })
     } else {
@@ -84,6 +89,8 @@ export async function POST(req: NextRequest) {
         plan,
         activo: false,
         es_trial: false,
+        es_fundador: esFundador,
+        descuento_pct: esFundador ? 20 : 0,
         updated_at: new Date().toISOString(),
       }, { onConflict: 'correo' })
     }

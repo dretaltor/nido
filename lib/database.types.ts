@@ -420,6 +420,8 @@ export interface Suscripcion {
   updated_at: string | null
   es_trial: boolean | null
   trial_fin: string | null
+  es_fundador?: boolean | null
+  descuento_pct?: number | null
 }
 
 export interface Tarea {
