@@ -161,6 +161,13 @@ export interface Lead {
   seguimiento_enviado: boolean
   fuente: string | null
   asignado_automaticamente: boolean
+  // "Memoria inmobiliaria" (Fase 1 Director de Operaciones IA): perfil evolutivo del
+  // cliente que Valeria va completando y ajustando con el tiempo.
+  presupuesto_min: number | null
+  presupuesto_max: number | null
+  zonas_interes: string[] | null
+  nivel_interes: 'frio' | 'tibio' | 'caliente' | null
+  notas_ia: string | null
 }
 
 export interface Noticia {
@@ -456,6 +463,8 @@ export interface Visita {
   recordatorio_enviado: boolean | null
   created_at: string | null
   resena_solicitada: boolean
+  resultado: 'interesado' | 'no_interesado' | 'requiere_seguimiento' | 'oferta' | 'cerrado' | null
+  resumen_ia: string | null
 }
 
 export interface ValeriaBitacora {

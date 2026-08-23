@@ -142,6 +142,46 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    // Mecanismo de aprobación (Fase 1): algunas acciones (avisarle a un comprador que su visita
+    // quedó agendada, mandarle un seguimiento a un lead) las redacta Valeria pero NO las envía
+    // directo — quedan como borrador en valeria_bitacora (requiere_aprobacion:true, aprobado:null)
+    // hasta que el asesor confirma con una respuesta corta tipo "dale". Si hay un borrador
+    // pendiente y este mensaje es exactamente una confirmación o un rechazo, lo resolvemos acá
+    // mismo, sin pasar por la IA — más rápido y 100% determinístico, igual que el opt-in/opt-out.
+    if (!botonId && msgType === 'text' && userType === 'asesor' && asesor?.correo) {
+      const { data: pendiente } = await supabaseAdmin
+        .from('valeria_bitacora')
+        .select('*')
+        .eq('asesor_email', asesor.correo)
+        .eq('requiere_aprobacion', true)
+        .is('aprobado', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (pendiente) {
+        const comando = text.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+        const AFIRMATIVOS = ['dale', 'si', 'confirmo', 'confirmar', 'envialo', 'enviala', 'hazlo', 'ok', 'okay', 'va', 'adelante', 'correcto', 'asi es', 'yes', 'send it', 'confirm']
+        const NEGATIVOS = ['no', 'cancelar', 'cancela', 'detente', 'para', 'stop', 'olvidalo', 'mejor no', 'todavia no', 'aun no']
+
+        if (AFIRMATIVOS.includes(comando)) {
+          const respuesta = await ejecutarAccionDiferida(pendiente.tipo_accion, (pendiente.detalle || {}) as Record<string, unknown>)
+          await supabaseAdmin.from('valeria_bitacora').update({ aprobado: true, resumen: pendiente.resumen + ' — Enviado.' }).eq('id', pendiente.id)
+          const envio = await sendWA(from, respuesta)
+          try { await supabaseAdmin.from('whatsapp_logs').insert({ from_number: from, message: text, reply: respuesta, user_type: userType, user_name: userName, wa_send_ok: envio.ok, wa_send_error: envio.error || null }) } catch (_) {}
+          return NextResponse.json({ ok: true })
+        }
+        if (NEGATIVOS.includes(comando)) {
+          await supabaseAdmin.from('valeria_bitacora').update({ aprobado: false }).eq('id', pendiente.id)
+          const respuesta = 'Listo, no lo envío. ¿Querés que lo ajuste de otra forma?'
+          const envio = await sendWA(from, respuesta)
+          try { await supabaseAdmin.from('whatsapp_logs').insert({ from_number: from, message: text, reply: respuesta, user_type: userType, user_name: userName, wa_send_ok: envio.ok, wa_send_error: envio.error || null }) } catch (_) {}
+          return NextResponse.json({ ok: true })
+        }
+        // Ni afirmación ni rechazo claro: el borrador queda pendiente y seguimos el flujo normal.
+      }
+    }
+
     // Historial reciente de esta conversacion — sin esto Valeria no tiene memoria entre mensajes
     // y no puede entender referencias como "sí, contactame" o "la segunda opción".
     const { data: historialRows } = await supabaseAdmin
@@ -188,7 +228,8 @@ export async function POST(req: NextRequest) {
 Respondés por WhatsApp — mensajes cortos, claros y directos. Máximo 3 párrafos.
 IDIOMA: respondé siempre en el mismo idioma en el que te escribe el usuario (si te escribe en inglés, respondé en inglés; si es en español, en español). Costa Rica recibe muchos compradores extranjeros — no asumas que todos hablan español.
 ${userName ? 'Estás hablando con ' + userName + ', ' + userType + ' de NIDO.' : 'Es un usuario nuevo — podría ser comprador, vendedor o asesor.'}
-${userType === 'asesor' ? `Este es un ASESOR registrado en NIDO (plan ${esAsesorBlack ? 'Black' : asesor?.plan || 'Despega'}). Si pregunta cómo mejorar sus ventas o "capacitarme", mencioná la Academia NIDO en nido-cr.com/academia. Dudas sobre comisiones, KYC, contratos o el funcionamiento de NIDO las respondés vos misma en texto.${!esAsesorBlack ? ' Si pregunta por precios de mercado, tendencias de zona, un CMA, asesoría de inversión, o algo legal/notarial, respondé en texto que eso es un beneficio exclusivo del plan Black y que puede hacer upgrade en nido-cr.com/precios (no uses ninguna herramienta para esto).' : ''}` : ''}
+${userType === 'asesor' ? `Este es un ASESOR registrado en NIDO (plan ${esAsesorBlack ? 'Black' : asesor?.plan || 'Despega'}). Si pregunta cómo mejorar sus ventas o "capacitarme", mencioná la Academia NIDO en nido-cr.com/academia. Dudas sobre comisiones, KYC, contratos o el funcionamiento de NIDO las respondés vos misma en texto.${!esAsesorBlack ? ' Si pregunta por precios de mercado, tendencias de zona, un CMA, asesoría de inversión, o algo legal/notarial, respondé en texto que eso es un beneficio exclusivo del plan Black y que puede hacer upgrade en nido-cr.com/precios (no uses ninguna herramienta para esto).' : ''}
+Además sos su directora de operaciones para el día a día: si te cuenta cómo le fue en una visita, usá completar_visita. Si te pide agendar una visita nueva, usá agendar_visita. Si te pide armar una propuesta u oferta, usá armar_propuesta. Si te pide escribirle o dar seguimiento a un lead específico, usá enviar_mensaje_lead — esa herramienta ya se encarga de pedirle confirmación antes de mandar nada, así que podés usarla directo sin preguntar vos primero. Un solo mensaje del asesor puede requerir varias de estas herramientas a la vez (por ejemplo: registrar cómo salió una visita Y agendar la siguiente).` : ''}
 ${userType === 'propietario' ? 'Es un PROPIETARIO con al menos una propiedad publicada en NIDO. Preguntas generales sobre cómo funciona NIDO (comisión, proceso de venta, KYC, plazos) las respondés vos en texto, breve.' : ''}
 ${userType === 'comprador' ? 'Es un COMPRADOR.' : ''}
 Ayudás con: consultas sobre propiedades, proceso de compra/venta, información sobre NIDO, agendar visitas. Siempre terminá con una pregunta o siguiente paso concreto cuando respondas en texto libre.
@@ -360,6 +401,56 @@ function construirTools(ctx: { userType: string; esAsesorBlack: boolean; tieneCo
       description: 'Mostrar las propiedades propias que el asesor tiene publicadas en NIDO. Usala cuando pregunte "mis propiedades", "lo que tengo publicado", etc.',
       input_schema: { type: 'object', properties: {}, required: [] },
     })
+    tools.push({
+      name: 'completar_visita',
+      description: 'Registrar el resultado de una visita que ya ocurrió. Usala cuando el asesor te cuenta cómo le fue en una visita (con quién fue, qué pasó, próximos pasos) — buscá la visita correspondiente en el CONTEXTO ACTUAL DEL ASESOR de más arriba.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          visita_referencia: { type: 'string', description: 'Nombre del comprador y/o título de la propiedad, para identificar cuál visita es' },
+          resultado: { type: 'string', enum: ['interesado', 'no_interesado', 'requiere_seguimiento', 'oferta', 'cerrado'], description: 'Cómo quedó la visita' },
+          resumen: { type: 'string', description: 'Resumen de lo que te contó el asesor sobre la visita' },
+        },
+        required: ['visita_referencia', 'resultado', 'resumen'],
+      },
+    })
+    tools.push({
+      name: 'agendar_visita',
+      description: 'Agendar una nueva visita para un comprador con una propiedad. Usala cuando el asesor te pida agendar o programar una visita.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          comprador_nombre: { type: 'string' },
+          comprador_telefono: { type: 'string', description: 'Teléfono del comprador si lo dio, para poder avisarle luego (con tu confirmación)' },
+          propiedad_referencia: { type: 'string', description: 'Título o zona de la propiedad, para buscarla entre las del asesor' },
+          fecha: { type: 'string', description: 'Fecha en formato YYYY-MM-DD' },
+          hora: { type: 'string', description: 'Hora en formato HH:MM (24h)' },
+          tipo: { type: 'string', enum: ['presencial', 'virtual'] },
+        },
+        required: ['comprador_nombre', 'propiedad_referencia', 'fecha', 'hora'],
+      },
+    })
+    tools.push({
+      name: 'armar_propuesta',
+      description: 'Redactar una propuesta u oferta para presentarle a un comprador, según lo que te describe el asesor (propiedad, condiciones, precio, plazos). La escribís vos misma en texto, lista para copiar y pegar — el asesor decide cuándo y cómo enviarla, así que esto NO se manda solo.',
+      input_schema: {
+        type: 'object',
+        properties: { descripcion: { type: 'string', description: 'Condiciones de la propuesta que describió el asesor' } },
+        required: ['descripcion'],
+      },
+    })
+    tools.push({
+      name: 'enviar_mensaje_lead',
+      description: 'Redactar un mensaje de seguimiento para un lead o comprador específico del asesor y enviarlo por WhatsApp en su nombre. IMPORTANTE: esto SIEMPRE queda como borrador esperando confirmación del asesor — nunca se envía directo, así que podés usarla con confianza cuando el asesor pida "escribile a [nombre]" o "mandale un seguimiento a [nombre]".',
+      input_schema: {
+        type: 'object',
+        properties: {
+          lead_referencia: { type: 'string', description: 'Nombre del lead o comprador, para buscarlo entre los leads recientes del asesor' },
+          mensaje: { type: 'string', description: 'El mensaje que le escribirías, redactado por vos, cálido y profesional' },
+        },
+        required: ['lead_referencia', 'mensaje'],
+      },
+    })
   }
 
   if (ctx.userType === 'comprador') {
@@ -465,6 +556,24 @@ async function ejecutarTool(
 
     case 'mis_propiedades':
       return ejecutarMisPropiedades({ asesorCorreo: asesor?.correo || null })
+
+    case 'completar_visita': {
+      if (!asesor?.correo) return { text: 'No pude identificar tu cuenta de asesor.', isFinal: true }
+      return ejecutarCompletarVisita({ asesorCorreo: asesor.correo }, input)
+    }
+
+    case 'agendar_visita': {
+      if (!asesor?.correo) return { text: 'No pude identificar tu cuenta de asesor.', isFinal: true }
+      return ejecutarAgendarVisita({ asesorCorreo: asesor.correo, asesorTelefono: asesor.telefono || null }, input)
+    }
+
+    case 'armar_propuesta':
+      return ejecutarArmarPropuesta({ userName, asesorCorreo: asesor?.correo || null }, input)
+
+    case 'enviar_mensaje_lead': {
+      if (!asesor?.correo) return { text: 'No pude identificar tu cuenta de asesor.', isFinal: true }
+      return ejecutarEnviarMensajeLead({ asesorCorreo: asesor.correo }, input)
+    }
 
     default:
       return { text: 'No pude procesar esa solicitud — ¿me la repetís de otra forma?', isFinal: true }
@@ -646,6 +755,215 @@ async function ejecutarMisPropiedades(ctx: { asesorCorreo: string | null }): Pro
     return { text: texto, isFinal: true }
   }
   return { text: '📋 Todavía no tenés propiedades publicadas.\n\nPodés publicar la primera acá:\n🌐 nido-cr.com/dashboard/nueva-propiedad', isFinal: true }
+}
+
+// Busca, entre las visitas recientes/próximas del asesor, la que mejor coincide con una
+// referencia libre (nombre del comprador y/o título de la propiedad). Solo mira visitas de
+// los últimos 14 días hasta 14 días a futuro — rango razonable para que el asesor te cuente
+// "cómo le fue" sin tener que dar el id exacto.
+async function buscarVisitaPorReferencia(asesorCorreo: string, referencia: string) {
+  const desde = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0]
+  const hasta = new Date(Date.now() + 14 * 86400000).toISOString().split('T')[0]
+  const { data: candidatas } = await supabaseAdmin
+    .from('visitas')
+    .select('id, propiedad_titulo, comprador_nombre, fecha, hora, estado, notas')
+    .eq('asesor_email', asesorCorreo)
+    .gte('fecha', desde)
+    .lte('fecha', hasta)
+    .order('fecha', { ascending: false })
+
+  const ref = referencia.toLowerCase()
+  const coincidencias = (candidatas || []).filter(v =>
+    (v.comprador_nombre && ref.includes(v.comprador_nombre.toLowerCase())) ||
+    (v.propiedad_titulo && ref.includes(v.propiedad_titulo.toLowerCase())) ||
+    (v.comprador_nombre && v.comprador_nombre.toLowerCase().includes(ref)) ||
+    (v.propiedad_titulo && v.propiedad_titulo.toLowerCase().includes(ref))
+  )
+  return coincidencias
+}
+
+async function ejecutarCompletarVisita(ctx: { asesorCorreo: string }, input: Record<string, unknown>): Promise<ToolResult> {
+  const referencia = String(input.visita_referencia || '')
+  const resultado = String(input.resultado || 'requiere_seguimiento')
+  const resumen = String(input.resumen || '')
+
+  const coincidencias = await buscarVisitaPorReferencia(ctx.asesorCorreo, referencia)
+  if (coincidencias.length === 0) {
+    return { text: `No encontré ninguna visita reciente que coincida con "${referencia}" — ¿me confirmás el nombre del comprador o la propiedad?`, isFinal: true }
+  }
+  if (coincidencias.length > 1) {
+    const opciones = coincidencias.slice(0, 4).map(v => `- ${v.comprador_nombre} · ${v.propiedad_titulo} (${v.fecha})`).join('\n')
+    return { text: `Encontré más de una visita que podría ser esa:\n\n${opciones}\n\n¿Me confirmás cuál, con más detalle?`, isFinal: true }
+  }
+
+  const visita = coincidencias[0]
+  const notasActualizadas = visita.notas ? visita.notas + '\n\n' + resumen : resumen
+  await supabaseAdmin.from('visitas').update({ resultado, resumen_ia: resumen, notas: notasActualizadas }).eq('id', visita.id)
+
+  await registrarBitacora({
+    asesorEmail: ctx.asesorCorreo,
+    tipoAccion: 'completar_visita',
+    resumen: `Visita con ${visita.comprador_nombre} registrada como "${resultado}"`,
+    detalle: { resultado, resumen },
+    visitaId: visita.id,
+  })
+
+  const siguientePaso = resultado === 'requiere_seguimiento'
+    ? ' ¿Querés que le arme un mensaje de seguimiento o que le agende otra visita?'
+    : resultado === 'oferta'
+    ? ' ¿Querés que te ayude a armar la propuesta?'
+    : ''
+  return { text: `📝 Listo, registré la visita con *${visita.comprador_nombre}* (${visita.propiedad_titulo}) como *${resultado.replace('_', ' ')}*.${siguientePaso}`, isFinal: true }
+}
+
+async function ejecutarAgendarVisita(ctx: { asesorCorreo: string; asesorTelefono: string | null }, input: Record<string, unknown>): Promise<ToolResult> {
+  const compradorNombre = String(input.comprador_nombre || 'Comprador')
+  const compradorTelefono = input.comprador_telefono ? String(input.comprador_telefono) : null
+  const propiedadReferencia = String(input.propiedad_referencia || '')
+  const fecha = String(input.fecha || '')
+  const hora = String(input.hora || '')
+  const tipo = input.tipo === 'virtual' ? 'virtual' : 'presencial'
+
+  if (!fecha || !hora) {
+    return { text: 'Me falta la fecha o la hora de la visita — ¿me las confirmás?', isFinal: true }
+  }
+
+  // Buscamos primero por título y, si no hay match, por zona — dos consultas simples en vez
+  // de un .or() con interpolación de texto libre (podría traer comas/paréntesis del usuario
+  // y romper la sintaxis del filtro).
+  let propMatch: { id: string; titulo: string } | null = null
+  if (propiedadReferencia) {
+    const { data: porTitulo } = await supabaseAdmin.from('propiedades').select('id, titulo').eq('asesor_email', ctx.asesorCorreo).ilike('titulo', '%' + propiedadReferencia + '%').limit(1).maybeSingle()
+    propMatch = porTitulo
+    if (!propMatch) {
+      const { data: porZona } = await supabaseAdmin.from('propiedades').select('id, titulo').eq('asesor_email', ctx.asesorCorreo).ilike('zona', '%' + propiedadReferencia + '%').limit(1).maybeSingle()
+      propMatch = porZona
+    }
+  }
+
+  const { data: nueva } = await supabaseAdmin.from('visitas').insert({
+    propiedad_id: propMatch?.id || null,
+    propiedad_titulo: propMatch?.titulo || propiedadReferencia,
+    asesor_email: ctx.asesorCorreo,
+    asesor_whatsapp: ctx.asesorTelefono,
+    comprador_nombre: compradorNombre,
+    comprador_telefono: compradorTelefono,
+    fecha,
+    hora,
+    tipo,
+    estado: 'confirmada',
+  }).select('id').single()
+
+  await registrarBitacora({
+    asesorEmail: ctx.asesorCorreo,
+    tipoAccion: 'agendar_visita',
+    resumen: `Visita agendada con ${compradorNombre} — ${propMatch?.titulo || propiedadReferencia} (${fecha} ${hora})`,
+    detalle: { fecha, hora, tipo },
+    visitaId: nueva?.id || null,
+    propiedadId: propMatch?.id || null,
+  })
+
+  const fechaLegible = (() => { try { return new Date(fecha + 'T12:00:00').toLocaleDateString('es-CR', { weekday: 'long', day: 'numeric', month: 'long' }) } catch { return fecha } })()
+
+  if (compradorTelefono && nueva?.id) {
+    const mensaje = `✅ *Visita confirmada NIDO*\n\nTu visita quedó agendada:\n\nPropiedad: ${propMatch?.titulo || propiedadReferencia}\nFecha: ${fechaLegible}\nHora: ${hora}\nTipo: ${tipo === 'virtual' ? 'Virtual' : 'Presencial'}\n\n¿Tenés alguna pregunta? Respondé este mensaje.`
+    await registrarBitacora({
+      asesorEmail: ctx.asesorCorreo,
+      tipoAccion: 'notificar_visita_comprador',
+      resumen: `Borrador de aviso de visita para ${compradorNombre}`,
+      detalle: { comprador_telefono: compradorTelefono, mensaje },
+      visitaId: nueva.id,
+      requiereAprobacion: true,
+    })
+    return { text: `Listo, agendé la visita con *${compradorNombre}* el ${fechaLegible} a las ${hora}. ¿Le aviso por WhatsApp? Respondé *dale* para confirmar.`, isFinal: true }
+  }
+
+  return { text: `Listo, agendé la visita con *${compradorNombre}* el ${fechaLegible} a las ${hora}.`, isFinal: true }
+}
+
+async function ejecutarArmarPropuesta(ctx: { userName: string | null; asesorCorreo: string | null }, input: Record<string, unknown>): Promise<ToolResult> {
+  const descripcion = String(input.descripcion || '')
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY || '', 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 500,
+      system: `Sos Valeria, asistente de redacción para asesores inmobiliarios de NIDO en Costa Rica. ${ctx.userName || 'Un asesor'} te pidió armar una propuesta/oferta para un comprador con estas condiciones: "${descripcion}". Escribí un mensaje profesional, cálido y listo para copiar y pegar en WhatsApp: resumen de la propuesta, condiciones clave, y una invitación a conversar o cerrar. Máximo 200 palabras, formato WhatsApp (sin markdown de más).`,
+      messages: [{ role: 'user', content: descripcion }],
+    }),
+  })
+  const data = await res.json()
+  const texto = data.content?.[0]?.text || 'No pude armar la propuesta en este momento — ¿me repetís las condiciones?'
+
+  await registrarBitacora({
+    asesorEmail: ctx.asesorCorreo,
+    tipoAccion: 'armar_propuesta',
+    resumen: 'Propuesta redactada',
+    detalle: { descripcion },
+  })
+
+  return { text: `📄 *Borrador de propuesta:*\n\n${texto}\n\n(La redacté para que la revisés y la envíes vos cuando quieras.)`, isFinal: true }
+}
+
+async function ejecutarEnviarMensajeLead(ctx: { asesorCorreo: string }, input: Record<string, unknown>): Promise<ToolResult> {
+  const referencia = String(input.lead_referencia || '')
+  const mensaje = String(input.mensaje || '')
+
+  const { data: candidatos } = await supabaseAdmin
+    .from('leads')
+    .select('id, nombre, telefono')
+    .eq('asesor_email', ctx.asesorCorreo)
+    .ilike('nombre', '%' + referencia + '%')
+    .order('created_at', { ascending: false })
+    .limit(2)
+
+  if (!candidatos || candidatos.length === 0) {
+    return { text: `No encontré ningún lead tuyo llamado "${referencia}" — ¿me confirmás el nombre exacto?`, isFinal: true }
+  }
+  if (candidatos.length > 1) {
+    return { text: `Tengo más de un lead que podría ser "${referencia}" — ¿me das más detalle (zona, teléfono)?`, isFinal: true }
+  }
+  const lead = candidatos[0]
+  if (!lead.telefono) {
+    return { text: `${lead.nombre} no tiene teléfono registrado, así que no puedo escribirle por WhatsApp.`, isFinal: true }
+  }
+
+  await registrarBitacora({
+    asesorEmail: ctx.asesorCorreo,
+    tipoAccion: 'enviar_mensaje_lead',
+    resumen: `Borrador de mensaje para ${lead.nombre}`,
+    detalle: { telefono: lead.telefono, mensaje },
+    leadId: lead.id,
+    requiereAprobacion: true,
+  })
+
+  return { text: `📝 *Borrador para ${lead.nombre}:*\n\n"${mensaje}"\n\n¿Lo envío? Respondé *dale* para confirmar.`, isFinal: true }
+}
+
+// Ejecuta una acción que había quedado pendiente de aprobación (ver el chequeo de
+// AFIRMATIVOS/NEGATIVOS más arriba en POST). El `tipo` viene de `tipo_accion` de la fila de
+// `valeria_bitacora`, y `detalle` es el payload que el handler original dejó guardado.
+async function ejecutarAccionDiferida(tipo: string, detalle: Record<string, unknown>): Promise<string> {
+  switch (tipo) {
+    case 'notificar_visita_comprador': {
+      const telefono = String(detalle.comprador_telefono || '')
+      const mensaje = String(detalle.mensaje || '')
+      if (!telefono) return 'No tengo el teléfono del comprador para avisarle — revisá la visita en tu dashboard.'
+      await sendWA(telefono, mensaje)
+      return '✅ Listo, ya le avisé por WhatsApp.'
+    }
+    case 'enviar_mensaje_lead': {
+      const telefono = String(detalle.telefono || '')
+      const mensaje = String(detalle.mensaje || '')
+      if (!telefono) return 'No tengo el teléfono de ese lead para escribirle.'
+      await sendWA(telefono, mensaje)
+      return '✅ Listo, ya se lo envié.'
+    }
+    default:
+      return 'Listo, confirmado.'
+  }
 }
 
 // Registra en `valeria_bitacora` cada acción que Valeria ejecuta — es la base del panel

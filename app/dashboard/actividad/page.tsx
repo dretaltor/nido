@@ -31,6 +31,11 @@ const TIPOS: Record<string, { icon: string; label: string; color: string }> = {
   mis_propiedades_propietario: { icon: '🏠', label: 'Propietario consultó su propiedad', color: 'var(--ink-2)' },
   redirigir_asesor_propietario: { icon: '↪️', label: 'Propietario redirigido', color: 'var(--ink-2)' },
   mis_propiedades: { icon: '📋', label: 'Consultó su catálogo', color: 'var(--ink-2)' },
+  completar_visita: { icon: '📝', label: 'Visita registrada', color: 'var(--accent)' },
+  agendar_visita: { icon: '📅', label: 'Visita agendada', color: 'var(--accent)' },
+  notificar_visita_comprador: { icon: '📣', label: 'Aviso de visita a comprador', color: 'oklch(0.45 0.08 80)' },
+  armar_propuesta: { icon: '📄', label: 'Propuesta redactada', color: 'oklch(0.42 0.06 230)' },
+  enviar_mensaje_lead: { icon: '✉️', label: 'Mensaje a lead', color: 'oklch(0.45 0.08 80)' },
 }
 
 const tipoInfo = (t: string) => TIPOS[t] || { icon: '✦', label: t, color: 'var(--ink-2)' }
@@ -139,11 +144,16 @@ export default function ActividadValeria() {
                   <div style={{ fontSize: 13, fontWeight: 500, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.resumen}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink-3)' }}>{info.label} · {fmtFecha(e.created_at)}</div>
                 </div>
-                {e.requiere_aprobacion && (
-                  <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 500, background: e.aprobado ? 'var(--accent-tint)' : 'oklch(0.93 0.05 80)', color: e.aprobado ? 'var(--accent)' : 'oklch(0.45 0.08 80)', flexShrink: 0 }}>
-                    {e.aprobado ? 'Aprobado' : 'Pendiente de aprobación'}
-                  </span>
-                )}
+                {e.requiere_aprobacion && (() => {
+                  const estado = e.aprobado === true ? { label: 'Enviado', bg: 'var(--accent-tint)', color: 'var(--accent)' }
+                    : e.aprobado === false ? { label: 'Rechazado', bg: 'oklch(0.93 0.005 80)', color: 'var(--ink-3)' }
+                    : { label: 'Pendiente de aprobación', bg: 'oklch(0.93 0.05 80)', color: 'oklch(0.45 0.08 80)' }
+                  return (
+                    <span style={{ padding: '3px 10px', borderRadius: 999, fontSize: 10, fontWeight: 500, background: estado.bg, color: estado.color, flexShrink: 0 }}>
+                      {estado.label}
+                    </span>
+                  )
+                })()}
                 <span style={{ color: 'var(--ink-3)', fontSize: 18, flexShrink: 0 }}>›</span>
               </div>
             )
