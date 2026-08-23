@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import crypto from 'crypto'
 import { notificarAsesorBlack } from '../../../lib/whatsappNotify'
 import { registrarOptOut, quitarOptOut } from '../../../lib/whatsapp'
+import { clasificarConfirmacion } from '../../../lib/confirmacionWA'
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -161,36 +162,43 @@ export async function POST(req: NextRequest) {
     // pendiente y este mensaje es exactamente una confirmación o un rechazo, lo resolvemos acá
     // mismo, sin pasar por la IA — más rápido y 100% determinístico, igual que el opt-in/opt-out.
     if (!botonId && msgType === 'text' && userType === 'asesor' && asesor?.correo) {
-      const { data: pendiente } = await supabaseAdmin
+      // Ojo: puede haber más de un borrador pendiente a la vez (ej: agendó dos visitas
+      // seguidas antes de confirmar la primera). Si solo resolviéramos "el más reciente",
+      // los anteriores quedarían huérfanos para siempre — un "dale" resuelve TODOS los que
+      // estén pendientes, no solo el último.
+      const { data: pendientes } = await supabaseAdmin
         .from('valeria_bitacora')
         .select('*')
         .eq('asesor_email', asesor.correo)
         .eq('requiere_aprobacion', true)
         .is('aprobado', null)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+        .order('created_at', { ascending: true })
 
-      if (pendiente) {
-        const comando = text.trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
-        const AFIRMATIVOS = ['dale', 'si', 'confirmo', 'confirmar', 'envialo', 'enviala', 'hazlo', 'ok', 'okay', 'va', 'adelante', 'correcto', 'asi es', 'yes', 'send it', 'confirm']
-        const NEGATIVOS = ['no', 'cancelar', 'cancela', 'detente', 'para', 'stop', 'olvidalo', 'mejor no', 'todavia no', 'aun no']
+      if (pendientes && pendientes.length > 0) {
+        const clasificacion = clasificarConfirmacion(text)
 
-        if (AFIRMATIVOS.includes(comando)) {
-          const respuesta = await ejecutarAccionDiferida(pendiente.tipo_accion, (pendiente.detalle || {}) as Record<string, unknown>)
-          await supabaseAdmin.from('valeria_bitacora').update({ aprobado: true, resumen: pendiente.resumen + ' — Enviado.' }).eq('id', pendiente.id)
-          const envio = await sendWA(from, respuesta)
-          try { await supabaseAdmin.from('whatsapp_logs').insert({ from_number: from, message: text, reply: respuesta, user_type: userType, user_name: userName, wa_send_ok: envio.ok, wa_send_error: envio.error || null }) } catch (_) {}
+        if (clasificacion === 'si') {
+          const respuestas: string[] = []
+          for (const pendiente of pendientes) {
+            const respuesta = await ejecutarAccionDiferida(pendiente.tipo_accion, (pendiente.detalle || {}) as Record<string, unknown>)
+            await supabaseAdmin.from('valeria_bitacora').update({ aprobado: true, resumen: pendiente.resumen + ' — Enviado.' }).eq('id', pendiente.id)
+            respuestas.push(respuesta)
+          }
+          const respuestaFinal = respuestas.length === 1 ? respuestas[0] : respuestas.join('\n')
+          const envio = await sendWA(from, respuestaFinal)
+          try { await supabaseAdmin.from('whatsapp_logs').insert({ from_number: from, message: text, reply: respuestaFinal, user_type: userType, user_name: userName, wa_send_ok: envio.ok, wa_send_error: envio.error || null }) } catch (_) {}
           return NextResponse.json({ ok: true })
         }
-        if (NEGATIVOS.includes(comando)) {
-          await supabaseAdmin.from('valeria_bitacora').update({ aprobado: false }).eq('id', pendiente.id)
+        if (clasificacion === 'no') {
+          for (const pendiente of pendientes) {
+            await supabaseAdmin.from('valeria_bitacora').update({ aprobado: false }).eq('id', pendiente.id)
+          }
           const respuesta = 'Listo, no lo envío. ¿Querés que lo ajuste de otra forma?'
           const envio = await sendWA(from, respuesta)
           try { await supabaseAdmin.from('whatsapp_logs').insert({ from_number: from, message: text, reply: respuesta, user_type: userType, user_name: userName, wa_send_ok: envio.ok, wa_send_error: envio.error || null }) } catch (_) {}
           return NextResponse.json({ ok: true })
         }
-        // Ni afirmación ni rechazo claro: el borrador queda pendiente y seguimos el flujo normal.
+        // Ni afirmación ni rechazo claro: los borradores quedan pendientes y seguimos el flujo normal.
       }
     }
 
