@@ -7,7 +7,7 @@ import { getPlanConfig } from '../../lib/planes'
 import type {
   Perfil, Propietario, Propiedad, Contrato, Comision, SoporteTicket, SoporteMensaje, Referido,
   AdminAuditLog, AdminMetricas, Admin, ResumenComisiones, Suscripcion, Lead, Json, ReferidoPagoMensual, Oficina, CursoCompra, AlertaBusqueda,
-  Oferta, Calificacion, Noticia, Equipo, EquipoMiembro, ValeriaBitacora,
+  Oferta, Calificacion, Noticia, Equipo, EquipoMiembro, ValeriaBitacora, Visita,
 } from '../../lib/database.types'
 
 // Item polimórfico seleccionado en el drawer lateral: puede ser un asesor, propietario,
@@ -267,7 +267,9 @@ export default function AdminPanel() {
   const [cursosCompras, setCursosCompras] = useState<CursoCompra[]>([])
   const [alertasBusqueda, setAlertasBusqueda] = useState<AlertaBusqueda[]>([])
   const [leads, setLeads] = useState<Lead[]>([])
-  const [waLogs, setWaLogs] = useState<{ id: string; wa_send_ok: boolean | null; user_type: string | null; created_at: string }[]>([])
+  const [waLogs, setWaLogs] = useState<{ id: string; from_number: string | null; message: string | null; reply: string | null; wa_send_ok: boolean | null; wa_send_error: string | null; user_type: string | null; user_name: string | null; created_at: string }[]>([])
+  const [reintentandoWa, setReintentandoWa] = useState<string | null>(null)
+  const [visitas, setVisitas] = useState<Visita[]>([])
   const [auditoria, setAuditoria] = useState<AdminAuditLog[]>([])
   const [admins, setAdmins] = useState<Admin[]>([])
   const [ofertas, setOfertas] = useState<Oferta[]>([])
@@ -310,7 +312,7 @@ export default function AdminPanel() {
   }
 
   const loadAll = async () => {
-    const [met, as, pr, pp, sus, coms, cons, tks, refs, pagosRef, lds, audit, adms, ofs, ccs, alts, wal, ofertasR, califsR, noticiasR, equiposR, equipoMiembrosR, valeriaR] = await Promise.all([
+    const [met, as, pr, pp, sus, coms, cons, tks, refs, pagosRef, lds, audit, adms, ofs, ccs, alts, wal, ofertasR, califsR, noticiasR, equiposR, equipoMiembrosR, valeriaR, visitasR] = await Promise.all([
       safe('metricas', supabase.from('admin_metricas').select('*').maybeSingle()),
       safe('asesores', supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at,referido_por,suspendido').order('created_at', { ascending: false })),
       safe('propietarios', supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at,referido_por,suspendido').order('created_at', { ascending: false })),
@@ -327,13 +329,14 @@ export default function AdminPanel() {
       safe('oficinas', supabase.from('oficinas').select('*').order('created_at', { ascending: false })),
       safe('cursos', supabase.from('cursos_compras').select('*').order('created_at', { ascending: false })),
       safe('alertas', supabase.from('alertas_busqueda').select('*').order('created_at', { ascending: false })),
-      safe('wa_logs', supabase.from('whatsapp_logs').select('id, wa_send_ok, user_type, created_at').gte('created_at', new Date(Date.now() - 7*24*60*60*1000).toISOString()).order('created_at', { ascending: false }).limit(1000)),
+      safe('wa_logs', supabase.from('whatsapp_logs').select('id, from_number, message, reply, wa_send_ok, wa_send_error, user_type, user_name, created_at').gte('created_at', new Date(Date.now() - 7*24*60*60*1000).toISOString()).order('created_at', { ascending: false }).limit(1000)),
       safe('ofertas', supabase.from('ofertas').select('*').order('created_at', { ascending: false })),
       safe('calificaciones', supabase.from('calificaciones').select('*').order('created_at', { ascending: false })),
       safe('noticias', supabase.from('noticias').select('*').order('created_at', { ascending: false })),
       safe('equipos', supabase.from('equipos').select('*').order('created_at', { ascending: false })),
       safe('equipo_miembros', supabase.from('equipo_miembros').select('*')),
       safe('valeria_bitacora', supabase.from('valeria_bitacora').select('*').order('created_at', { ascending: false }).limit(500)),
+      safe('visitas', supabase.from('visitas').select('id,propiedad_id,asesor_email,comprador_nombre,fecha,estado,resultado,created_at').order('created_at', { ascending: false }).limit(2000)),
     ])
     setMetricas(met.data)
     // Estas queries seleccionan solo un subconjunto de columnas (no '*'), por eso el cast:
@@ -360,7 +363,8 @@ export default function AdminPanel() {
     setEquipos(equiposR.data || [])
     setEquipoMiembros(equipoMiembrosR.data || [])
     setValeriaBitacora(valeriaR.data || [])
-    const fallidas = [met, as, pr, pp, sus, coms, cons, tks, refs, pagosRef, lds, audit, adms, ofs, ccs, alts, wal, ofertasR, califsR, noticiasR, equiposR, equipoMiembrosR, valeriaR].filter(r => r.error)
+    setVisitas((visitasR.data || []) as unknown as Visita[])
+    const fallidas = [met, as, pr, pp, sus, coms, cons, tks, refs, pagosRef, lds, audit, adms, ofs, ccs, alts, wal, ofertasR, califsR, noticiasR, equiposR, equipoMiembrosR, valeriaR, visitasR].filter(r => r.error)
     setLoadErrors(fallidas.map(r => r.nombre))
     setLoading(false)
   }
@@ -709,6 +713,35 @@ export default function AdminPanel() {
     setNoticias(prev => prev.map(n => n.id === id ? {...n, ...cambios} : n))
     setMsg('✓ Noticia actualizada')
     setTimeout(() => setMsg(''), 3000)
+  }
+
+  // Reintento manual de un envio de WhatsApp fallido: la causa mas comun (token de Meta
+  // vencido) ya se detecta y avisa por correo (ver Inteligencia de mercado), pero hasta ahora
+  // la unica forma de reintentar el mensaje puntual era entrando a la base de datos a mano.
+  const reintentarWhatsApp = async (id: string) => {
+    setReintentandoWa(id)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/reintentar-whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
+        body: JSON.stringify({ id }),
+      })
+      const json = await res.json()
+      if (!res.ok || !json.ok) {
+        setWaLogs(prev => prev.map(w => w.id === id ? { ...w, wa_send_error: json.error || 'No se pudo reenviar' } : w))
+        setMsg('✗ ' + (json.error || 'No se pudo reenviar el mensaje'))
+      } else {
+        setWaLogs(prev => prev.map(w => w.id === id ? { ...w, wa_send_ok: true, wa_send_error: null } : w))
+        logAccion('Reintentó envío de WhatsApp', 'whatsapp_logs', id)
+        setMsg('✓ Mensaje reenviado')
+      }
+    } catch {
+      setMsg('✗ No se pudo reenviar el mensaje')
+    } finally {
+      setReintentandoWa(null)
+      setTimeout(() => setMsg(''), 3000)
+    }
   }
 
   const enviarMensaje = async (correo: string, asunto: string, mensaje: string) => {
@@ -2138,6 +2171,22 @@ export default function AdminPanel() {
           const referidosPorEstado: Record<string, number> = {}
           referidos.forEach(r => { referidosPorEstado[r.estado] = (referidosPorEstado[r.estado]||0)+1 })
 
+          // Funnel de conversión unificado: antes esta historia vivía repartida entre Atribución
+          // (leads), Ofertas (recién agregado) y Comisiones (cierres), sin una sola vista que
+          // mostrara el recorrido completo. No es un join por registro (una visita no guarda el
+          // lead_id que la originó) sino el volumen agregado de cada etapa, igual que el embudo
+          // de referidos de abajo.
+          const totalVisitas = visitas.length
+          const totalOfertasFunnel = ofertas.length
+          const totalCierres = comisiones.filter(c => c.estado === 'cobrada').length
+          const etapasFunnel = [
+            { label: 'Leads', n: leads.length, color: 'var(--accent)' },
+            { label: 'Visitas', n: totalVisitas, color: 'oklch(0.5 0.1 200)' },
+            { label: 'Ofertas', n: totalOfertasFunnel, color: 'oklch(0.5 0.1 80)' },
+            { label: 'Cierres', n: totalCierres, color: 'oklch(0.45 0.08 150)' },
+          ]
+          const baseFunnel = etapasFunnel[0].n || 1
+
           return (
             <div style={{ animation:'fadeUp 0.4s ease' }}>
               <div style={{ marginBottom:24 }}>
@@ -2186,6 +2235,20 @@ export default function AdminPanel() {
                     <div key={zona} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'8px 0', borderBottom:'1px solid var(--rule-soft)', fontSize:13 }}>
                       <span>{zona}</span>
                       <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)' }}>{n}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="card" style={{ padding:'24px 26px', marginTop:20 }}>
+                <div style={{ fontSize:14, fontWeight:500, marginBottom:4 }}>Embudo de conversión</div>
+                <p style={{ fontSize:12, color:'var(--ink-3)', marginBottom:16 }}>Lead → Visita → Oferta → Cierre, en volumen agregado (los datos ya existían repartidos entre Atribución, Ofertas y Comisiones — esta es la vista unificada).</p>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
+                  {etapasFunnel.map((e, i) => (
+                    <div key={e.label} style={{ textAlign:'center', padding:'16px 10px', background:'var(--bg)', borderRadius:10 }}>
+                      <div style={{ fontFamily:'var(--serif)', fontSize:28, color:e.color }}>{e.n}</div>
+                      <div style={{ fontSize:11, color:'var(--ink-3)', textTransform:'uppercase', letterSpacing:'0.08em', marginTop:4 }}>{e.label}</div>
+                      {i > 0 && <div style={{ fontSize:10, color:'var(--ink-3)', marginTop:2 }}>{Math.round(e.n / baseFunnel * 100)}% de leads</div>}
                     </div>
                   ))}
                 </div>
@@ -2368,6 +2431,34 @@ export default function AdminPanel() {
                   <div style={{ marginTop:10, fontSize:12, color:'oklch(0.5 0.13 30)' }}>⚠️ Tasa de envío por debajo del 90% — revisá WHATSAPP_TOKEN en Vercel o el estado de la app en developers.facebook.com.</div>
                 )}
               </div>
+
+              {(() => {
+                const fallidos = waLogs.filter(w => w.wa_send_ok === false)
+                if (fallidos.length === 0) return null
+                return (
+                  <div style={{ marginTop:24 }}>
+                    <div style={{ fontSize:14, fontWeight:500, marginBottom:4 }}>Envíos fallidos <span style={{ fontSize:11, fontWeight:400, color:'var(--ink-3)' }}>· últimos 7 días · {fallidos.length}</span></div>
+                    <p style={{ fontSize:12, color:'var(--ink-3)', marginBottom:12 }}>Antes esto solo se detectaba por la alerta de correo cuando la tasa cae — ahora se puede reintentar el envío puntual desde acá una vez resuelta la causa (ej. token de Meta renovado).</p>
+                    <div className="card">
+                      {fallidos.slice(0, 50).map(w => (
+                        <div key={w.id} className="row" style={{ cursor:'default' }}>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:13, fontWeight:500, marginBottom:2 }}>{w.user_name || w.from_number || 'Destinatario desconocido'} <span style={{ fontWeight:400, color:'var(--ink-3)' }}>· {w.user_type || '—'}</span></div>
+                            <div style={{ fontSize:11, color:'var(--ink-3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{w.wa_send_error || 'Error desconocido'} · {new Date(w.created_at).toLocaleString('es-CR')}</div>
+                          </div>
+                          <button
+                            onClick={() => reintentarWhatsApp(w.id)}
+                            disabled={reintentandoWa === w.id}
+                            style={{ fontSize:12, color:'var(--accent)', background:'none', border:'1px solid var(--rule)', borderRadius:999, padding:'5px 12px', cursor:'pointer', flexShrink:0, opacity:reintentandoWa===w.id?0.6:1 }}
+                          >
+                            {reintentandoWa === w.id ? 'Reintentando...' : 'Reintentar'}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           )
         })()}
