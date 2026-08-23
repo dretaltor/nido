@@ -1,4 +1,5 @@
 import type { Propiedad } from '../../lib/database.types'
+import { safeJsonLd } from '../../lib/jsonLd'
 
 export function StructuredDataOrg() {
   const data = {
@@ -13,7 +14,7 @@ export function StructuredDataOrg() {
     priceRange: '$49-$129',
     sameAs: ['https://www.instagram.com/nido.cr', 'https://www.linkedin.com/company/nido-cr'],
   }
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}/>
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }}/>
 }
 
 export function StructuredDataWebsite() {
@@ -28,7 +29,7 @@ export function StructuredDataWebsite() {
       'query-input': 'required name=search_term_string',
     },
   }
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}/>
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }}/>
 }
 
 export function StructuredDataProperty({ propiedad }: { propiedad: Partial<Propiedad> }) {
@@ -47,5 +48,5 @@ export function StructuredDataProperty({ propiedad }: { propiedad: Partial<Propi
     numberOfRooms: propiedad.habitaciones,
     floorSize: { '@type': 'QuantitativeValue', value: propiedad.metros, unitCode: 'MTK' },
   }
-  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}/>
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(data) }}/>
 }

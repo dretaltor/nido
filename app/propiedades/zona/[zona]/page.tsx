@@ -5,6 +5,7 @@ import { ZONAS, getZonaBySlug } from '../../../../lib/zonas'
 import { ZonaLeadForm } from '../../../../components/zonas/ZonaLeadForm'
 import Link from 'next/link'
 import { precioPrincipal } from '../../../../lib/precioPropiedad'
+import { safeJsonLd } from '../../../../lib/jsonLd'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -98,7 +99,7 @@ export default async function ZonaPage({ params }: { params: Promise<{ zona: str
   return (
     <main style={{ fontFamily: 'var(--sans)', fontSize: 15, color: 'var(--ink)', background: 'var(--bg)', minHeight: '100vh' }}>
       <style>{CSS}</style>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
 
       <header style={{ position: 'sticky', top: 0, zIndex: 50, background: 'oklch(0.97 0.005 80/0.95)', backdropFilter: 'blur(12px)', borderBottom: '1px solid var(--rule)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', maxWidth: 1600, margin: '0 auto' }}>

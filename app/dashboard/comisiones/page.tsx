@@ -126,11 +126,12 @@ export default function Comisiones() {
       split_registrado_at: form.tieneColaborador ? new Date().toISOString() : null,
     })
 
-    fetch('/api/whatsapp-notify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+    const { data: { session: sesComision } } = await supabase.auth.getSession()
+    fetch('/api/whatsapp-notify', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+sesComision?.access_token}, body: JSON.stringify({
       correo: user.email, tipo: 'nueva_comision', data: { propiedad_titulo: form.propiedad_titulo, monto: montoPrincipal, estado: form.estado }
     }) }).catch(() => {})
     if (form.tieneColaborador && form.colaborador_email) {
-      fetch('/api/whatsapp-notify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      fetch('/api/whatsapp-notify', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+sesComision?.access_token}, body: JSON.stringify({
         correo: form.colaborador_email.trim().toLowerCase(), tipo: 'nueva_comision', data: { propiedad_titulo: form.propiedad_titulo, monto: montoColaborador, estado: form.estado }
       }) }).catch(() => {})
     }

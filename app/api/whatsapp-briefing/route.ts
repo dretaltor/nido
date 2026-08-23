@@ -12,8 +12,11 @@ const supabaseAdmin = createClient(
 // Tambien aprovecha esta corrida diaria para revisar si los envios de WhatsApp estan
 // fallando mucho (ej. token vencido) y avisar al equipo NIDO por correo.
 export async function GET(req: NextRequest) {
+  if (!process.env.CRON_SECRET) {
+    return NextResponse.json({ error: 'CRON_SECRET no configurado' }, { status: 500 })
+  }
   const auth = req.headers.get('authorization')
-  if (auth !== 'Bearer ' + (process.env.CRON_SECRET || 'nido-cron-2026-secret')) {
+  if (auth !== 'Bearer ' + process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -446,7 +446,7 @@ export default function AdminPanel() {
           data: { nombre: asesorRow.nombre, asesor_telefono: asesorRow.telefono }
         }) }).catch(() => {})
       }
-      fetch('/api/whatsapp-notify', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({
+      fetch('/api/whatsapp-notify', { method:'POST', headers:{'Content-Type':'application/json', 'Authorization':'Bearer '+ses2?.access_token}, body: JSON.stringify({
         correo: asesorRow.correo,
         tipo: aprobar ? 'kyc_aprobado' : 'kyc_rechazado',
         data: { notas: notas || undefined }
@@ -2915,7 +2915,7 @@ function TicketDetalle({ ticket, onClose, onReload, onMsg }: {
     if (ticket.usuario_tipo === 'asesor') {
       fetch('/api/whatsapp-notify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + session?.access_token },
         body: JSON.stringify({ correo: ticket.usuario_email, tipo: 'ticket_respondido', data: { mensaje: respuesta } })
       }).catch(() => {})
     }
