@@ -10,7 +10,9 @@ const supabaseAdmin = createClient(
 // Cron diario (ver vercel.json) — briefing matutino por WhatsApp exclusivo para asesores plan Black:
 // leads nuevos de las ultimas 24h, visitas del dia, y tickets de soporte abiertos.
 // Tambien aprovecha esta corrida diaria para revisar si los envios de WhatsApp estan
-// fallando mucho (ej. token vencido) y avisar al equipo NIDO por correo.
+// fallando mucho (ej. token vencido) y avisar al equipo NIDO por correo, y para avisar
+// por correo interno cuando una exclusividad esta por vencer (15/7/3/1/0 dias restantes,
+// para no mandar el mismo aviso todos los dias de la ventana de 15 dias).
 export async function GET(req: NextRequest) {
   if (!process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'CRON_SECRET no configurado' }, { status: 500 })
@@ -87,5 +89,42 @@ export async function GET(req: NextRequest) {
     }
   } catch {}
 
-  return NextResponse.json({ ok: true, enviados, alertaEnviada })
+  // Alerta de contratos de exclusividad por vencer: se manda solo quando faltan
+  // exactamente 15, 7, 3, 1 o 0 dias, para dar aviso a tiempo sin repetir el mismo
+  // correo cada uno de los 15 dias que dura la ventana.
+  let alertaContratosEnviada = false
+  try {
+    const hoyMedianoche = new Date(); hoyMedianoche.setHours(0, 0, 0, 0)
+    const en16dias = new Date(hoyMedianoche.getTime() + 16 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const { data: contratosActivos } = await supabaseAdmin
+      .from('contratos')
+      .select('propietario_nombre, propietario_correo, fecha_vencimiento')
+      .eq('estado', 'activo')
+      .not('fecha_vencimiento', 'is', null)
+      .lte('fecha_vencimiento', en16dias)
+
+    const hitos = [15, 7, 3, 1, 0]
+    const porVencer = (contratosActivos || [])
+      .map(c => {
+        const dias = Math.round((new Date(c.fecha_vencimiento!).getTime() - hoyMedianoche.getTime()) / (24 * 60 * 60 * 1000))
+        return { nombre: c.propietario_nombre || c.propietario_correo, dias }
+      })
+      .filter(c => hitos.includes(c.dias))
+
+    if (porVencer.length > 0 && process.env.RESEND_API_KEY) {
+      const baseUrl = process.env.VERCEL_URL ? 'https://' + process.env.VERCEL_URL : 'https://www.nido-cr.com'
+      await fetch(baseUrl + '/api/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: 'hola@nido-cr.com',
+          tipo: 'alerta_contratos_por_vencer',
+          data: { cantidad: porVencer.length, lista: porVencer },
+        }),
+      }).catch(() => {})
+      alertaContratosEnviada = true
+    }
+  } catch {}
+
+  return NextResponse.json({ ok: true, enviados, alertaEnviada, alertaContratosEnviada })
 }

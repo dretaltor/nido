@@ -1028,14 +1028,31 @@ export default function AdminPanel() {
         )}
 
         {/* ── PROPIETARIOS ── */}
-        {modulo === 'propietarios' && (
+        {modulo === 'propietarios' && (() => {
+          const propietariosFiltrados = propietarios
+            .filter(p => filtro==='todos' || (filtro==='suspendido' ? p.suspendido : p.verificacion_estado===filtro||(!p.verificacion_estado&&filtro==='pendiente')))
+            .filter(p => !busqueda || (p.nombre||'').toLowerCase().includes(busqueda.toLowerCase()) || (p.correo||'').toLowerCase().includes(busqueda.toLowerCase()))
+          return (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
-            <div style={{ marginBottom:24 }}>
-              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Gestión</div>
-              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Propietarios <em style={{ fontStyle:'italic', color:'var(--accent)' }}>afiliados.</em></h1>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24, gap:12 }}>
+              <div>
+                <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Gestión</div>
+                <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Propietarios <em style={{ fontStyle:'italic', color:'var(--accent)' }}>afiliados.</em></h1>
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar propietario..." className="field" style={{ width:220 }}/>
+                <BotonExportarCSV nombreArchivo="propietarios.csv" filas={() => propietariosFiltrados.map(p => ({ nombre:p.nombre, correo:p.correo, telefono:p.telefono, cedula:p.cedula, verificado:p.verificado, verificacion_estado:p.verificacion_estado, suspendido:p.suspendido, created_at:p.created_at }))}/>
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
+              {['todos','verificado','en_revision','pendiente','suspendido'].map(f => (
+                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
+                  {f==='todos'?'Todos':f==='en_revision'?'En revisión':f.charAt(0).toUpperCase()+f.slice(1)}
+                </button>
+              ))}
             </div>
             <div className="card">
-              {propietarios.map(p => (
+              {propietariosFiltrados.map(p => (
                 <div key={p.id} className="row" onClick={() => setSel({...p, _tipo:'propietario'})}>
                   <div style={{ width:40, height:40, borderRadius:'50%', background:'oklch(0.93 0.03 240)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'oklch(0.35 0.08 240)', flexShrink:0 }}>{(p.nombre||'?')[0]}</div>
                   <div style={{ flex:1 }}>
@@ -1043,15 +1060,17 @@ export default function AdminPanel() {
                     <div style={{ fontSize:12, color:'var(--ink-3)' }}>{p.correo} · {p.relacion||'Propietario'}</div>
                   </div>
                   <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                    {p.suspendido && <span className="badge" style={{ background:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)' }}>⛔</span>}
                     <span style={{ fontSize:12, color:'var(--ink-3)' }}>{p.created_at ? new Date(p.created_at).toLocaleDateString('es-CR') : '—'}</span>
                     <span style={{ color:'var(--ink-3)', fontSize:16 }}>›</span>
                   </div>
                 </div>
               ))}
-              {propietarios.length === 0 && <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay propietarios registrados.</div>}
+              {propietariosFiltrados.length === 0 && <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay propietarios que coincidan.</div>}
             </div>
           </div>
-        )}
+          )
+        })()}
 
         {/* ── PROPIEDADES ── */}
         {modulo === 'propiedades' && (() => {
