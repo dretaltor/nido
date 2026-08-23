@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     const from = message.from
     let text = message.text?.body || ''
-    const msgType = message.type
+    let msgType = message.type
 
     // Mensajes interactivos (respuesta a un boton que mandamos nosotros): extraemos el id
     // del boton y el titulo como si fuera el texto que "escribio" el usuario.
@@ -86,6 +86,18 @@ export async function POST(req: NextRequest) {
     if (msgType === 'interactive') {
       botonId = message.interactive?.button_reply?.id || message.interactive?.list_reply?.id || null
       text = message.interactive?.button_reply?.title || message.interactive?.list_reply?.title || text
+    }
+
+    // Notas de voz: las transcribimos con Whisper y seguimos el flujo normal como si el
+    // usuario hubiera escrito ese texto — esto es lo que cierra la brecha con "Tú hablas.
+    // Nido trabaja." Si la transcripción falla (sin OPENAI_API_KEY, error de red, audio
+    // vacío), msgType se queda en 'audio' y cae en el aviso de siempre más abajo.
+    if (msgType === 'audio' && message.audio?.id) {
+      const transcripcion = await transcribirAudio(message.audio.id)
+      if (transcripcion) {
+        text = transcripcion
+        msgType = 'text'
+      }
     }
 
     // Palabras clave de consentimiento — se procesan ANTES que cualquier otra cosa y sin IA,
@@ -108,8 +120,8 @@ export async function POST(req: NextRequest) {
 
     if (msgType !== 'text' && msgType !== 'interactive') {
       const msg = msgType === 'audio'
-        ? 'Hola, soy Valeria de NIDO 🏠 Todavía no puedo escuchar notas de voz — ¿me lo escribís en texto? Así te respondo al toque.'
-        : 'Hola, soy Valeria de NIDO 🏠 Por ahora solo proceso mensajes de texto. ¿En qué puedo ayudarte?'
+        ? 'Hola, soy Valeria de NIDO 🏠 Tuve un problema para escuchar tu nota de voz — ¿me la repetís o me la escribís en texto? Así te respondo al toque.'
+        : 'Hola, soy Valeria de NIDO 🏠 Por ahora solo proceso texto y notas de voz. ¿En qué puedo ayudarte?'
       await sendWA(from, msg)
       return NextResponse.json({ ok: true })
     }
@@ -992,6 +1004,43 @@ async function registrarBitacora(params: {
     })
   } catch (e) {
     console.error('Error registrando bitácora de Valeria:', e)
+  }
+}
+
+// Descarga una nota de voz de WhatsApp (media API de Meta, requiere el mismo WA_TOKEN) y la
+// transcribe con Whisper de OpenAI. Sin OPENAI_API_KEY configurado, devuelve null sin error —
+// el caller ya sabe caer al mensaje de "no pude escucharla".
+async function transcribirAudio(mediaId: string): Promise<string | null> {
+  if (!WA_TOKEN || !process.env.OPENAI_API_KEY) return null
+  try {
+    const metaRes = await fetch(`https://graph.facebook.com/v18.0/${mediaId}`, { headers: { Authorization: `Bearer ${WA_TOKEN}` } })
+    if (!metaRes.ok) { console.error('Error obteniendo metadata de audio WA:', metaRes.status); return null }
+    const meta = await metaRes.json()
+    if (!meta.url) return null
+
+    const audioRes = await fetch(meta.url, { headers: { Authorization: `Bearer ${WA_TOKEN}` } })
+    if (!audioRes.ok) { console.error('Error descargando audio WA:', audioRes.status); return null }
+    const audioBuffer = await audioRes.arrayBuffer()
+    if (audioBuffer.byteLength === 0) return null
+
+    const mimeType = meta.mime_type || 'audio/ogg'
+    const ext = mimeType.includes('mp4') || mimeType.includes('m4a') ? 'm4a' : 'ogg'
+    const form = new FormData()
+    form.append('file', new Blob([audioBuffer], { type: mimeType }), `nota-voz.${ext}`)
+    form.append('model', 'whisper-1')
+
+    const transRes = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
+      body: form,
+    })
+    if (!transRes.ok) { console.error('Error transcribiendo audio:', transRes.status, await transRes.text()); return null }
+    const data = await transRes.json()
+    const texto = typeof data.text === 'string' ? data.text.trim() : ''
+    return texto.length > 0 ? texto : null
+  } catch (e) {
+    console.error('Excepcion transcribiendo audio:', e)
+    return null
   }
 }
 
