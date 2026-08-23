@@ -870,12 +870,12 @@ async function ejecutarAgendarVisita(ctx: { asesorCorreo: string; asesorTelefono
   // Buscamos primero por título y, si no hay match, por zona — dos consultas simples en vez
   // de un .or() con interpolación de texto libre (podría traer comas/paréntesis del usuario
   // y romper la sintaxis del filtro).
-  let propMatch: { id: string; titulo: string } | null = null
+  let propMatch: { id: string; titulo: string; propietario_email: string | null } | null = null
   if (propiedadReferencia) {
-    const { data: porTitulo } = await supabaseAdmin.from('propiedades').select('id, titulo').eq('asesor_email', ctx.asesorCorreo).ilike('titulo', '%' + propiedadReferencia + '%').limit(1).maybeSingle()
+    const { data: porTitulo } = await supabaseAdmin.from('propiedades').select('id, titulo, propietario_email').eq('asesor_email', ctx.asesorCorreo).ilike('titulo', '%' + propiedadReferencia + '%').limit(1).maybeSingle()
     propMatch = porTitulo
     if (!propMatch) {
-      const { data: porZona } = await supabaseAdmin.from('propiedades').select('id, titulo').eq('asesor_email', ctx.asesorCorreo).ilike('zona', '%' + propiedadReferencia + '%').limit(1).maybeSingle()
+      const { data: porZona } = await supabaseAdmin.from('propiedades').select('id, titulo, propietario_email').eq('asesor_email', ctx.asesorCorreo).ilike('zona', '%' + propiedadReferencia + '%').limit(1).maybeSingle()
       propMatch = porZona
     }
   }
@@ -904,17 +904,43 @@ async function ejecutarAgendarVisita(ctx: { asesorCorreo: string; asesorTelefono
 
   const fechaLegible = (() => { try { return new Date(fecha + 'T12:00:00').toLocaleDateString('es-CR', { weekday: 'long', day: 'numeric', month: 'long' }) } catch { return fecha } })()
 
-  if (compradorTelefono && nueva?.id) {
-    const mensaje = `✅ *Visita confirmada NIDO*\n\nTu visita quedó agendada:\n\nPropiedad: ${propMatch?.titulo || propiedadReferencia}\nFecha: ${fechaLegible}\nHora: ${hora}\nTipo: ${tipo === 'virtual' ? 'Virtual' : 'Presencial'}\n\n¿Tenés alguna pregunta? Respondé este mensaje.`
+  // Coordinación de agenda (Fase 3, la parte que no depende de volumen de datos): si la
+  // propiedad tiene propietario registrado, también se le avisa — no solo al comprador.
+  // Ambos avisos quedan en UN SOLO borrador pendiente de aprobación, así el asesor confirma
+  // una vez ("dale") y Valeria le avisa a las dos partes a la vez.
+  type Destinatario = { telefono: string; mensaje: string; rol: string }
+  const destinatarios: Destinatario[] = []
+
+  if (compradorTelefono) {
+    destinatarios.push({
+      telefono: compradorTelefono,
+      rol: 'comprador',
+      mensaje: `✅ *Visita confirmada NIDO*\n\nTu visita quedó agendada:\n\nPropiedad: ${propMatch?.titulo || propiedadReferencia}\nFecha: ${fechaLegible}\nHora: ${hora}\nTipo: ${tipo === 'virtual' ? 'Virtual' : 'Presencial'}\n\n¿Tenés alguna pregunta? Respondé este mensaje.`,
+    })
+  }
+
+  if (propMatch?.propietario_email) {
+    const { data: propietarioContacto } = await supabaseAdmin.from('propietarios').select('nombre, telefono').eq('correo', propMatch.propietario_email).maybeSingle()
+    if (propietarioContacto?.telefono) {
+      destinatarios.push({
+        telefono: propietarioContacto.telefono,
+        rol: 'propietario',
+        mensaje: `🏠 *NIDO* — Hola ${propietarioContacto.nombre || ''}, te contamos que se agendó una visita a tu propiedad "${propMatch.titulo}":\n\nComprador: ${compradorNombre}\nFecha: ${fechaLegible}\nHora: ${hora}\nTipo: ${tipo === 'virtual' ? 'Virtual' : 'Presencial'}\n\nTu asesor NIDO está coordinando todo. Cualquier duda, escribinos por acá.`,
+      })
+    }
+  }
+
+  if (destinatarios.length > 0 && nueva?.id) {
+    const roles = destinatarios.map(d => d.rol === 'comprador' ? compradorNombre : 'el propietario').join(' y ')
     await registrarBitacora({
       asesorEmail: ctx.asesorCorreo,
-      tipoAccion: 'notificar_visita_comprador',
-      resumen: `Borrador de aviso de visita para ${compradorNombre}`,
-      detalle: { comprador_telefono: compradorTelefono, mensaje },
+      tipoAccion: 'notificar_visita_partes',
+      resumen: `Borrador de aviso de visita para ${roles}`,
+      detalle: { destinatarios },
       visitaId: nueva.id,
       requiereAprobacion: true,
     })
-    return { text: `Listo, agendé la visita con *${compradorNombre}* el ${fechaLegible} a las ${hora}. ¿Le aviso por WhatsApp? Respondé *dale* para confirmar.`, isFinal: true }
+    return { text: `Listo, agendé la visita con *${compradorNombre}* el ${fechaLegible} a las ${hora}. ¿Le aviso a ${roles} por WhatsApp? Respondé *dale* para confirmar.`, isFinal: true }
   }
 
   return { text: `Listo, agendé la visita con *${compradorNombre}* el ${fechaLegible} a las ${hora}.`, isFinal: true }
@@ -1039,6 +1065,18 @@ async function ejecutarAccionDiferida(tipo: string, detalle: Record<string, unkn
       if (!telefono) return 'No tengo el teléfono del comprador para avisarle — revisá la visita en tu dashboard.'
       await sendWA(telefono, mensaje)
       return '✅ Listo, ya le avisé por WhatsApp.'
+    }
+    case 'notificar_visita_partes': {
+      const destinatarios = Array.isArray(detalle.destinatarios) ? detalle.destinatarios as Array<{ telefono?: string; mensaje?: string; rol?: string }> : []
+      let enviados = 0
+      for (const d of destinatarios) {
+        if (d.telefono && d.mensaje) {
+          await sendWA(d.telefono, d.mensaje)
+          enviados++
+        }
+      }
+      if (enviados === 0) return 'No tenía teléfonos válidos para avisar — revisá la visita en tu dashboard.'
+      return enviados === destinatarios.length ? '✅ Listo, ya les avisé a todos.' : `✅ Listo, avisé a ${enviados} de ${destinatarios.length}.`
     }
     case 'enviar_mensaje_lead': {
       const telefono = String(detalle.telefono || '')

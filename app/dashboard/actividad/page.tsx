@@ -34,6 +34,7 @@ const TIPOS: Record<string, { icon: string; label: string; color: string }> = {
   completar_visita: { icon: '📝', label: 'Visita registrada', color: 'var(--accent)' },
   agendar_visita: { icon: '📅', label: 'Visita agendada', color: 'var(--accent)' },
   notificar_visita_comprador: { icon: '📣', label: 'Aviso de visita a comprador', color: 'oklch(0.45 0.08 80)' },
+  notificar_visita_partes: { icon: '📣', label: 'Aviso de visita coordinado', color: 'oklch(0.45 0.08 80)' },
   armar_propuesta: { icon: '📄', label: 'Propuesta redactada', color: 'oklch(0.42 0.06 230)' },
   enviar_mensaje_lead: { icon: '✉️', label: 'Mensaje a lead', color: 'oklch(0.45 0.08 80)' },
   actualizar_perfil_lead: { icon: '📇', label: 'Perfil de lead actualizado', color: 'var(--ink-2)' },
