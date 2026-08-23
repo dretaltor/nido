@@ -458,6 +458,21 @@ export interface Visita {
   resena_solicitada: boolean
 }
 
+export interface ValeriaBitacora {
+  id: string
+  asesor_email: string | null
+  lead_id: string | null
+  propiedad_id: string | null
+  visita_id: string | null
+  tipo_accion: string
+  resumen: string
+  detalle: Json | null
+  origen: string
+  requiere_aprobacion: boolean
+  aprobado: boolean | null
+  created_at: string
+}
+
 // Vistas públicas / agregadas
 export interface AsesorPublico {
   id: string | null

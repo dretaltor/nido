@@ -212,6 +212,7 @@ export default function Dashboard() {
             <Link href="/propiedades" className="nav-link">Portal</Link>
             <a href="/dashboard/nueva-propiedad" className="nav-link">Nueva propiedad</a>
             <a href="/dashboard/referidos" className="nav-link">Referidos</a>
+            <a href="/dashboard/actividad" className="nav-link">Actividad de Nido</a>
             <a href="/dashboard/perfil" className="nav-link">Mi perfil</a>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:12 }}>
@@ -588,6 +589,7 @@ export default function Dashboard() {
               { href:'/dashboard/equipo', icon:'👥', label:'Equipo', desc:'Invitar agentes y ver reportes' },
               { href:'/propiedades', icon:'🏠', label:'Ver todas las propiedades', desc:'Ofertar en cualquier propiedad' },
               { href:'/chat', icon:'✦', label:'Valeria IA', desc:'Tu asistente inteligente' },
+              { href:'/dashboard/actividad', icon:'📜', label:'Actividad de Nido', desc:'Todo lo que Valeria hizo por vos' },
               { href:'/academia', icon:'◈', label:'Academia', desc:'Cursos y certificaciones' },
             ].map(m => (
               <a key={m.href} href={m.href} className="module-btn">
