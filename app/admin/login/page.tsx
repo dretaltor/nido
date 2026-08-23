@@ -9,6 +9,13 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  // Si el admin tiene un factor TOTP inscrito, el panel exige el codigo de 6 digitos
+  // ademas de la contrasena (ver SeguridadCuentaPanel en /admin -> Administradores para
+  // inscribirse). Es opt-in: un admin sin factor inscrito nunca ve este paso.
+  const [paso, setPaso] = useState<'password' | 'mfa'>('password')
+  const [factorId, setFactorId] = useState('')
+  const [challengeId, setChallengeId] = useState('')
+  const [codigo, setCodigo] = useState('')
 
   const handleLogin = async () => {
     if (!email || !password) { setError('Completá todos los campos.'); return }
@@ -26,9 +33,41 @@ export default function AdminLogin() {
       return
     }
 
+    // Verificar si esta cuenta tiene verificacion en dos pasos activada
+    const { data: nivel } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    if (nivel && nivel.nextLevel === 'aal2' && nivel.currentLevel !== nivel.nextLevel) {
+      const { data: factoresData } = await supabase.auth.mfa.listFactors()
+      const factor = factoresData?.totp?.find(f => f.status === 'verified')
+      if (factor) {
+        const { data: ch, error: errCh } = await supabase.auth.mfa.challenge({ factorId: factor.id })
+        if (errCh || !ch) { setError('No se pudo iniciar la verificación en dos pasos.'); setLoading(false); return }
+        setFactorId(factor.id)
+        setChallengeId(ch.id)
+        setPaso('mfa')
+        setLoading(false)
+        return
+      }
+    }
+
     // Use window.location to bypass AuthContext redirect
     window.location.href = '/admin'
     setLoading(false)
+  }
+
+  const handleVerifyMfa = async () => {
+    if (codigo.trim().length !== 6) { setError('El código tiene 6 dígitos.'); return }
+    setLoading(true); setError('')
+    const { error: errVer } = await supabase.auth.mfa.verify({ factorId, challengeId, code: codigo.trim() })
+    if (errVer) {
+      // El desafio anterior ya se consumio (fallido) -- generamos uno nuevo para el proximo intento
+      const { data: ch } = await supabase.auth.mfa.challenge({ factorId })
+      if (ch) setChallengeId(ch.id)
+      setCodigo('')
+      setError('Código incorrecto — probá de nuevo.')
+      setLoading(false)
+      return
+    }
+    window.location.href = '/admin'
   }
 
   return (
@@ -58,33 +97,68 @@ export default function AdminLogin() {
         </div>
 
         <div style={{ background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.08)', borderRadius:16, padding:'32px 28px', backdropFilter:'blur(20px)' }}>
-          <h1 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, color:'white', marginBottom:4 }}>
-            Acceso restringido
-          </h1>
-          <p style={{ fontSize:13, color:'rgba(255,255,255,0.4)', marginBottom:24, lineHeight:1.6 }}>
-            Solo administradores autorizados de NIDO pueden ingresar.
-          </p>
+          {paso === 'password' ? (
+            <>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, color:'white', marginBottom:4 }}>
+                Acceso restringido
+              </h1>
+              <p style={{ fontSize:13, color:'rgba(255,255,255,0.4)', marginBottom:24, lineHeight:1.6 }}>
+                Solo administradores autorizados de NIDO pueden ingresar.
+              </p>
 
-          {error && (
-            <div style={{ background:'oklch(0.25 0.05 20)', border:'1px solid oklch(0.35 0.07 20)', borderRadius:8, padding:'10px 14px', marginBottom:16, color:'oklch(0.75 0.08 20)', fontSize:13 }}>
-              {error}
-            </div>
+              {error && (
+                <div style={{ background:'oklch(0.25 0.05 20)', border:'1px solid oklch(0.35 0.07 20)', borderRadius:8, padding:'10px 14px', marginBottom:16, color:'oklch(0.75 0.08 20)', fontSize:13 }}>
+                  {error}
+                </div>
+              )}
+
+              <div style={{ display:'flex', flexDirection:'column', gap:14, marginBottom:20 }}>
+                <div>
+                  <label style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', display:'block', marginBottom:8 }}>Correo</label>
+                  <input className="field-input" type="email" placeholder="admin@nido-cr.com" value={email} onChange={e => setEmail(e.target.value)}/>
+                </div>
+                <div>
+                  <label style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', display:'block', marginBottom:8 }}>Contraseña</label>
+                  <input className="field-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key==='Enter' && handleLogin()}/>
+                </div>
+              </div>
+
+              <button className="login-btn" onClick={handleLogin} disabled={loading}>
+                {loading ? 'Verificando...' : 'Ingresar al panel →'}
+              </button>
+            </>
+          ) : (
+            <>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:24, fontWeight:400, color:'white', marginBottom:4 }}>
+                Verificación en dos pasos
+              </h1>
+              <p style={{ fontSize:13, color:'rgba(255,255,255,0.4)', marginBottom:24, lineHeight:1.6 }}>
+                Ingresá el código de 6 dígitos de tu app autenticadora.
+              </p>
+
+              {error && (
+                <div style={{ background:'oklch(0.25 0.05 20)', border:'1px solid oklch(0.35 0.07 20)', borderRadius:8, padding:'10px 14px', marginBottom:16, color:'oklch(0.75 0.08 20)', fontSize:13 }}>
+                  {error}
+                </div>
+              )}
+
+              <div style={{ marginBottom:20 }}>
+                <input
+                  className="field-input"
+                  style={{ fontFamily:'monospace', letterSpacing:'0.3em', textAlign:'center', fontSize:20 }}
+                  placeholder="000000"
+                  value={codigo}
+                  onChange={e => setCodigo(e.target.value.replace(/\D/g,'').slice(0,6))}
+                  onKeyDown={e => e.key==='Enter' && handleVerifyMfa()}
+                  autoFocus
+                />
+              </div>
+
+              <button className="login-btn" onClick={handleVerifyMfa} disabled={loading || codigo.length !== 6}>
+                {loading ? 'Verificando...' : 'Confirmar →'}
+              </button>
+            </>
           )}
-
-          <div style={{ display:'flex', flexDirection:'column', gap:14, marginBottom:20 }}>
-            <div>
-              <label style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', display:'block', marginBottom:8 }}>Correo</label>
-              <input className="field-input" type="email" placeholder="admin@nido-cr.com" value={email} onChange={e => setEmail(e.target.value)}/>
-            </div>
-            <div>
-              <label style={{ fontSize:10, letterSpacing:'0.14em', textTransform:'uppercase', color:'rgba(255,255,255,0.4)', display:'block', marginBottom:8 }}>Contraseña</label>
-              <input className="field-input" type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={e => e.key==='Enter' && handleLogin()}/>
-            </div>
-          </div>
-
-          <button className="login-btn" onClick={handleLogin} disabled={loading}>
-            {loading ? 'Verificando...' : 'Ingresar al panel →'}
-          </button>
         </div>
 
         <p style={{ textAlign:'center', marginTop:20, fontSize:12, color:'rgba(255,255,255,0.2)' }}>

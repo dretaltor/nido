@@ -60,6 +60,7 @@ export interface Calificacion {
   propiedad_id: string | null
   created_at: string | null
   visita_id: string | null
+  oculta: boolean
 }
 
 export interface Comision {
@@ -169,6 +170,7 @@ export interface Lead {
   nivel_interes: 'frio' | 'tibio' | 'caliente' | null
   notas_ia: string | null
   match_notificado_at: string | null
+  archivado: boolean
 }
 
 export interface Noticia {

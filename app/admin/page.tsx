@@ -7,6 +7,7 @@ import { getPlanConfig } from '../../lib/planes'
 import type {
   Perfil, Propietario, Propiedad, Contrato, Comision, SoporteTicket, SoporteMensaje, Referido,
   AdminAuditLog, AdminMetricas, Admin, ResumenComisiones, Suscripcion, Lead, Json, ReferidoPagoMensual, Oficina, CursoCompra, AlertaBusqueda,
+  Oferta, Calificacion, Noticia, Equipo, EquipoMiembro, ValeriaBitacora,
 } from '../../lib/database.types'
 
 // Item polimórfico seleccionado en el drawer lateral: puede ser un asesor, propietario,
@@ -190,10 +191,13 @@ const MODULES = [
   { id:'asesores', icon:'👥', label:'Asesores afiliados' },
   { id:'propietarios', icon:'🏠', label:'Propietarios' },
   { id:'propiedades', icon:'🗂', label:'Propiedades' },
+  { id:'leads', icon:'📥', label:'Leads' },
+  { id:'ofertas', icon:'💼', label:'Ofertas' },
   { id:'suscripciones', icon:'💳', label:'Suscripciones' },
   { id:'kyc', icon:'🪪', label:'Verificaciones KYC' },
   { id:'mensajes', icon:'✉', label:'Mensajes internos' },
   { id:'soporte', icon:'🎫', label:'Soporte' },
+  { id:'resenas', icon:'★', label:'Reseñas' },
   { id:'referidos', icon:'🤝', label:'Referidos' },
   { id:'atribucion', icon:'📊', label:'Atribución' },
   { id:'inteligencia', icon:'🧠', label:'Inteligencia de mercado' },
@@ -203,9 +207,42 @@ const MODULES = [
   { id:'oficinas', icon:'🏢', label:'Oficinas afiliadas' },
   { id:'cursos_compras', icon:'🎓', label:'Cursos individuales' },
   { id:'equipo_nido', icon:'⭐', label:'Equipo NIDO' },
-  { id:'actividad', icon:'🕐', label:'Actividad' },
+  { id:'equipos_asesores', icon:'🧩', label:'Equipos de asesores' },
+  { id:'noticias', icon:'📰', label:'Noticias' },
+  { id:'valeria_actividad', icon:'🤖', label:'Actividad de Valeria' },
+  { id:'actividad', icon:'🕐', label:'Actividad de admins' },
   { id:'administradores', icon:'🔑', label:'Administradores' },
 ]
+
+// Convierte un arreglo de objetos planos a un archivo CSV y dispara la descarga en el
+// navegador. Se usa desde varios módulos (asesores, propiedades, comisiones, leads) para
+// exportar sin depender de una librería externa.
+function exportarCSV(filas: Record<string, unknown>[], nombreArchivo: string) {
+  if (filas.length === 0) return
+  const columnas = Object.keys(filas[0])
+  const escapar = (v: unknown) => {
+    const s = v === null || v === undefined ? '' : String(v)
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s
+  }
+  const csv = [columnas.join(','), ...filas.map(f => columnas.map(c => escapar(f[c])).join(','))].join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = nombreArchivo
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+// Botón de exportar reutilizable — recibe la función que arma las filas para no calcular
+// nada hasta que el admin realmente hace clic.
+function BotonExportarCSV({ filas, nombreArchivo }: { filas: () => Record<string, unknown>[]; nombreArchivo: string }) {
+  return (
+    <button onClick={() => exportarCSV(filas(), nombreArchivo)} style={{ padding:'10px 16px', borderRadius:999, border:'1px solid var(--rule)', background:'white', fontSize:13, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap' }}>
+      ⤓ Exportar CSV
+    </button>
+  )
+}
 
 export default function AdminPanel() {
   const router = useRouter()
@@ -233,6 +270,13 @@ export default function AdminPanel() {
   const [waLogs, setWaLogs] = useState<{ id: string; wa_send_ok: boolean | null; user_type: string | null; created_at: string }[]>([])
   const [auditoria, setAuditoria] = useState<AdminAuditLog[]>([])
   const [admins, setAdmins] = useState<Admin[]>([])
+  const [ofertas, setOfertas] = useState<Oferta[]>([])
+  const [calificaciones, setCalificaciones] = useState<Calificacion[]>([])
+  const [noticias, setNoticias] = useState<Noticia[]>([])
+  const [equipos, setEquipos] = useState<Equipo[]>([])
+  const [equipoMiembros, setEquipoMiembros] = useState<EquipoMiembro[]>([])
+  const [valeriaBitacora, setValeriaBitacora] = useState<ValeriaBitacora[]>([])
+  const [loadErrors, setLoadErrors] = useState<string[]>([])
   const [sel, setSel] = useState<SelItem | null>(null)
   const [filtro, setFiltro] = useState('todos')
   const [busqueda, setBusqueda] = useState('')
@@ -250,45 +294,74 @@ export default function AdminPanel() {
   const [errorNuevoAsesor, setErrorNuevoAsesor] = useState('')
   const [linkClaveNuevoAsesor, setLinkClaveNuevoAsesor] = useState('')
 
+  // Cada consulta se envuelve para que un fallo puntual (timeout de red, tabla momentáneamente
+  // inaccesible) nunca tumbe las otras dieciocho -- antes esto era un solo Promise.all: si
+  // cualquiera de las consultas rechazaba la promesa (no solo devolvía {error}, sino que la
+  // llamada fetch subyacente lanzaba), el panel entero se quedaba en "Cargando..." para
+  // siempre, sin mensaje ni forma de reintentar. safe() nunca rechaza: en el peor caso
+  // devuelve {data:null, error}, así que Promise.all(...) siempre resuelve.
+  const safe = async <T,>(nombre: string, q: PromiseLike<{ data: T | null; error: { message?: string } | null }>) => {
+    try {
+      const r = await q
+      return { nombre, data: r.data, error: r.error }
+    } catch (err) {
+      return { nombre, data: null as T | null, error: err as { message?: string } }
+    }
+  }
+
   const loadAll = async () => {
-    const [{ data: met }, { data: as }, { data: pr }, { data: pp }, { data: sus }, { data: coms }, { data: cons }, { data: tks }, { data: refs }, { data: pagosRef }, { data: lds }, { data: audit }, { data: adms }, { data: ofs }, { data: ccs }, { data: alts }, { data: wal }] = await Promise.all([
-      supabase.from('admin_metricas').select('*').maybeSingle(),
-      supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at,referido_por,suspendido').order('created_at', { ascending: false }),
-      supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at,referido_por,suspendido').order('created_at', { ascending: false }),
-      supabase.from('propiedades').select('id,ref_id,titulo,descripcion,tipo,precio,precio_anterior,zona,provincia,canton,distrito,direccion,disponible,verificacion_estado,verificacion_notas,verificado_at,verificado_por,asesor_email,asesor_nombre,asesor_whatsapp,acepta_colaboracion,propietario_email,habitaciones,banos,metros,lote_m2,estacionamientos,numero_finca,numero_plano,naturaleza,area_registral,colindancias,gravamenes,anotaciones,libre_gravamenes,fotos,created_at').order('created_at', { ascending: false }),
-      supabase.from('suscripciones').select('id,correo,plan,activo,es_trial,trial_fin,created_at,updated_at').order('created_at', { ascending: false }),
-      supabase.from('comisiones').select('*').order('created_at', { ascending: false }),
-      supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,created_at').order('created_at', { ascending: false }),
-      supabase.from('soporte_tickets').select('*').order('updated_at', { ascending: false }),
-      supabase.from('referidos').select('*').order('created_at', { ascending: false }),
-      supabase.from('referidos_pago_mensual').select('*'),
-      supabase.from('leads').select('id,nombre,zona_interes,fuente,estado,created_at,presupuesto,tipo_busqueda,asignado_automaticamente').order('created_at', { ascending: false }),
-      supabase.from('admin_audit_log').select('*').order('created_at', { ascending: false }).limit(200),
-      supabase.from('admins').select('*').order('created_at', { ascending: false }),
-      supabase.from('oficinas').select('*').order('created_at', { ascending: false }),
-      supabase.from('cursos_compras').select('*').order('created_at', { ascending: false }),
-      supabase.from('alertas_busqueda').select('*').order('created_at', { ascending: false }),
-      supabase.from('whatsapp_logs').select('id, wa_send_ok, user_type, created_at').gte('created_at', new Date(Date.now() - 7*24*60*60*1000).toISOString()).order('created_at', { ascending: false }).limit(1000),
+    const [met, as, pr, pp, sus, coms, cons, tks, refs, pagosRef, lds, audit, adms, ofs, ccs, alts, wal, ofertasR, califsR, noticiasR, equiposR, equipoMiembrosR, valeriaR] = await Promise.all([
+      safe('metricas', supabase.from('admin_metricas').select('*').maybeSingle()),
+      safe('asesores', supabase.from('perfiles').select('id,nombre,correo,telefono,cedula,foto_url,verificado,verificacion_estado,verificacion_notas,verificado_at,plan,solicita_equipo_nido,equipo_nido_estado,contrato_equipo_nido_aceptado,contrato_asesor_aceptado,valeria_onboarding_completo,cedula_frente_url,cedula_reverso_url,selfie_url,compania,created_at,referido_por,suspendido').order('created_at', { ascending: false })),
+      safe('propietarios', supabase.from('propietarios').select('id,nombre,correo,telefono,cedula,verificado,verificacion_estado,verificacion_notas,verificado_at,created_at,referido_por,suspendido').order('created_at', { ascending: false })),
+      safe('propiedades', supabase.from('propiedades').select('id,ref_id,titulo,descripcion,tipo,precio,precio_anterior,zona,provincia,canton,distrito,direccion,disponible,verificacion_estado,verificacion_notas,verificado_at,verificado_por,asesor_email,asesor_nombre,asesor_whatsapp,acepta_colaboracion,propietario_email,habitaciones,banos,metros,lote_m2,estacionamientos,numero_finca,numero_plano,naturaleza,area_registral,colindancias,gravamenes,anotaciones,libre_gravamenes,fotos,created_at').order('created_at', { ascending: false })),
+      safe('suscripciones', supabase.from('suscripciones').select('id,correo,plan,activo,es_trial,trial_fin,created_at,updated_at').order('created_at', { ascending: false })),
+      safe('comisiones', supabase.from('comisiones').select('*').order('created_at', { ascending: false })),
+      safe('contratos', supabase.from('contratos').select('id,propietario_correo,propietario_nombre,propiedad_id,tipo,estado,fecha_inicio,fecha_vencimiento,firmado_propietario,firmado_nido,firmado_at,firma_tipo,firma_url,created_at').order('created_at', { ascending: false })),
+      safe('tickets', supabase.from('soporte_tickets').select('*').order('updated_at', { ascending: false })),
+      safe('referidos', supabase.from('referidos').select('*').order('created_at', { ascending: false })),
+      safe('pagos_referidos', supabase.from('referidos_pago_mensual').select('*')),
+      safe('leads', supabase.from('leads').select('id,nombre,email,telefono,mensaje,zona_interes,fuente,estado,created_at,presupuesto,tipo_busqueda,asignado_automaticamente,asesor_email,archivado').order('created_at', { ascending: false })),
+      safe('auditoria', supabase.from('admin_audit_log').select('*').order('created_at', { ascending: false }).limit(200)),
+      safe('admins', supabase.from('admins').select('*').order('created_at', { ascending: false })),
+      safe('oficinas', supabase.from('oficinas').select('*').order('created_at', { ascending: false })),
+      safe('cursos', supabase.from('cursos_compras').select('*').order('created_at', { ascending: false })),
+      safe('alertas', supabase.from('alertas_busqueda').select('*').order('created_at', { ascending: false })),
+      safe('wa_logs', supabase.from('whatsapp_logs').select('id, wa_send_ok, user_type, created_at').gte('created_at', new Date(Date.now() - 7*24*60*60*1000).toISOString()).order('created_at', { ascending: false }).limit(1000)),
+      safe('ofertas', supabase.from('ofertas').select('*').order('created_at', { ascending: false })),
+      safe('calificaciones', supabase.from('calificaciones').select('*').order('created_at', { ascending: false })),
+      safe('noticias', supabase.from('noticias').select('*').order('created_at', { ascending: false })),
+      safe('equipos', supabase.from('equipos').select('*').order('created_at', { ascending: false })),
+      safe('equipo_miembros', supabase.from('equipo_miembros').select('*')),
+      safe('valeria_bitacora', supabase.from('valeria_bitacora').select('*').order('created_at', { ascending: false }).limit(500)),
     ])
-    setMetricas(met)
+    setMetricas(met.data)
     // Estas queries seleccionan solo un subconjunto de columnas (no '*'), por eso el cast:
     // la forma real en runtime es un subconjunto válido del tipo completo de la fila.
-    setAsesores((as || []) as unknown as Perfil[])
-    setPropietarios((pr || []) as unknown as Propietario[])
-    setPropiedades((pp || []) as unknown as Propiedad[])
-    setSuscripciones((sus || []) as unknown as Suscripcion[])
-    setComisiones(coms || [])
-    setContratos((cons || []) as unknown as Contrato[])
-    setTickets(tks || [])
-    setReferidos(refs || [])
-    setPagosMensuales(pagosRef || [])
-    setLeads((lds || []) as unknown as Lead[])
-    setAuditoria(audit || [])
-    setAdmins(adms || [])
-    setOficinas(ofs || [])
-    setCursosCompras(ccs || [])
-    setAlertasBusqueda(alts || [])
-    setWaLogs(wal || [])
+    setAsesores((as.data || []) as unknown as Perfil[])
+    setPropietarios((pr.data || []) as unknown as Propietario[])
+    setPropiedades((pp.data || []) as unknown as Propiedad[])
+    setSuscripciones((sus.data || []) as unknown as Suscripcion[])
+    setComisiones(coms.data || [])
+    setContratos((cons.data || []) as unknown as Contrato[])
+    setTickets(tks.data || [])
+    setReferidos(refs.data || [])
+    setPagosMensuales(pagosRef.data || [])
+    setLeads((lds.data || []) as unknown as Lead[])
+    setAuditoria(audit.data || [])
+    setAdmins(adms.data || [])
+    setOficinas(ofs.data || [])
+    setCursosCompras(ccs.data || [])
+    setAlertasBusqueda(alts.data || [])
+    setWaLogs(wal.data || [])
+    setOfertas(ofertasR.data || [])
+    setCalificaciones(califsR.data || [])
+    setNoticias(noticiasR.data || [])
+    setEquipos(equiposR.data || [])
+    setEquipoMiembros(equipoMiembrosR.data || [])
+    setValeriaBitacora(valeriaR.data || [])
+    const fallidas = [met, as, pr, pp, sus, coms, cons, tks, refs, pagosRef, lds, audit, adms, ofs, ccs, alts, wal, ofertasR, califsR, noticiasR, equiposR, equipoMiembrosR, valeriaR].filter(r => r.error)
+    setLoadErrors(fallidas.map(r => r.nombre))
     setLoading(false)
   }
 
@@ -611,6 +684,33 @@ export default function AdminPanel() {
     setTimeout(() => setMsg(''), 3000)
   }
 
+  // Archivar en vez de borrar: los leads de formularios públicos anónimos no tenían
+  // ninguna forma de limpiarse del sistema (spam, duplicados, pruebas) sin perder el
+  // historial. Archivar solo los saca de la vista por defecto.
+  const archivarLead = async (id: string, archivado: boolean) => {
+    await supabase.from('leads').update({ archivado }).eq('id', id)
+    logAccion(archivado ? 'Archivó lead' : 'Desarchivó lead', 'lead', id)
+    setLeads(prev => prev.map(l => l.id === id ? {...l, archivado} : l))
+    setMsg(archivado ? '✓ Lead archivado' : '✓ Lead restaurado')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  const ocultarResena = async (id: string, oculta: boolean) => {
+    await supabase.from('calificaciones').update({ oculta }).eq('id', id)
+    logAccion(oculta ? 'Ocultó reseña' : 'Restauró reseña', 'calificacion', id)
+    setCalificaciones(prev => prev.map(c => c.id === id ? {...c, oculta} : c))
+    setMsg(oculta ? '✓ Reseña oculta' : '✓ Reseña visible de nuevo')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
+  const actualizarNoticia = async (id: string, cambios: Partial<Noticia>) => {
+    await supabase.from('noticias').update(cambios).eq('id', id)
+    logAccion('Editó noticia', 'noticia', id, cambios.activa !== undefined ? (cambios.activa ? 'Publicada' : 'Despublicada') : 'Contenido editado')
+    setNoticias(prev => prev.map(n => n.id === id ? {...n, ...cambios} : n))
+    setMsg('✓ Noticia actualizada')
+    setTimeout(() => setMsg(''), 3000)
+  }
+
   const enviarMensaje = async (correo: string, asunto: string, mensaje: string) => {
     const { data: { session: ses4 } } = await supabase.auth.getSession()
     await fetch('/api/email', {
@@ -667,6 +767,13 @@ export default function AdminPanel() {
 
         {msg && <div style={{ position:'fixed', top:20, right:20, background:'var(--accent)', color:'white', padding:'10px 20px', borderRadius:999, fontSize:13, fontWeight:500, zIndex:300, boxShadow:'0 4px 20px rgba(27,94,59,0.3)' }}>{msg}</div>}
 
+        {loadErrors.length > 0 && (
+          <div style={{ background:'oklch(0.95 0.05 30)', border:'1px solid oklch(0.85 0.08 30)', borderRadius:12, padding:'12px 18px', marginBottom:20, display:'flex', justifyContent:'space-between', alignItems:'center', gap:12 }}>
+            <span style={{ fontSize:13, color:'oklch(0.42 0.1 30)' }}>⚠️ No se pudieron cargar algunas secciones ({loadErrors.join(', ')}) — el resto del panel sigue funcionando con lo que sí cargó.</span>
+            <button onClick={() => { setLoading(true); loadAll() }} style={{ padding:'6px 14px', borderRadius:999, border:'1px solid oklch(0.7 0.1 30)', background:'white', fontSize:12, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap' }}>Reintentar</button>
+          </div>
+        )}
+
         {/* ── BÚSQUEDA GLOBAL ── */}
         <div style={{ position:'relative', maxWidth:420, marginBottom:24, marginLeft:'auto' }}>
           <input
@@ -718,13 +825,19 @@ export default function AdminPanel() {
 
             {/* Pendientes de atención */}
             {(() => {
+              const hoy = new Date()
+              const en15dias = new Date(hoy.getTime() + 15*24*60*60*1000)
+              const contratosPorVencer = contratos.filter((c: Contrato) => c.estado === 'activo' && c.fecha_vencimiento && new Date(c.fecha_vencimiento) >= hoy && new Date(c.fecha_vencimiento) <= en15dias)
               const pendientes = [
                 { n:asesores.filter((a: Perfil)=>!a.verificado && [a.cedula_frente_url,a.cedula_reverso_url,a.selfie_url].filter(Boolean).length>0).length, label:'KYC de asesores por revisar', modulo:'kyc' },
                 { n:propietarios.filter((p: Propietario)=>!p.verificado && [p.cedula_frente_url,p.cedula_reverso_url,p.selfie_url].filter(Boolean).length>0).length, label:'KYC de propietarios por revisar', modulo:'kyc_propietarios' },
-                { n:propiedades.filter((p: Propiedad)=>p.verificacion_estado==='pendiente_verificacion').length, label:'Propiedades por verificar', modulo:'propiedades' },
+                { n:propiedades.filter((p: Propiedad)=>p.verificacion_estado==='pendiente_verificacion').length, label:'Propiedades por verificar', modulo:'propiedades', filtro:'pendiente_verificacion' },
                 { n:tickets.filter((t: SoporteTicket)=>t.estado==='abierto').length, label:'Tickets de soporte abiertos', modulo:'soporte' },
                 { n:asesores.filter((a: Perfil)=>a.solicita_equipo_nido && a.equipo_nido_estado!=='aprobado' && a.equipo_nido_estado!=='rechazado').length, label:'Solicitudes de Equipo NIDO', modulo:'equipo_nido' },
                 { n:contratos.filter((c: Contrato)=>c.estado==='pendiente').length, label:'Contratos por contrafirmar', modulo:'contratos' },
+                { n:contratosPorVencer.length, label:'Contratos por vencer (15 días)', modulo:'contratos' },
+                { n:ofertas.filter((o: Oferta)=>o.estado==='pendiente').length, label:'Ofertas por revisar', modulo:'ofertas' },
+                { n:valeriaBitacora.filter((v: ValeriaBitacora)=>v.requiere_aprobacion && v.aprobado===null).length, label:'Acciones de Valeria sin resolver', modulo:'valeria_actividad' },
               ].filter(p => p.n > 0)
               if (pendientes.length === 0) return (
                 <div style={{ background:'var(--accent-tint)', border:'1px solid oklch(0.85 0.04 150)', borderRadius:14, padding:'18px 22px', marginBottom:20, fontSize:13, color:'var(--accent)', fontWeight:500 }}>
@@ -736,7 +849,7 @@ export default function AdminPanel() {
                   <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:10 }}>Pendientes de atención</div>
                   <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:10 }}>
                     {pendientes.map(p => (
-                      <button key={p.label} onClick={() => setModulo(p.modulo)} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'14px 16px', background:'oklch(0.97 0.03 50)', border:'1px solid oklch(0.88 0.05 50)', borderRadius:10, cursor:'pointer', textAlign:'left' }}>
+                      <button key={p.label} onClick={() => { setModulo(p.modulo); if (p.filtro) setFiltro(p.filtro) }} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:10, padding:'14px 16px', background:'oklch(0.97 0.03 50)', border:'1px solid oklch(0.88 0.05 50)', borderRadius:10, cursor:'pointer', textAlign:'left' }}>
                         <span style={{ fontSize:13, color:'oklch(0.40 0.06 50)', fontWeight:500 }}>{p.label}</span>
                         <span style={{ fontFamily:'var(--serif)', fontSize:22, color:'oklch(0.45 0.08 50)' }}>{p.n}</span>
                       </button>
@@ -802,7 +915,12 @@ export default function AdminPanel() {
         )}
 
         {/* ── ASESORES ── */}
-        {modulo === 'asesores' && (
+        {modulo === 'asesores' && (() => {
+          const asesoresFiltrados = asesores
+            .filter(a => a.equipo_nido_estado !== 'aprobado')
+            .filter(a => filtro==='todos' || (filtro==='verificado'?a.verificado:a.verificacion_estado===filtro||(!a.verificacion_estado&&filtro==='pendiente')))
+            .filter(a => !busqueda || (a.nombre||'').toLowerCase().includes(busqueda.toLowerCase()) || (a.correo||'').toLowerCase().includes(busqueda.toLowerCase()))
+          return (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
               <div>
@@ -812,6 +930,7 @@ export default function AdminPanel() {
               </div>
               <div style={{ display:'flex', gap:10, alignItems:'center' }}>
                 <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar asesor..." className="field" style={{ width:220 }}/>
+                <BotonExportarCSV nombreArchivo="asesores.csv" filas={() => asesoresFiltrados.map(a => ({ nombre:a.nombre, correo:a.correo, telefono:a.telefono, plan:suscripciones.find(s=>s.correo===a.correo&&s.activo)?.plan||'', verificado:a.verificado, verificacion_estado:a.verificacion_estado, suspendido:a.suspendido, created_at:a.created_at }))}/>
                 <button onClick={() => { setModalNuevoAsesor(true); setErrorNuevoAsesor(''); setLinkClaveNuevoAsesor(''); setNuevoAsesor({ nombre:'', correo:'', telefono:'', plan:'gratis', activarTrial:true, esFundador:false }) }} style={{ padding:'10px 18px', borderRadius:999, background:'var(--ink)', color:'white', border:'none', fontSize:13, fontWeight:500, cursor:'pointer', whiteSpace:'nowrap' }}>
                   + Nuevo asesor
                 </button>
@@ -827,10 +946,7 @@ export default function AdminPanel() {
             </div>
 
             <div className="card">
-              {asesores
-                .filter(a => a.equipo_nido_estado !== 'aprobado')
-                .filter(a => filtro==='todos' || (filtro==='verificado'?a.verificado:a.verificacion_estado===filtro||(!a.verificacion_estado&&filtro==='pendiente')))
-                .filter(a => !busqueda || (a.nombre||'').toLowerCase().includes(busqueda.toLowerCase()) || (a.correo||'').toLowerCase().includes(busqueda.toLowerCase()))
+              {asesoresFiltrados
                 .map(a => {
                   const sus = suscripciones.find(s => s.correo === a.correo && s.activo)
                   return (
@@ -855,7 +971,8 @@ export default function AdminPanel() {
                 })}
             </div>
           </div>
-        )}
+          )
+        })()}
 
         {modalNuevoAsesor && (
           <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:100, padding:24 }} onClick={() => setModalNuevoAsesor(false)}>
@@ -937,19 +1054,34 @@ export default function AdminPanel() {
         )}
 
         {/* ── PROPIEDADES ── */}
-        {modulo === 'propiedades' && (
+        {modulo === 'propiedades' && (() => {
+          const propiedadesFiltradas = propiedades
+            .filter(p => filtro==='todos' || p.verificacion_estado===filtro)
+            .filter(p => !busqueda || (p.titulo||'').toLowerCase().includes(busqueda.toLowerCase()) || (p.zona||'').toLowerCase().includes(busqueda.toLowerCase()))
+          return (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24, gap:12 }}>
               <div>
                 <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Inventario</div>
                 <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Propiedades <em style={{ fontStyle:'italic', color:'var(--accent)' }}>totales.</em></h1>
               </div>
-              <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar propiedad..." className="field" style={{ width:220 }}/>
+              <div style={{ display:'flex', gap:10 }}>
+                <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar propiedad..." className="field" style={{ width:220 }}/>
+                <BotonExportarCSV nombreArchivo="propiedades.csv" filas={() => propiedadesFiltradas.map(p => ({ titulo:p.titulo, ref_id:p.ref_id, zona:p.zona, tipo:p.tipo, precio:p.precio, asesor_email:p.asesor_email, disponible:p.disponible, verificacion_estado:p.verificacion_estado, created_at:p.created_at }))}/>
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
+              {['todos','pendiente_verificacion','aprobada','rechazada','borrador'].map(f => (
+                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
+                  {f==='todos'?'Todas':f==='pendiente_verificacion'?'Por verificar':f.charAt(0).toUpperCase()+f.slice(1)}
+                  <span style={{ marginLeft:6, opacity:0.6 }}>
+                    ({f==='todos'?propiedades.length:propiedades.filter(p=>p.verificacion_estado===f).length})
+                  </span>
+                </button>
+              ))}
             </div>
             <div className="card">
-              {propiedades
-                .filter(p => !busqueda || (p.titulo||'').toLowerCase().includes(busqueda.toLowerCase()) || (p.zona||'').toLowerCase().includes(busqueda.toLowerCase()))
-                .map(p => (
+              {propiedadesFiltradas.map(p => (
                 <div key={p.id} className="row" onClick={() => setSel({...p, _tipo:'propiedad'})}>
                   <div style={{ width:48, height:40, borderRadius:6, background:'var(--bg)', overflow:'hidden', flexShrink:0, display:'grid', placeItems:'center', fontSize:18 }}>🏠</div>
                   <div style={{ flex:1 }}>
@@ -963,9 +1095,111 @@ export default function AdminPanel() {
                   </div>
                 </div>
               ))}
+              {propiedadesFiltradas.length === 0 && <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay propiedades con ese filtro.</div>}
             </div>
           </div>
-        )}
+          )
+        })()}
+
+        {/* ── LEADS ── */}
+        {modulo === 'leads' && (() => {
+          const leadsFiltrados = leads
+            .filter(l => filtro==='todos' ? !l.archivado : filtro==='archivados' ? l.archivado : (l.estado===filtro && !l.archivado))
+            .filter(l => !busqueda || (l.nombre||'').toLowerCase().includes(busqueda.toLowerCase()) || (l.email||'').toLowerCase().includes(busqueda.toLowerCase()) || (l.asesor_email||'').toLowerCase().includes(busqueda.toLowerCase()))
+          const activos = leads.filter(l => !l.archivado)
+          return (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24, gap:12 }}>
+              <div>
+                <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>CRM</div>
+                <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Leads <em style={{ fontStyle:'italic', color:'var(--accent)' }}>captados.</em></h1>
+                <p style={{ fontSize:13, color:'var(--ink-3)', marginTop:6 }}>Todos los leads de formularios públicos, calculadoras y WhatsApp — antes solo visibles agregados en Atribución.</p>
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar lead o asesor..." className="field" style={{ width:220 }}/>
+                <BotonExportarCSV nombreArchivo="leads.csv" filas={() => leadsFiltrados.map(l => ({ nombre:l.nombre, email:l.email, telefono:l.telefono, zona_interes:l.zona_interes, presupuesto:l.presupuesto, fuente:l.fuente, estado:l.estado, asesor_email:l.asesor_email, created_at:l.created_at }))}/>
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
+              {['todos','nuevo','contactado','archivados'].map(f => (
+                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
+                  {f==='todos'?'Activos':f==='archivados'?'Archivados':f.charAt(0).toUpperCase()+f.slice(1)}
+                  <span style={{ marginLeft:6, opacity:0.6 }}>
+                    ({f==='todos'?activos.length:f==='archivados'?leads.filter(l=>l.archivado).length:activos.filter(l=>l.estado===f).length})
+                  </span>
+                </button>
+              ))}
+            </div>
+            <div className="card">
+              {leadsFiltrados.length === 0 && <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay leads con ese filtro.</div>}
+              {leadsFiltrados.map((l: Lead) => (
+                <div key={l.id} className="row" style={{ cursor:'default' }}>
+                  <div style={{ width:40, height:40, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontFamily:'var(--serif)', fontSize:16, color:'var(--accent)', flexShrink:0 }}>{(l.nombre||'?')[0]}</div>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{l.nombre||'Sin nombre'}</div>
+                    <div style={{ fontSize:12, color:'var(--ink-3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{l.email||l.telefono||'—'} · {l.zona_interes||'sin zona'} · {l.fuente||'sin fuente'} {l.asesor_email?'· asesor: '+l.asesor_email:''}</div>
+                  </div>
+                  <span className="badge" style={{ background:'var(--accent-tint)', color:'var(--accent)', flexShrink:0 }}>{l.estado||'nuevo'}</span>
+                  <span style={{ fontSize:11, color:'var(--ink-3)', flexShrink:0 }}>{l.created_at ? new Date(l.created_at).toLocaleDateString('es-CR') : '—'}</span>
+                  <button onClick={() => archivarLead(l.id, !l.archivado)} style={{ fontSize:12, color: l.archivado ? 'var(--accent)' : 'oklch(0.5 0.1 20)', background:'none', border:'1px solid var(--rule)', borderRadius:999, padding:'5px 12px', cursor:'pointer', flexShrink:0 }}>
+                    {l.archivado ? 'Restaurar' : 'Archivar'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          )
+        })()}
+
+        {/* ── OFERTAS ── */}
+        {modulo === 'ofertas' && (() => {
+          const ESTADOS_OF: Record<string,{bg:string,color:string,label:string}> = {
+            pendiente: { bg:'oklch(0.93 0.05 80)', color:'oklch(0.45 0.08 80)', label:'Pendiente' },
+            aceptada: { bg:'var(--accent-tint)', color:'var(--accent)', label:'Aceptada' },
+            rechazada: { bg:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)', label:'Rechazada' },
+            contraoferta: { bg:'oklch(0.93 0.03 240)', color:'oklch(0.35 0.08 240)', label:'Contraoferta' },
+          }
+          const ofertasFiltradas = ofertas.filter(o => filtro==='todos' || o.estado===filtro)
+          return (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24, gap:12 }}>
+              <div>
+                <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Pipeline de cierre</div>
+                <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Ofertas <em style={{ fontStyle:'italic', color:'var(--accent)' }}>recibidas.</em></h1>
+                <p style={{ fontSize:13, color:'var(--ink-3)', marginTop:6 }}>Ofertas formales de compradores por una propiedad — antes sin ninguna visibilidad desde el backoffice.</p>
+              </div>
+              <BotonExportarCSV nombreArchivo="ofertas.csv" filas={() => ofertasFiltradas.map(o => ({ propiedad_id:o.propiedad_id, asesor:o.asesor_email, comprador:o.comprador_nombre, valor_oferta:o.valor_oferta, tipo_compra:o.tipo_compra, forma_pago:o.forma_pago, pre_aprobado:o.pre_aprobado, estado:o.estado, created_at:o.created_at }))}/>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
+              {['todos','pendiente','contraoferta','aceptada','rechazada'].map(f => (
+                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
+                  {f==='todos'?'Todas':ESTADOS_OF[f]?.label||f}
+                  <span style={{ marginLeft:6, opacity:0.6 }}>({f==='todos'?ofertas.length:ofertas.filter(o=>o.estado===f).length})</span>
+                </button>
+              ))}
+            </div>
+            <div className="card">
+              {ofertasFiltradas.length === 0 && <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay ofertas con ese filtro.</div>}
+              {ofertasFiltradas.map((o: Oferta) => {
+                const prop = propiedades.find(p => p.id === o.propiedad_id)
+                const est = ESTADOS_OF[o.estado||'pendiente'] || ESTADOS_OF.pendiente
+                return (
+                  <div key={o.id} className="row" style={{ cursor:'default' }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{prop?.titulo || o.propiedad_id || 'Propiedad'}</div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)' }}>{o.comprador_nombre} · {o.asesor_email} · {o.tipo_compra}{o.pre_aprobado ? ' · pre-aprobado' : ''}</div>
+                    </div>
+                    <div style={{ textAlign:'right', flexShrink:0 }}>
+                      <div style={{ fontFamily:'var(--mono)', fontSize:15, fontWeight:500, marginBottom:4 }}>${Number(o.valor_oferta||0).toLocaleString()}</div>
+                      <span className="badge" style={{ background:est.bg, color:est.color }}>{est.label}</span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          )
+        })()}
 
         {/* ── SUSCRIPCIONES ── */}
         {modulo === 'suscripciones' && (
@@ -1115,12 +1349,22 @@ export default function AdminPanel() {
             vencido:   { bg:'oklch(0.93 0.005 80)', color:'var(--ink-3)', label:'Vencido' },
             cancelado: { bg:'oklch(0.97 0.03 20)', color:'oklch(0.45 0.08 20)', label:'Cancelado' },
           }
+          // El campo `estado` guardado nunca transiciona solo a 'vencido' -- no hay ningun cron
+          // ni trigger que lo haga. Se calcula en el momento comparando fecha_vencimiento con
+          // hoy, para que la columna "Estado" refleje la realidad aunque nadie la actualice a mano.
+          const hoy = new Date()
+          const estadoReal = (c: Contrato) => (c.estado === 'activo' && c.fecha_vencimiento && new Date(c.fecha_vencimiento) < hoy) ? 'vencido' : (c.estado || 'pendiente')
           const pendientes = contratos.filter(c => c.estado === 'pendiente')
+          const en15dias = new Date(hoy.getTime() + 15*24*60*60*1000)
+          const porVencer = contratos.filter(c => c.estado === 'activo' && c.fecha_vencimiento && new Date(c.fecha_vencimiento) >= hoy && new Date(c.fecha_vencimiento) <= en15dias)
           return (
             <div style={{ animation:'fadeUp 0.4s ease' }}>
-              <div style={{ marginBottom:24 }}>
-                <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Gestión legal</div>
-                <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Contratos <em style={{ fontStyle:'italic', color:'var(--accent)' }}>NIDO.</em></h1>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:24, gap:12 }}>
+                <div>
+                  <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Gestión legal</div>
+                  <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Contratos <em style={{ fontStyle:'italic', color:'var(--accent)' }}>NIDO.</em></h1>
+                </div>
+                <BotonExportarCSV nombreArchivo="contratos.csv" filas={() => contratos.map(c => ({ propietario:c.propietario_nombre||c.propietario_correo, correo:c.propietario_correo, tipo:c.tipo, estado:estadoReal(c), fecha_vencimiento:c.fecha_vencimiento, firma_tipo:c.firma_tipo, created_at:c.created_at }))}/>
               </div>
 
               {/* Stats */}
@@ -1128,8 +1372,8 @@ export default function AdminPanel() {
                 {[
                   { label:'Total contratos', val:contratos.length, color:'var(--ink)' },
                   { label:'Pendientes firma', val:pendientes.length, color:'oklch(0.45 0.08 80)' },
-                  { label:'Activos', val:contratos.filter(c=>c.estado==='activo').length, color:'var(--accent)' },
-                  { label:'Exclusividades', val:contratos.filter(c=>c.tipo==='exclusividad').length, color:'oklch(0.42 0.06 230)' },
+                  { label:'Activos', val:contratos.filter(c=>estadoReal(c)==='activo').length, color:'var(--accent)' },
+                  { label:'Por vencer (15 días)', val:porVencer.length, color:'oklch(0.5 0.15 30)' },
                 ].map((s,i) => (
                   <div key={i} style={{ background:'white', border:'1px solid var(--rule)', borderRadius:12, padding:'18px' }}>
                     <div style={{ fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:8 }}>{s.label}</div>
@@ -1146,13 +1390,20 @@ export default function AdminPanel() {
                 </div>
               )}
 
+              {porVencer.length > 0 && (
+                <div style={{ background:'oklch(0.95 0.06 30)', border:'1px solid oklch(0.85 0.09 30)', borderRadius:12, padding:'16px 20px', marginBottom:20 }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:'oklch(0.42 0.1 30)', marginBottom:4 }}>⏰ {porVencer.length} exclusividad{porVencer.length>1?'es':''} vence{porVencer.length>1?'n':''} en los próximos 15 días</div>
+                  <div style={{ fontSize:12, color:'oklch(0.45 0.08 30)' }}>Coordiná renovación o paso a &ldquo;push de venta&rdquo; con el propietario antes de que se venza sola.</div>
+                </div>
+              )}
+
               {/* Lista */}
               <div className="card">
                 <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr 1fr', gap:8, padding:'10px 20px', borderBottom:'1px solid var(--rule)', fontSize:10, letterSpacing:'0.1em', textTransform:'uppercase', color:'var(--ink-3)', fontWeight:500 }}>
                   <span>Propietario</span><span>Tipo</span><span>Firma</span><span>Vence</span><span>Estado</span>
                 </div>
                 {contratos.map((c: Contrato) => {
-                  const est = ESTADOS[c.estado||'pendiente'] || ESTADOS.pendiente
+                  const est = ESTADOS[estadoReal(c)] || ESTADOS.pendiente
                   return (
                     <div key={c.id} className="row" onClick={() => setSel({...c, _tipo:'contrato'})}>
                       <div style={{ flex:1 }}>
@@ -1232,9 +1483,12 @@ export default function AdminPanel() {
 
               {/* Todas las comisiones */}
               <div>
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12, gap:12 }}>
                   <div style={{ fontSize:11, letterSpacing:'0.14em', textTransform:'uppercase', color:'var(--ink-3)' }}>Todos los negocios</div>
-                  {filtro && filtro !== 'todos' && <button onClick={() => setFiltro('todos')} style={{ fontSize:12, color:'var(--accent)', background:'none', border:'none', cursor:'pointer' }}>Ver todos ×</button>}
+                  <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+                    {filtro && filtro !== 'todos' && <button onClick={() => setFiltro('todos')} style={{ fontSize:12, color:'var(--accent)', background:'none', border:'none', cursor:'pointer' }}>Ver todos ×</button>}
+                    <BotonExportarCSV nombreArchivo="comisiones.csv" filas={() => comisiones.filter(c => filtro==='todos'||c.estado===filtro||c.asesor_email===filtro).map(c => ({ propiedad:c.propiedad_titulo, asesor:c.asesor_nombre||c.asesor_email, monto:c.monto_comision, estado:c.estado, fecha_cierre_estimada:c.fecha_cierre_estimada, created_at:c.created_at }))}/>
+                  </div>
                 </div>
                 <div style={{ display:'flex', gap:8, marginBottom:12, flexWrap:'wrap' }}>
                   {['todos','proyectada','en_proceso','cobrada','cancelada'].map(f => (
@@ -1386,13 +1640,171 @@ export default function AdminPanel() {
           )
         })()}
 
-        {/* ── ACTIVIDAD ── */}
+        {/* ── EQUIPOS DE ASESORES (equipos / equipo_miembros) ── */}
+        {modulo === 'equipos_asesores' && (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Colaboración entre asesores</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Equipos de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>asesores.</em></h1>
+              <p style={{ fontSize:13, color:'var(--ink-3)', marginTop:6, maxWidth:640 }}>Sub-equipos que un asesor arma con colegas dentro de NIDO (distinto de &ldquo;Equipo NIDO&rdquo;, que son asesores internos de la empresa) — antes sin ninguna visibilidad desde el backoffice.</p>
+            </div>
+            <div className="card">
+              {equipos.length === 0 && <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay equipos creados todavía.</div>}
+              {equipos.map((eq: Equipo) => {
+                const miembros = equipoMiembros.filter(m => m.equipo_id === eq.id)
+                return (
+                  <div key={eq.id} style={{ padding:'16px 20px', borderBottom:'1px solid var(--rule-soft)' }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
+                      <div>
+                        <div style={{ fontSize:14, fontWeight:500 }}>{eq.nombre}</div>
+                        <div style={{ fontSize:12, color:'var(--ink-3)' }}>{eq.admin_email} · plan {eq.plan} · {miembros.length}/{eq.max_agentes} agentes</div>
+                      </div>
+                      <span style={{ fontSize:11, color:'var(--ink-3)' }}>{new Date(eq.created_at).toLocaleDateString('es-CR')}</span>
+                    </div>
+                    {miembros.length > 0 && (
+                      <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginTop:8 }}>
+                        {miembros.map(m => (
+                          <span key={m.id} className="badge" style={{ background: m.estado==='activo' ? 'var(--accent-tint)' : 'oklch(0.93 0.005 80)', color: m.estado==='activo' ? 'var(--accent)' : 'var(--ink-3)' }}>
+                            {m.nombre || m.correo} · {m.rol} {m.estado!=='activo' ? '· '+m.estado : ''}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ── NOTICIAS ── */}
+        {modulo === 'noticias' && (() => {
+          const noticiasFiltradas = noticias.filter(n => filtro==='todos' || (filtro==='activas' ? n.activa !== false : n.activa === false))
+          return (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Contenido</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Noticias de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Valeria.</em></h1>
+              <p style={{ fontSize:13, color:'var(--ink-3)', marginTop:6 }}>El cron diario redacta y publica estos artículos automáticamente — antes nadie del equipo podía revisar o despublicar uno antes de que un visitante lo viera.</p>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+              {['todos','activas','inactivas'].map(f => (
+                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
+                  {f==='todos'?'Todas':f==='activas'?'Publicadas':'Despublicadas'}
+                  <span style={{ marginLeft:6, opacity:0.6 }}>({f==='todos'?noticias.length:f==='activas'?noticias.filter(n=>n.activa!==false).length:noticias.filter(n=>n.activa===false).length})</span>
+                </button>
+              ))}
+            </div>
+            <div className="card">
+              {noticiasFiltradas.length === 0 && <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay noticias con ese filtro.</div>}
+              {noticiasFiltradas.map((n: Noticia) => (
+                <div key={n.id} className="row" style={{ cursor:'default', alignItems:'flex-start' }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{n.titulo}</div>
+                    <div style={{ fontSize:12, color:'var(--ink-2)', marginBottom:4 }}>{n.resumen}</div>
+                    <div style={{ fontSize:11, color:'var(--ink-3)' }}>{n.fuente_nombre} · {n.tag} · {n.fecha_publicacion ? new Date(n.fecha_publicacion).toLocaleDateString('es-CR') : '—'}</div>
+                  </div>
+                  <button onClick={() => actualizarNoticia(n.id, { activa: n.activa === false })} style={{ fontSize:12, color: n.activa===false ? 'var(--accent)' : 'oklch(0.5 0.1 20)', background:'none', border:'1px solid var(--rule)', borderRadius:999, padding:'5px 12px', cursor:'pointer', flexShrink:0 }}>
+                    {n.activa === false ? 'Publicar' : 'Despublicar'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          )
+        })()}
+
+        {/* ── ACTIVIDAD DE VALERIA (IA) — vista global, todos los asesores ── */}
+        {modulo === 'valeria_actividad' && (() => {
+          const TIPOS_VALERIA: Record<string, { icon: string; label: string }> = {
+            buscar_propiedades: { icon:'🔍', label:'Búsqueda de propiedades' },
+            consulta_mercado: { icon:'📊', label:'Consulta de mercado' },
+            cma_propiedad: { icon:'📐', label:'CMA' },
+            escalar_soporte: { icon:'🆘', label:'Soporte escalado' },
+            consulta_legal: { icon:'⚖️', label:'Consulta legal' },
+            conectar_asesor: { icon:'🤝', label:'Lead conectado' },
+            mis_propiedades_propietario: { icon:'🏠', label:'Propietario consultó su propiedad' },
+            redirigir_asesor_propietario: { icon:'↪️', label:'Propietario redirigido' },
+            mis_propiedades: { icon:'📋', label:'Consultó su catálogo' },
+            completar_visita: { icon:'📝', label:'Visita registrada' },
+            agendar_visita: { icon:'📅', label:'Visita agendada' },
+            notificar_visita_comprador: { icon:'📣', label:'Aviso de visita a comprador' },
+            notificar_visita_partes: { icon:'📣', label:'Aviso de visita coordinado' },
+            armar_propuesta: { icon:'📄', label:'Propuesta redactada' },
+            enviar_mensaje_lead: { icon:'✉️', label:'Mensaje a lead' },
+            actualizar_perfil_lead: { icon:'📇', label:'Perfil de lead actualizado' },
+          }
+          const infoTipo = (t: string) => TIPOS_VALERIA[t] || { icon:'✦', label:t }
+          const pendientesAprobacion = valeriaBitacora.filter(v => v.requiere_aprobacion && v.aprobado === null)
+          const estadoDe = (v: ValeriaBitacora) => !v.requiere_aprobacion ? 'informativa' : v.aprobado === null ? 'pendiente' : v.aprobado ? 'confirmada' : 'rechazada'
+          const filtradas = valeriaBitacora
+            .filter(v => filtro === 'todos' || estadoDe(v) === filtro)
+            .filter(v => !busqueda || (v.asesor_email||'').toLowerCase().includes(busqueda.toLowerCase()))
+          return (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginBottom:24, gap:12 }}>
+              <div>
+                <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Directora de Operaciones IA</div>
+                <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Actividad de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>Valeria.</em></h1>
+                <p style={{ fontSize:13, color:'var(--ink-3)', marginTop:6, maxWidth:640 }}>Todo lo que Valeria hizo por WhatsApp en todos los asesores — antes solo visible asesor por asesor desde su propio dashboard. Vista de solo lectura; la aprobación de cada acción la sigue resolviendo el asesor por WhatsApp.</p>
+              </div>
+              <div style={{ display:'flex', gap:10 }}>
+                <input value={busqueda} onChange={e => setBusqueda(e.target.value)} placeholder="Buscar por asesor..." className="field" style={{ width:200 }}/>
+                <BotonExportarCSV nombreArchivo="actividad_valeria.csv" filas={() => filtradas.map(v => ({ fecha:v.created_at, asesor:v.asesor_email, tipo:infoTipo(v.tipo_accion).label, resumen:v.resumen, estado:estadoDe(v) }))}/>
+              </div>
+            </div>
+
+            {pendientesAprobacion.length > 0 && (
+              <div style={{ background:'oklch(0.93 0.05 80)', border:'1px solid oklch(0.88 0.05 80)', borderRadius:12, padding:'16px 20px', marginBottom:20 }}>
+                <div style={{ fontSize:13, fontWeight:600, color:'oklch(0.40 0.08 80)', marginBottom:4 }}>⚠️ {pendientesAprobacion.length} acción{pendientesAprobacion.length>1?'es':''} de Valeria sin resolver</div>
+                <div style={{ fontSize:12, color:'oklch(0.45 0.06 80)' }}>Cada asesor confirma o rechaza sus propios borradores por WhatsApp — si uno lleva mucho tiempo pendiente, vale la pena escribirle directamente.</div>
+              </div>
+            )}
+
+            <div style={{ display:'flex', gap:8, marginBottom:20, flexWrap:'wrap' }}>
+              {['todos','pendiente','confirmada','rechazada','informativa'].map(f => (
+                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
+                  {f==='todos'?'Todas':f==='pendiente'?'Pendientes':f==='confirmada'?'Confirmadas':f==='rechazada'?'Rechazadas':'Informativas'}
+                  <span style={{ marginLeft:6, opacity:0.6 }}>
+                    ({f==='todos'?valeriaBitacora.length:valeriaBitacora.filter(v=>estadoDe(v)===f).length})
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="card">
+              {filtradas.length === 0 ? (
+                <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay actividad de Valeria con ese filtro.</div>
+              ) : filtradas.map((v: ValeriaBitacora) => {
+                const est = estadoDe(v)
+                const estStyle = est==='confirmada' ? { bg:'var(--accent-tint)', color:'var(--accent)', label:'Confirmada' }
+                  : est==='rechazada' ? { bg:'oklch(0.93 0.05 20)', color:'oklch(0.45 0.08 20)', label:'Rechazada' }
+                  : est==='pendiente' ? { bg:'oklch(0.93 0.05 80)', color:'oklch(0.45 0.08 80)', label:'Pendiente' }
+                  : { bg:'oklch(0.93 0.005 80)', color:'var(--ink-3)', label:'Informativa' }
+                const info = infoTipo(v.tipo_accion)
+                return (
+                  <div key={v.id} className="row" style={{ cursor:'default' }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', background:'var(--accent-tint)', display:'grid', placeItems:'center', fontSize:14, flexShrink:0 }}>{info.icon}</div>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:500, marginBottom:2 }}>{info.label}</div>
+                      <div style={{ fontSize:12, color:'var(--ink-3)', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{v.asesor_email} · {v.resumen}</div>
+                    </div>
+                    <span className="badge" style={{ background:estStyle.bg, color:estStyle.color, flexShrink:0 }}>{estStyle.label}</span>
+                    <div style={{ fontSize:11, color:'var(--ink-3)', flexShrink:0, width:120, textAlign:'right' }}>{new Date(v.created_at).toLocaleString('es-CR')}</div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          )
+        })()}
+
         {modulo === 'actividad' && (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
             <div style={{ marginBottom:24 }}>
               <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Bitácora</div>
-              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Actividad <em style={{ fontStyle:'italic', color:'var(--accent)' }}>del equipo.</em></h1>
-              <p style={{ fontSize:14, color:'var(--ink-3)', marginTop:6 }}>Últimas {auditoria.length} acciones tomadas por administradores en el sistema.</p>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Actividad <em style={{ fontStyle:'italic', color:'var(--accent)' }}>de administradores.</em></h1>
+              <p style={{ fontSize:14, color:'var(--ink-3)', marginTop:6 }}>Últimas {auditoria.length} acciones tomadas por administradores en el sistema. La actividad de Valeria vive en su propio apartado →</p>
             </div>
             <div className="card">
               {auditoria.length === 0 ? (
@@ -1478,6 +1890,43 @@ export default function AdminPanel() {
             </div>
           </div>
         )}
+
+        {/* ── RESEÑAS ── */}
+        {modulo === 'resenas' && (() => {
+          const resenasFiltradas = calificaciones.filter(c => filtro==='todos' ? !c.oculta : filtro==='ocultas' ? c.oculta : true)
+          return (
+          <div style={{ animation:'fadeUp 0.4s ease' }}>
+            <div style={{ marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:'0.16em', textTransform:'uppercase', color:'var(--ink-3)', marginBottom:6 }}>Reputación</div>
+              <h1 style={{ fontFamily:'var(--serif)', fontSize:32, fontWeight:400 }}>Reseñas de <em style={{ fontStyle:'italic', color:'var(--accent)' }}>asesores.</em></h1>
+              <p style={{ fontSize:13, color:'var(--ink-3)', marginTop:6 }}>Calificaciones que compradores dejan tras una visita. Ocultar una reseña de mala fe no la borra — solo la saca de los perfiles públicos.</p>
+            </div>
+            <div style={{ display:'flex', gap:8, marginBottom:20 }}>
+              {['todos','ocultas'].map(f => (
+                <button key={f} className={'tab'+(filtro===f?' active':'')} onClick={() => setFiltro(f)}>
+                  {f==='todos'?'Visibles':'Ocultas'}
+                  <span style={{ marginLeft:6, opacity:0.6 }}>({f==='todos'?calificaciones.filter(c=>!c.oculta).length:calificaciones.filter(c=>c.oculta).length})</span>
+                </button>
+              ))}
+            </div>
+            <div className="card">
+              {resenasFiltradas.length === 0 && <div style={{ padding:'40px', textAlign:'center', color:'var(--ink-3)', fontSize:14 }}>No hay reseñas con ese filtro.</div>}
+              {resenasFiltradas.map((c: Calificacion) => (
+                <div key={c.id} className="row" style={{ cursor:'default', alignItems:'flex-start' }}>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ fontSize:14, fontWeight:500, marginBottom:2 }}>{'★'.repeat(c.calificacion)}{'☆'.repeat(5-c.calificacion)} <span style={{ fontWeight:400, color:'var(--ink-3)', fontSize:12 }}>· para {c.asesor_email}</span></div>
+                    {c.comentario && <div style={{ fontSize:13, color:'var(--ink-2)', marginBottom:4 }}>&ldquo;{c.comentario}&rdquo;</div>}
+                    <div style={{ fontSize:11, color:'var(--ink-3)' }}>{c.calificador_nombre || 'Anónimo'} · {c.created_at ? new Date(c.created_at).toLocaleDateString('es-CR') : '—'}</div>
+                  </div>
+                  <button onClick={() => ocultarResena(c.id, !c.oculta)} style={{ fontSize:12, color: c.oculta ? 'var(--accent)' : 'oklch(0.5 0.1 20)', background:'none', border:'1px solid var(--rule)', borderRadius:999, padding:'5px 12px', cursor:'pointer', flexShrink:0 }}>
+                    {c.oculta ? 'Mostrar' : 'Ocultar'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+          )
+        })()}
 
         {modulo === 'referidos' && (
           <div style={{ animation:'fadeUp 0.4s ease' }}>
@@ -1984,6 +2433,8 @@ function AdministradoresPanel({ admins, adminUser, onReload, onLog, onMsg }: {
         <p style={{ fontSize:14, color:'var(--ink-3)', marginTop:6 }}>Quienes tienen acceso completo a este panel. El correo debe tener ya una cuenta NIDO para poder iniciar sesión en /admin/login.</p>
       </div>
 
+      <SeguridadCuentaPanel adminUser={adminUser} onMsg={onMsg}/>
+
       <div className="card card-pad" style={{ marginBottom:20 }}>
         <div style={{ fontSize:13, fontWeight:500, marginBottom:14 }}>Agregar administrador</div>
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr auto', gap:8 }}>
@@ -2009,6 +2460,114 @@ function AdministradoresPanel({ admins, adminUser, onReload, onLog, onMsg }: {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+// Verificación en dos pasos (TOTP) para la propia cuenta del admin logueado — usa el
+// soporte nativo de MFA de Supabase Auth (supabase.auth.mfa.*), sin tablas ni migraciones
+// propias. Es opt-in por admin: nadie queda bloqueado del panel por no haberlo activado
+// todavía. Una vez que un admin inscribe un factor, /admin/login le exige el código en
+// cada inicio de sesión futuro (ver el paso de desafío ahí).
+function SeguridadCuentaPanel({ adminUser, onMsg }: { adminUser: User | null; onMsg: (msg: string) => void }) {
+  const [factores, setFactores] = useState<{ id: string; friendly_name?: string | null; status: string }[]>([])
+  const [cargando, setCargando] = useState(true)
+  const [inscribiendo, setInscribiendo] = useState(false)
+  const [qr, setQr] = useState('')
+  const [secreto, setSecreto] = useState('')
+  const [factorIdPendiente, setFactorIdPendiente] = useState('')
+  const [codigo, setCodigo] = useState('')
+  const [verificando, setVerificando] = useState(false)
+  const [error, setError] = useState('')
+
+  const cargarFactores = async () => {
+    setCargando(true)
+    const { data } = await supabase.auth.mfa.listFactors()
+    setFactores((data?.totp || []).filter(f => f.status === 'verified'))
+    setCargando(false)
+  }
+
+  // No se llama cargarFactores() directo en el body del efecto (dispara setCargando(true)
+  // de forma sincrona, lo cual React desaconseja) -- se envuelve la carga inicial en su
+  // propia promesa para que el primer setState ocurra en el microtask, no en el render del efecto.
+  useEffect(() => {
+    supabase.auth.mfa.listFactors().then(({ data }) => {
+      setFactores((data?.totp || []).filter(f => f.status === 'verified'))
+      setCargando(false)
+    })
+  }, [])
+
+  const iniciarInscripcion = async () => {
+    setError('')
+    setInscribiendo(true)
+    const { data, error: err } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
+    setInscribiendo(false)
+    if (err || !data) { setError(err?.message || 'No se pudo iniciar la inscripción'); return }
+    setQr(data.totp.qr_code)
+    setSecreto(data.totp.secret)
+    setFactorIdPendiente(data.id)
+  }
+
+  const confirmarInscripcion = async () => {
+    if (codigo.trim().length !== 6) { setError('El código tiene 6 dígitos'); return }
+    setError('')
+    setVerificando(true)
+    const { data: ch, error: errCh } = await supabase.auth.mfa.challenge({ factorId: factorIdPendiente })
+    if (errCh || !ch) { setVerificando(false); setError(errCh?.message || 'Error generando el desafío'); return }
+    const { error: errVer } = await supabase.auth.mfa.verify({ factorId: factorIdPendiente, challengeId: ch.id, code: codigo.trim() })
+    setVerificando(false)
+    if (errVer) { setError('Código incorrecto — probá de nuevo'); return }
+    setQr(''); setSecreto(''); setFactorIdPendiente(''); setCodigo('')
+    onMsg('✓ Verificación en dos pasos activada')
+    setTimeout(() => onMsg(''), 3000)
+    cargarFactores()
+  }
+
+  const desactivar = async (factorId: string) => {
+    if (!window.confirm('¿Desactivar la verificación en dos pasos de tu cuenta?')) return
+    await supabase.auth.mfa.unenroll({ factorId })
+    onMsg('✓ Verificación en dos pasos desactivada')
+    setTimeout(() => onMsg(''), 3000)
+    cargarFactores()
+  }
+
+  return (
+    <div className="card card-pad" style={{ marginBottom:20 }}>
+      <div style={{ fontSize:13, fontWeight:500, marginBottom:4 }}>Verificación en dos pasos — {adminUser?.email}</div>
+      <p style={{ fontSize:12, color:'var(--ink-3)', marginBottom:14, lineHeight:1.6 }}>Agrega un código de una app autenticadora (Google Authenticator, Authy, 1Password) a tu propio inicio de sesión. Es opt-in — activarlo no afecta a otros administradores.</p>
+      {cargando ? (
+        <div style={{ fontSize:12, color:'var(--ink-3)' }}>Cargando...</div>
+      ) : factores.length > 0 ? (
+        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+          {factores.map(f => (
+            <div key={f.id} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'10px 14px', background:'var(--accent-tint)', borderRadius:8 }}>
+              <span style={{ fontSize:13, color:'var(--accent)', fontWeight:500 }}>✓ Activa {f.friendly_name ? '· ' + f.friendly_name : ''}</span>
+              <button onClick={() => desactivar(f.id)} style={{ fontSize:12, color:'oklch(0.45 0.08 20)', background:'none', border:'none', cursor:'pointer' }}>Desactivar</button>
+            </div>
+          ))}
+        </div>
+      ) : factorIdPendiente ? (
+        <div>
+          {error && <div style={{ background:'oklch(0.97 0.03 20)', border:'1px solid oklch(0.85 0.06 20)', borderRadius:8, padding:'8px 12px', marginBottom:12, color:'oklch(0.45 0.08 20)', fontSize:12 }}>{error}</div>}
+          <div style={{ display:'flex', gap:20, alignItems:'flex-start', flexWrap:'wrap', marginBottom:14 }}>
+            {qr && <img src={qr} alt="Código QR" style={{ width:160, height:160, border:'1px solid var(--rule)', borderRadius:8 }}/>}
+            <div style={{ fontSize:12, color:'var(--ink-3)', maxWidth:280 }}>
+              <p style={{ marginBottom:8 }}>Escaneá el código con tu app autenticadora, o ingresá esta clave manualmente:</p>
+              <code style={{ display:'block', background:'var(--bg)', padding:'8px 10px', borderRadius:6, wordBreak:'break-all', fontSize:11, marginBottom:12 }}>{secreto}</code>
+              <p>Después, ingresá el código de 6 dígitos que te muestra la app para confirmar.</p>
+            </div>
+          </div>
+          <div style={{ display:'flex', gap:8, maxWidth:280 }}>
+            <input value={codigo} onChange={e => setCodigo(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000" className="field" style={{ fontFamily:'var(--mono)', letterSpacing:'0.2em', textAlign:'center' }}/>
+            <button onClick={confirmarInscripcion} disabled={verificando || codigo.length !== 6} className="btn btn-primary" style={{ opacity:verificando||codigo.length!==6?0.5:1, whiteSpace:'nowrap' }}>{verificando ? 'Verificando...' : 'Confirmar'}</button>
+          </div>
+        </div>
+      ) : (
+        <div>
+          {error && <div style={{ background:'oklch(0.97 0.03 20)', border:'1px solid oklch(0.85 0.06 20)', borderRadius:8, padding:'8px 12px', marginBottom:12, color:'oklch(0.45 0.08 20)', fontSize:12 }}>{error}</div>}
+          <button onClick={iniciarInscripcion} disabled={inscribiendo} className="btn btn-dark" style={{ opacity:inscribiendo?0.6:1 }}>{inscribiendo ? 'Generando...' : '+ Activar verificación en dos pasos'}</button>
+        </div>
+      )}
     </div>
   )
 }
