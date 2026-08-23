@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendWhatsApp } from '../../../lib/whatsapp'
-import { notificarAsesorBlack } from '../../../lib/whatsappNotify'
+import { notificarAsesorBlack, notificarAsesor } from '../../../lib/whatsappNotify'
 import type { Lead } from '../../../lib/database.types'
 import { checkRateLimit, getClientIp } from '../../../lib/rateLimit'
 
@@ -25,6 +25,8 @@ export async function GET(req: NextRequest) {
   if (!permitido) {
     return NextResponse.json({ error: 'Demasiadas solicitudes' }, { status: 429 })
   }
+
+  const fechaHoy = new Date().toISOString().split('T')[0]
 
   const manana = new Date()
   manana.setDate(manana.getDate() + 1)
@@ -172,6 +174,58 @@ export async function GET(req: NextRequest) {
     } catch {}
   }
 
+  // Recordatorio de tareas (Fase 2 — seguimientos proactivos usando la tabla de tareas
+  // existente): tareas con vencimiento hoy que todavia no se avisaron. Disponible para
+  // cualquier asesor -- las tareas ya son parte del CRM base, no un beneficio de Black.
+  const { data: tareasVencenHoy } = await supabaseAdmin
+    .from('tareas')
+    .select('id, titulo, descripcion, asesor_email')
+    .eq('fecha_vencimiento', fechaHoy)
+    .neq('estado', 'completada')
+    .eq('recordatorio_enviado', false)
+
+  let tareasRecordadas = 0
+  for (const t of (tareasVencenHoy || [])) {
+    if (t.asesor_email) {
+      notificarAsesor(supabaseAdmin, t.asesor_email, 'tarea_vencida', { nombre: t.titulo, notas: t.descripcion || undefined }).catch(() => {})
+    }
+    await supabaseAdmin.from('tareas').update({ recordatorio_enviado: true }).eq('id', t.id)
+    tareasRecordadas++
+  }
+
+  // Matching amplio (Fase 2): leads con perfil estructurado (presupuesto capturado por
+  // Valeria) comparados contra TODO el catalogo disponible, no solo lo que se busco a mano
+  // en la conversacion original. Se avisa una sola vez por lead para no saturar al asesor.
+  const { data: leadsConPerfil } = await supabaseAdmin
+    .from('leads')
+    .select('id, nombre, asesor_email, presupuesto_min, presupuesto_max, zonas_interes, zona_interes')
+    .is('match_notificado_at', null)
+    .not('asesor_email', 'is', null)
+    .not('presupuesto_min', 'is', null)
+    .not('presupuesto_max', 'is', null)
+    .limit(50)
+
+  let matchesNotificados = 0
+  for (const l of (leadsConPerfil || [])) {
+    const zonas: string[] = (l.zonas_interes && l.zonas_interes.length > 0) ? l.zonas_interes : (l.zona_interes ? [l.zona_interes] : [])
+    let query = supabaseAdmin
+      .from('propiedades')
+      .select('id', { count: 'exact', head: true })
+      .eq('disponible', true)
+      .eq('verificacion_estado', 'aprobada')
+      .gte('precio', l.presupuesto_min as number)
+      .lte('precio', l.presupuesto_max as number)
+    if (zonas.length > 0) {
+      query = query.or(zonas.map((z) => 'zona.ilike.%' + z.replace(/[,()]/g, '') + '%').join(','))
+    }
+    const { count } = await query
+    if (count && count > 0 && l.asesor_email) {
+      notificarAsesor(supabaseAdmin, l.asesor_email, 'match_propiedad', { nombre: l.nombre || undefined, zona_interes: zonas[0], cantidad: count }).catch(() => {})
+      matchesNotificados++
+    }
+    await supabaseAdmin.from('leads').update({ match_notificado_at: new Date().toISOString() }).eq('id', l.id)
+  }
+
   // Suspension automatica de trials vencidos: sin esto, una suscripcion con
   // es_trial=true cuyo trial_fin ya paso quedaba con activo=true indefinidamente
   // (el bloqueo de acceso en el dashboard ya funciona porque useTrial() calcula
@@ -199,5 +253,5 @@ export async function GET(req: NextRequest) {
     trialsSuspendidos++
   }
 
-  return NextResponse.json({ ok: true, enviados, resenasSolicitadas, seguimientosEnviados, trialsSuspendidos })
+  return NextResponse.json({ ok: true, enviados, resenasSolicitadas, seguimientosEnviados, trialsSuspendidos, tareasRecordadas, matchesNotificados })
 }

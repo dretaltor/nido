@@ -36,6 +36,7 @@ const TIPOS: Record<string, { icon: string; label: string; color: string }> = {
   notificar_visita_comprador: { icon: '📣', label: 'Aviso de visita a comprador', color: 'oklch(0.45 0.08 80)' },
   armar_propuesta: { icon: '📄', label: 'Propuesta redactada', color: 'oklch(0.42 0.06 230)' },
   enviar_mensaje_lead: { icon: '✉️', label: 'Mensaje a lead', color: 'oklch(0.45 0.08 80)' },
+  actualizar_perfil_lead: { icon: '📇', label: 'Perfil de lead actualizado', color: 'var(--ink-2)' },
 }
 
 const tipoInfo = (t: string) => TIPOS[t] || { icon: '✦', label: t, color: 'var(--ink-2)' }

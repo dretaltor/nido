@@ -241,9 +241,9 @@ Respondés por WhatsApp — mensajes cortos, claros y directos. Máximo 3 párra
 IDIOMA: respondé siempre en el mismo idioma en el que te escribe el usuario (si te escribe en inglés, respondé en inglés; si es en español, en español). Costa Rica recibe muchos compradores extranjeros — no asumas que todos hablan español.
 ${userName ? 'Estás hablando con ' + userName + ', ' + userType + ' de NIDO.' : 'Es un usuario nuevo — podría ser comprador, vendedor o asesor.'}
 ${userType === 'asesor' ? `Este es un ASESOR registrado en NIDO (plan ${esAsesorBlack ? 'Black' : asesor?.plan || 'Despega'}). Si pregunta cómo mejorar sus ventas o "capacitarme", mencioná la Academia NIDO en nido-cr.com/academia. Dudas sobre comisiones, KYC, contratos o el funcionamiento de NIDO las respondés vos misma en texto.${!esAsesorBlack ? ' Si pregunta por precios de mercado, tendencias de zona, un CMA, asesoría de inversión, o algo legal/notarial, respondé en texto que eso es un beneficio exclusivo del plan Black y que puede hacer upgrade en nido-cr.com/precios (no uses ninguna herramienta para esto).' : ''}
-Además sos su directora de operaciones para el día a día: si te cuenta cómo le fue en una visita, usá completar_visita. Si te pide agendar una visita nueva, usá agendar_visita. Si te pide armar una propuesta u oferta, usá armar_propuesta. Si te pide escribirle o dar seguimiento a un lead específico, usá enviar_mensaje_lead — esa herramienta ya se encarga de pedirle confirmación antes de mandar nada, así que podés usarla directo sin preguntar vos primero. Un solo mensaje del asesor puede requerir varias de estas herramientas a la vez (por ejemplo: registrar cómo salió una visita Y agendar la siguiente).` : ''}
+Además sos su directora de operaciones para el día a día: si te cuenta cómo le fue en una visita, usá completar_visita. Si te pide agendar una visita nueva, usá agendar_visita. Si te pide armar una propuesta u oferta, usá armar_propuesta. Si te pide escribirle o dar seguimiento a un lead específico, usá enviar_mensaje_lead — esa herramienta ya se encarga de pedirle confirmación antes de mandar nada, así que podés usarla directo sin preguntar vos primero. Si te cuenta algo nuevo sobre un cliente (presupuesto, zona, qué tan interesado está), usá actualizar_perfil_lead para no perder ese dato. Un solo mensaje del asesor puede requerir varias de estas herramientas a la vez (por ejemplo: registrar cómo salió una visita Y agendar la siguiente).` : ''}
 ${userType === 'propietario' ? 'Es un PROPIETARIO con al menos una propiedad publicada en NIDO. Preguntas generales sobre cómo funciona NIDO (comisión, proceso de venta, KYC, plazos) las respondés vos en texto, breve.' : ''}
-${userType === 'comprador' ? 'Es un COMPRADOR.' : ''}
+${userType === 'comprador' ? 'Es un usuario nuevo — normalmente un COMPRADOR, pero si te escribe porque tiene una propiedad propia y quiere venderla o publicarla, tratalo igual de bien: usá conectar_asesor con intencion:"vender" para que un asesor NIDO lo contacte. No lo mandes a ningún lado ni le digas que no podés ayudarlo.' : ''}
 Ayudás con: consultas sobre propiedades, proceso de compra/venta, información sobre NIDO, agendar visitas. Siempre terminá con una pregunta o siguiente paso concreto cuando respondas en texto libre.
 Para cualquier consulta que no tenga una herramienta asociada, respondé normalmente en texto.
 Podés usar más de una herramienta en un mismo turno si el mensaje del usuario lo requiere.${contextoAsesor}`
@@ -463,19 +463,38 @@ function construirTools(ctx: { userType: string; esAsesorBlack: boolean; tieneCo
         required: ['lead_referencia', 'mensaje'],
       },
     })
+    tools.push({
+      name: 'actualizar_perfil_lead',
+      description: 'Actualizar lo que sabés de un lead/comprador del asesor — presupuesto, zonas de interés, qué tan interesado está, o cualquier detalle que el asesor te cuente. Usala cada vez que el asesor te dé información nueva sobre un cliente, así Valeria va armando memoria de ese cliente con el tiempo.',
+      input_schema: {
+        type: 'object',
+        properties: {
+          lead_referencia: { type: 'string', description: 'Nombre del lead, para buscarlo entre los leads recientes del asesor' },
+          presupuesto_min: { type: 'number', description: 'Presupuesto mínimo en USD, si se mencionó' },
+          presupuesto_max: { type: 'number', description: 'Presupuesto máximo en USD, si se mencionó' },
+          zonas_interes: { type: 'array', items: { type: 'string' }, description: 'Zonas de interés del cliente (podés incluir varias)' },
+          nivel_interes: { type: 'string', enum: ['frio', 'tibio', 'caliente'], description: 'Qué tan interesado/activo está el cliente' },
+          nota: { type: 'string', description: 'Cualquier detalle adicional que valga la pena recordar' },
+        },
+        required: ['lead_referencia'],
+      },
+    })
   }
 
   if (ctx.userType === 'comprador') {
     tools.push({
       name: 'conectar_asesor',
-      description: 'Conectar al comprador con el asesor a cargo. Usala cuando muestre intención concreta: quiere que lo contacten, quiere agendar visita, elige una propiedad específica de las que le mostraste, pide condiciones/negociación, o pide hablar con un asesor.',
+      description: 'Conectar a la persona con un asesor NIDO. Usala cuando un COMPRADOR muestre intención concreta (quiere que lo contacten, quiere agendar visita, elige una propiedad específica de las que le mostraste, pide condiciones/negociación, o pide hablar con un asesor), o cuando alguien te escriba porque quiere VENDER o publicar una propiedad propia (en ese caso usá intencion:"vender") — a este segundo caso también respondele con esta herramienta, no lo dejes sin atender.',
       input_schema: {
         type: 'object',
         properties: {
-          zona: { type: 'string', description: 'Zona de interés, si la hay' },
+          intencion: { type: 'string', enum: ['comprar', 'vender'], description: 'Si la persona quiere comprar/alquilar (default) o si quiere vender/publicar una propiedad propia' },
+          zona: { type: 'string', description: 'Zona de interés (o zona de la propiedad que quiere vender), si la hay' },
           tipo: { type: 'string', description: 'Tipo de propiedad, si lo hay' },
-          nombre: { type: 'string', description: 'Nombre del comprador, si lo mencionó' },
+          nombre: { type: 'string', description: 'Nombre de la persona, si lo mencionó' },
           propiedad_id: { type: 'string', description: 'Id de la propiedad si eligió una de las que le mostraste antes, usando el historial de la conversación' },
+          presupuesto_min: { type: 'number', description: 'Presupuesto mínimo en USD, si lo mencionó (solo si intencion es comprar)' },
+          presupuesto_max: { type: 'number', description: 'Presupuesto máximo en USD, si lo mencionó (solo si intencion es comprar)' },
         },
         required: [],
       },
@@ -552,6 +571,9 @@ async function ejecutarTool(
         tipo: (input.tipo as string) || null,
         nombre: (input.nombre as string) || null,
         propiedadId: (input.propiedad_id as string) || null,
+        intencion: input.intencion === 'vender' ? 'vender' : 'comprar',
+        presupuestoMin: typeof input.presupuesto_min === 'number' ? input.presupuesto_min : null,
+        presupuestoMax: typeof input.presupuesto_max === 'number' ? input.presupuesto_max : null,
       })
       return { text: respuesta, isFinal: true }
     }
@@ -585,6 +607,11 @@ async function ejecutarTool(
     case 'enviar_mensaje_lead': {
       if (!asesor?.correo) return { text: 'No pude identificar tu cuenta de asesor.', isFinal: true }
       return ejecutarEnviarMensajeLead({ asesorCorreo: asesor.correo }, input)
+    }
+
+    case 'actualizar_perfil_lead': {
+      if (!asesor?.correo) return { text: 'No pude identificar tu cuenta de asesor.', isFinal: true }
+      return ejecutarActualizarPerfilLead({ asesorCorreo: asesor.correo }, input)
     }
 
     default:
@@ -954,6 +981,53 @@ async function ejecutarEnviarMensajeLead(ctx: { asesorCorreo: string }, input: R
   return { text: `📝 *Borrador para ${lead.nombre}:*\n\n"${mensaje}"\n\n¿Lo envío? Respondé *dale* para confirmar.`, isFinal: true }
 }
 
+async function ejecutarActualizarPerfilLead(ctx: { asesorCorreo: string }, input: Record<string, unknown>): Promise<ToolResult> {
+  const referencia = String(input.lead_referencia || '')
+
+  const { data: candidatos } = await supabaseAdmin
+    .from('leads')
+    .select('id, nombre, notas_ia')
+    .eq('asesor_email', ctx.asesorCorreo)
+    .ilike('nombre', '%' + referencia + '%')
+    .order('created_at', { ascending: false })
+    .limit(2)
+
+  if (!candidatos || candidatos.length === 0) {
+    return { text: `No encontré ningún lead tuyo llamado "${referencia}" — ¿me confirmás el nombre exacto?`, isFinal: true }
+  }
+  if (candidatos.length > 1) {
+    return { text: `Tengo más de un lead que podría ser "${referencia}" — ¿me das más detalle?`, isFinal: true }
+  }
+  const lead = candidatos[0]
+
+  const update: Record<string, unknown> = {}
+  if (typeof input.presupuesto_min === 'number') update.presupuesto_min = input.presupuesto_min
+  if (typeof input.presupuesto_max === 'number') update.presupuesto_max = input.presupuesto_max
+  if (Array.isArray(input.zonas_interes) && input.zonas_interes.length > 0) {
+    update.zonas_interes = input.zonas_interes.map(String)
+    update.zona_interes = String(input.zonas_interes[0])
+  }
+  if (input.nivel_interes === 'frio' || input.nivel_interes === 'tibio' || input.nivel_interes === 'caliente') update.nivel_interes = input.nivel_interes
+  const nota = input.nota ? String(input.nota) : null
+  if (nota) update.notas_ia = lead.notas_ia ? lead.notas_ia + '\n' + nota : nota
+
+  if (Object.keys(update).length === 0) {
+    return { text: 'No me diste ningún dato nuevo para actualizar — contame qué aprendiste sobre el cliente.', isFinal: true }
+  }
+
+  await supabaseAdmin.from('leads').update(update).eq('id', lead.id)
+
+  await registrarBitacora({
+    asesorEmail: ctx.asesorCorreo,
+    tipoAccion: 'actualizar_perfil_lead',
+    resumen: `Perfil de ${lead.nombre} actualizado`,
+    detalle: update,
+    leadId: lead.id,
+  })
+
+  return { text: `📇 Listo, actualicé el perfil de *${lead.nombre}*.`, isFinal: true }
+}
+
 // Ejecuta una acción que había quedado pendiente de aprobación (ver el chequeo de
 // AFIRMATIVOS/NEGATIVOS más arriba en POST). El `tipo` viene de `tipo_accion` de la fila de
 // `valeria_bitacora`, y `detalle` es el payload que el handler original dejó guardado.
@@ -1182,8 +1256,12 @@ async function ejecutarConectarAsesor(params: {
   tipo?: string | null
   nombre?: string | null
   propiedadId?: string | null
+  intencion?: 'comprar' | 'vender'
+  presupuestoMin?: number | null
+  presupuestoMax?: number | null
 }): Promise<string> {
-  const { from, text, userName, zona, tipo, nombre, propiedadId } = params
+  const { from, text, userName, zona, tipo, nombre, propiedadId, presupuestoMin, presupuestoMax } = params
+  const intencion = params.intencion || 'comprar'
   let asesorEmailDestino: string | null = null
   let propTitulo: string | null = null
 
@@ -1192,12 +1270,18 @@ async function ejecutarConectarAsesor(params: {
     if (prop) { asesorEmailDestino = prop.asesor_email; propTitulo = prop.titulo }
   }
 
+  // Captación básica (Fase 2): si alguien escribe para VENDER en vez de comprar, igual
+  // queda registrado como lead — solo cambia tipo_busqueda, así el mismo flujo de
+  // seguimiento (cron de leads fríos) también lo cubre.
   const { data: leadInsertado } = await supabaseAdmin.from('leads').insert({
     nombre: userName || nombre || 'Comprador WhatsApp',
     telefono: from,
     mensaje: text,
     zona_interes: zona || null,
-    tipo_busqueda: tipo || 'compra',
+    zonas_interes: zona ? [zona] : null,
+    presupuesto_min: presupuestoMin || null,
+    presupuesto_max: presupuestoMax || null,
+    tipo_busqueda: intencion === 'vender' ? 'venta' : (tipo || 'compra'),
     fuente: 'whatsapp_ia',
     estado: 'nuevo',
     asesor_email: asesorEmailDestino,
@@ -1209,8 +1293,8 @@ async function ejecutarConectarAsesor(params: {
   await registrarBitacora({
     asesorEmail: asesorFinal,
     tipoAccion: 'conectar_asesor',
-    resumen: 'Nuevo lead conectado' + (propTitulo ? ' — ' + propTitulo : ''),
-    detalle: { zona, tipo, propiedad_id: propiedadId || null },
+    resumen: (intencion === 'vender' ? 'Interesado en vender — ' : 'Nuevo lead conectado') + (propTitulo ? ' — ' + propTitulo : ''),
+    detalle: { zona, tipo, intencion, propiedad_id: propiedadId || null },
     leadId: leadInsertado?.id || null,
     propiedadId: propiedadId || null,
   })
@@ -1221,13 +1305,15 @@ async function ejecutarConectarAsesor(params: {
       nombre: userName || nombre || 'Comprador WhatsApp',
       telefono: from,
       zona_interes: zona || undefined,
-      mensaje: text,
+      mensaje: (intencion === 'vender' ? '[Quiere VENDER] ' : '') + text,
       propiedad_titulo: propTitulo || undefined,
     }).catch(() => {})
 
     return `🤝 ¡Perfecto! Te conecté con *${asesorContacto?.nombre || 'un asesor NIDO'}*${propTitulo ? ' para ' + propTitulo : ''}. Te va a escribir por acá pronto.${asesorContacto?.telefono ? `\n\nSi preferís escribirle directo: wa.me/${asesorContacto.telefono.replace(/[^0-9]/g, '')}` : ''}\n\n¿Necesitás algo más mientras tanto?`
   }
-  return `🤝 ¡Perfecto! Ya dejé registrado tu interés y un asesor NIDO te va a contactar pronto por este mismo WhatsApp.\n\n¿Necesitás algo más mientras tanto?`
+  return intencion === 'vender'
+    ? `🤝 ¡Perfecto! Ya dejé registrado tu interés en vender y un asesor NIDO te va a contactar pronto por este mismo WhatsApp para conocer más de tu propiedad.\n\n¿Necesitás algo más mientras tanto?`
+    : `🤝 ¡Perfecto! Ya dejé registrado tu interés y un asesor NIDO te va a contactar pronto por este mismo WhatsApp.\n\n¿Necesitás algo más mientras tanto?`
 }
 
 // Propietario pidiendo algo que no es basico: lo conecta con el asesor a cargo de su

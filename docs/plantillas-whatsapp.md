@@ -2,7 +2,9 @@
 
 WhatsApp solo permite texto libre dentro de las 24 horas después de que el usuario le escribió a Valeria. Fuera de esa ventana, cualquier mensaje que **NIDO inicia** (no una respuesta) tiene que mandarse como una **plantilla pre-aprobada por Meta** — si no, el envío se rechaza.
 
-El código ya intenta primero texto libre (gratis, funciona si el asesor escribió recientemente) y solo usa la plantilla como respaldo automático cuando Meta rechaza el texto libre por estar fuera de ventana. Para que ese respaldo funcione, hay que crear estas 8 plantillas una sola vez.
+El código ya intenta primero texto libre (gratis, funciona si el asesor escribió recientemente) y solo usa la plantilla como respaldo automático cuando Meta rechaza el texto libre por estar fuera de ventana. Para que ese respaldo funcione, hay que crear estas 10 plantillas una sola vez.
+
+Nota: `nido_tarea_vencida` y `nido_match_propiedad` (Fase 2) llegan a **cualquier asesor**, no solo plan Black — las tareas y el CRM ya son parte de todos los planes. El resto sigue siendo exclusivo de Black.
 
 ## Cómo crear una plantilla
 
@@ -74,6 +76,24 @@ Dale seguimiento antes de que se enfríe.
 🆘 Tu ticket urgente ya fue recibido por el equipo NIDO con prioridad alta. Te van a responder pronto.
 ```
 (sin variables)
+
+### nido_tarea_vencida
+```
+⏰ Tarea vence hoy — NIDO
+
+{{1}}
+
+Revisala en tu dashboard antes de que se te pase.
+```
+
+### nido_match_propiedad
+```
+🎯 Valeria encontró coincidencias
+
+Para tu lead {{1}} hay {{2}} propiedad(es) nueva(s) en el catálogo de NIDO que podrían encajar con su presupuesto y zona.
+
+Revisalas en tu CRM y decidí si le avisás.
+```
 
 ### nido_briefing_diario
 ```

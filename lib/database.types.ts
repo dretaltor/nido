@@ -168,6 +168,7 @@ export interface Lead {
   zonas_interes: string[] | null
   nivel_interes: 'frio' | 'tibio' | 'caliente' | null
   notas_ia: string | null
+  match_notificado_at: string | null
 }
 
 export interface Noticia {

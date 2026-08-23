@@ -10,7 +10,7 @@ import { sendWhatsAppSmart } from './whatsapp'
 // necesita existir y estar aprobada en Meta Business Manager -> WhatsApp Manager -> Plantillas).
 // Ver docs/plantillas-whatsapp.md para el texto exacto a registrar en Meta.
 
-export type TipoNotificacionWA = 'nuevo_lead' | 'kyc_aprobado' | 'kyc_rechazado' | 'nueva_comision' | 'ticket_respondido' | 'lead_sin_seguimiento' | 'escalamiento_confirmado'
+export type TipoNotificacionWA = 'nuevo_lead' | 'kyc_aprobado' | 'kyc_rechazado' | 'nueva_comision' | 'ticket_respondido' | 'lead_sin_seguimiento' | 'escalamiento_confirmado' | 'tarea_vencida' | 'match_propiedad'
 
 interface DatosNotificacion {
   nombre?: string
@@ -23,6 +23,7 @@ interface DatosNotificacion {
   monto?: number
   estado?: string
   dias?: number
+  cantidad?: number
 }
 
 const mensajes: Record<TipoNotificacionWA, (d: DatosNotificacion) => string> = {
@@ -33,6 +34,8 @@ const mensajes: Record<TipoNotificacionWA, (d: DatosNotificacion) => string> = {
   ticket_respondido: (d) => `💬 *Respuesta de NIDO a tu ticket*\n\n"${(d.mensaje || '').slice(0, 300)}"\n\nRevisá la conversación completa en nido-cr.com/soporte`,
   lead_sin_seguimiento: (d) => `⏰ *Lead sin contactar hace ${d.dias || 2} días*\n\n👤 ${d.nombre || 'Sin nombre'}${d.zona_interes ? '\n📍 ' + d.zona_interes : ''}\n\nDale seguimiento antes de que se enfríe — escribile o llamalo hoy.`,
   escalamiento_confirmado: () => `🆘 *Ticket urgente creado*\n\nEl equipo NIDO ya recibió tu consulta con prioridad alta y te va a responder pronto — por acá o por correo.`,
+  tarea_vencida: (d) => `⏰ *Tarea vence hoy — NIDO*\n\n${d.nombre || 'Sin título'}${d.notas ? '\n' + d.notas.slice(0, 200) : ''}\n\nRevisala en tu dashboard antes de que se te pase.`,
+  match_propiedad: (d) => `🎯 *Valeria encontró coincidencias*\n\nPara tu lead *${d.nombre || 'sin nombre'}*${d.zona_interes ? ' (' + d.zona_interes + ')' : ''} hay ${d.cantidad || 1} propiedad${(d.cantidad || 1) === 1 ? '' : 'es'} nueva${(d.cantidad || 1) === 1 ? '' : 's'} en el catálogo de NIDO que podrían encajar con su presupuesto y zona.\n\nRevisalas en tu CRM y decidí si le avisás.`,
 }
 
 // nombre de la plantilla en Meta + funcion que arma los parametros {{1}}, {{2}}... en orden
@@ -44,6 +47,30 @@ const plantillas: Record<TipoNotificacionWA, { nombre: string; parametros: (d: D
   ticket_respondido: { nombre: 'nido_ticket_respondido', parametros: (d) => [(d.mensaje || '').slice(0, 200)] },
   lead_sin_seguimiento: { nombre: 'nido_lead_sin_seguimiento', parametros: (d) => [String(d.dias || 2), d.nombre || 'Sin nombre', d.zona_interes || 'Sin zona especificada'] },
   escalamiento_confirmado: { nombre: 'nido_escalamiento_confirmado', parametros: () => [] },
+  tarea_vencida: { nombre: 'nido_tarea_vencida', parametros: (d) => [d.nombre || 'Sin título'] },
+  match_propiedad: { nombre: 'nido_match_propiedad', parametros: (d) => [d.nombre || 'Sin nombre', String(d.cantidad || 1)] },
+}
+
+// Implementación compartida — `requierePlanBlack` distingue las notificaciones que son
+// beneficio exclusivo de NIDO Black (mentor de mercado, leads premium) de las operativas
+// (tareas vencidas, matches de inventario) que le sirven a cualquier asesor, tenga el plan
+// que tenga, porque tareas/leads/CRM ya son parte de todos los planes.
+async function enviarNotificacion(
+  supabaseAdmin: SupabaseClient,
+  correo: string,
+  tipo: TipoNotificacionWA,
+  data: DatosNotificacion,
+  requierePlanBlack: boolean
+): Promise<{ sent: boolean; via?: string }> {
+  if (!correo || !mensajes[tipo]) return { sent: false }
+
+  const { data: perfil } = await supabaseAdmin.from('perfiles').select('plan, telefono').eq('correo', correo).maybeSingle()
+  if (!perfil || !perfil.telefono) return { sent: false }
+  if (requierePlanBlack && perfil.plan !== 'enterprise') return { sent: false }
+
+  const plantilla = plantillas[tipo]
+  const r = await sendWhatsAppSmart(perfil.telefono, mensajes[tipo](data), plantilla.nombre, plantilla.parametros(data))
+  return { sent: r.ok, via: r.via }
 }
 
 export async function notificarAsesorBlack(
@@ -52,12 +79,17 @@ export async function notificarAsesorBlack(
   tipo: TipoNotificacionWA,
   data: DatosNotificacion = {}
 ): Promise<{ sent: boolean; via?: string }> {
-  if (!correo || !mensajes[tipo]) return { sent: false }
+  return enviarNotificacion(supabaseAdmin, correo, tipo, data, true)
+}
 
-  const { data: perfil } = await supabaseAdmin.from('perfiles').select('plan, telefono').eq('correo', correo).maybeSingle()
-  if (!perfil || perfil.plan !== 'enterprise' || !perfil.telefono) return { sent: false }
-
-  const plantilla = plantillas[tipo]
-  const r = await sendWhatsAppSmart(perfil.telefono, mensajes[tipo](data), plantilla.nombre, plantilla.parametros(data))
-  return { sent: r.ok, via: r.via }
+// Notificaciones operativas disponibles para cualquier asesor (no exclusivas de Black) —
+// tareas vencidas, matches de inventario, y cualquier otro aviso que dependa de una
+// funcionalidad de CRM que ya está disponible en todos los planes.
+export async function notificarAsesor(
+  supabaseAdmin: SupabaseClient,
+  correo: string,
+  tipo: TipoNotificacionWA,
+  data: DatosNotificacion = {}
+): Promise<{ sent: boolean; via?: string }> {
+  return enviarNotificacion(supabaseAdmin, correo, tipo, data, false)
 }
